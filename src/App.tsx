@@ -4,8 +4,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
-import Animals from "./pages/Animals";
-import Scheduling from "./pages/Scheduling";
+import BookingBoard from "./pages/BookingBoard";
+import TransportSlotting from "./pages/TransportSlotting";
+import GridSpecs from "./pages/GridSpecs";
+import KPIDashboard from "./pages/KPIDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -18,8 +20,10 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/animals" element={<Animals />} />
-          <Route path="/scheduling" element={<Scheduling />} />
+          <Route path="/bookings" element={<BookingBoard />} />
+          <Route path="/transport" element={<TransportSlotting />} />
+          <Route path="/grid-specs" element={<GridSpecs />} />
+          <Route path="/kpis" element={<KPIDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

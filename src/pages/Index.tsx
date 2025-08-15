@@ -1,14 +1,16 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { MetricCard } from "@/components/dashboard/MetricCard";
-import { RecentActivity } from "@/components/dashboard/RecentActivity";
-import { ScheduleOverview } from "@/components/dashboard/ScheduleOverview";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { 
   Users, 
   Calendar, 
   Truck, 
   TrendingUp,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Activity,
+  BarChart3
 } from "lucide-react";
 
 const Index = () => {
@@ -37,45 +39,133 @@ const Index = () => {
         </div>
 
         {/* Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <MetricCard
-            title="Animals Processed Today"
-            value="87"
-            change="+12% from yesterday"
+            title="Fill Rate"
+            value="87.5%"
+            change="+4.3pp from last week"
             changeType="positive"
-            icon={CheckCircle}
-            description="Cattle: 65, Sheep: 22"
+            icon={BarChart3}
+            description="Booking capacity utilization"
+          />
+          <MetricCard
+            title="Lead Time Variance"
+            value="4.2hr"
+            change="-1.6hr from last week"
+            changeType="positive"
+            icon={Calendar}
+            description="Confirmed vs requested timing"
           />
           <MetricCard
             title="Active Bookings"
-            value="24"
-            change="5 pending confirmation"
-            changeType="neutral"
+            value="156"
+            change="+8 from yesterday"
+            changeType="positive"
             icon={Calendar}
-            description="Next 7 days"
+            description="Confirmed processing slots"
           />
           <MetricCard
-            title="Transport Arrivals"
-            value="8"
-            change="2 delayed"
-            changeType="negative"
+            title="Transport Loads"
+            value="48"
+            change="3 pending"
+            changeType="neutral"
             icon={Truck}
-            description="Expected today"
+            description="Scheduled transport today"
           />
           <MetricCard
-            title="Efficiency Rate"
-            value="94.2%"
-            change="+2.1% this week"
+            title="Slot Adherence"
+            value="92.3%"
+            change="+3.6pp from last week"
             changeType="positive"
             icon={TrendingUp}
-            description="Kill slot utilization"
+            description="Kept vs assigned slots"
+          />
+          <MetricCard
+            title="Conflicts"
+            value="3"
+            change="1 critical"
+            changeType="negative"
+            icon={AlertTriangle}
+            description="Active scheduling conflicts"
           />
         </div>
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ScheduleOverview />
-          <RecentActivity />
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Today's Schedule Overview
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                  <div>
+                    <div className="font-medium">JBS - Dinmore</div>
+                    <div className="text-sm text-muted-foreground">Beef: 150 head • 06:00-09:00</div>
+                  </div>
+                  <Badge className="bg-green-100 text-green-800 border-green-200">Confirmed</Badge>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                  <div>
+                    <div className="font-medium">Teys - Beenleigh</div>
+                    <div className="text-sm text-muted-foreground">Lamb: 300 head • 07:00-10:00</div>
+                  </div>
+                  <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Requested</Badge>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                  <div>
+                    <div className="font-medium">NH Foods - Oakey</div>
+                    <div className="text-sm text-muted-foreground">Beef: 200 head • 05:30-08:30</div>
+                  </div>
+                  <Badge className="bg-orange-100 text-orange-800 border-orange-200">Changed</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                Recent Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                  <div>
+                    <div className="text-sm font-medium">Booking B001 confirmed</div>
+                    <div className="text-xs text-muted-foreground">Murray Valley Livestock • 2 minutes ago</div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
+                  <div>
+                    <div className="text-sm font-medium">Transport slot conflict detected</div>
+                    <div className="text-xs text-muted-foreground">Teys - Beenleigh • 15 minutes ago</div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                  <div>
+                    <div className="text-sm font-medium">New grid spec published</div>
+                    <div className="text-xs text-muted-foreground">Beef v2.1 • 1 hour ago</div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
+                  <div>
+                    <div className="text-sm font-medium">Booking change requested</div>
+                    <div className="text-xs text-muted-foreground">Queensland Cattle Co • 2 hours ago</div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Quick Actions & Alerts */}

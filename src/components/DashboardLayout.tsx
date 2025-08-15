@@ -22,7 +22,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <span className="text-primary-foreground font-bold text-sm">A</span>
                 </div>
                 <h1 className="text-xl font-semibold text-foreground">
-                  AgriFlow Management System
+                  Muster IT - Red Meat Processor Management
                 </h1>
               </div>
             </div>

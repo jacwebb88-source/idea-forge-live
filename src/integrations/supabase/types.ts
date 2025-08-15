@@ -14,7 +14,339 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bookings: {
+        Row: {
+          agent_ref: string | null
+          created_at: string | null
+          est_avg_hscw: number | null
+          est_avg_live_wt: number | null
+          head_count: number | null
+          id: string
+          lot_id: string | null
+          plant_id: string | null
+          requested_kill_date: string | null
+          requested_window_end: string | null
+          requested_window_start: string | null
+          species: string
+          status: string | null
+          supplier_id: string | null
+          target_grid_id: string | null
+        }
+        Insert: {
+          agent_ref?: string | null
+          created_at?: string | null
+          est_avg_hscw?: number | null
+          est_avg_live_wt?: number | null
+          head_count?: number | null
+          id?: string
+          lot_id?: string | null
+          plant_id?: string | null
+          requested_kill_date?: string | null
+          requested_window_end?: string | null
+          requested_window_start?: string | null
+          species: string
+          status?: string | null
+          supplier_id?: string | null
+          target_grid_id?: string | null
+        }
+        Update: {
+          agent_ref?: string | null
+          created_at?: string | null
+          est_avg_hscw?: number | null
+          est_avg_live_wt?: number | null
+          head_count?: number | null
+          id?: string
+          lot_id?: string | null
+          plant_id?: string | null
+          requested_kill_date?: string | null
+          requested_window_end?: string | null
+          requested_window_start?: string | null
+          species?: string
+          status?: string | null
+          supplier_id?: string | null
+          target_grid_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "plants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_target_grid_id_fkey"
+            columns: ["target_grid_id"]
+            isOneToOne: false
+            referencedRelation: "gridspecs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gridspecs: {
+        Row: {
+          dentition_or_age: string | null
+          effective_from: string | null
+          effective_to: string | null
+          fat_code: string | null
+          id: string
+          max_hscw: number | null
+          min_hscw: number | null
+          notes: string | null
+          plant_id: string | null
+          species: string
+          version: number
+          yield_adj_rules: Json | null
+        }
+        Insert: {
+          dentition_or_age?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          fat_code?: string | null
+          id?: string
+          max_hscw?: number | null
+          min_hscw?: number | null
+          notes?: string | null
+          plant_id?: string | null
+          species: string
+          version?: number
+          yield_adj_rules?: Json | null
+        }
+        Update: {
+          dentition_or_age?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          fat_code?: string | null
+          id?: string
+          max_hscw?: number | null
+          min_hscw?: number | null
+          notes?: string | null
+          plant_id?: string | null
+          species?: string
+          version?: number
+          yield_adj_rules?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gridspecs_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "plants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      intake_events: {
+        Row: {
+          booking_id: string | null
+          event_type: string | null
+          id: string
+          location: string | null
+          notes: string | null
+          timestamp: string
+        }
+        Insert: {
+          booking_id?: string | null
+          event_type?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          timestamp?: string
+        }
+        Update: {
+          booking_id?: string | null
+          event_type?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intake_events_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kpi_records: {
+        Row: {
+          changes_count: number | null
+          date: string
+          fill_rate_pct: number | null
+          id: string
+          lead_time_variance_hr: number | null
+          on_spec_pct: number | null
+          plant_id: string | null
+          rework_hours: number | null
+          slot_adherence_pct: number | null
+        }
+        Insert: {
+          changes_count?: number | null
+          date: string
+          fill_rate_pct?: number | null
+          id?: string
+          lead_time_variance_hr?: number | null
+          on_spec_pct?: number | null
+          plant_id?: string | null
+          rework_hours?: number | null
+          slot_adherence_pct?: number | null
+        }
+        Update: {
+          changes_count?: number | null
+          date?: string
+          fill_rate_pct?: number | null
+          id?: string
+          lead_time_variance_hr?: number | null
+          on_spec_pct?: number | null
+          plant_id?: string | null
+          rework_hours?: number | null
+          slot_adherence_pct?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kpi_records_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "plants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plants: {
+        Row: {
+          company_name: string | null
+          created_at: string | null
+          id: string
+          licence_type: string | null
+          plant_name: string
+          species_supported: string[] | null
+          state: string | null
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string | null
+          id?: string
+          licence_type?: string | null
+          plant_name: string
+          species_supported?: string[] | null
+          state?: string | null
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string | null
+          id?: string
+          licence_type?: string | null
+          plant_name?: string
+          species_supported?: string[] | null
+          state?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          id: string
+          phone: string | null
+          role: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id: string
+          phone?: string | null
+          role?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          phone?: string | null
+          role?: string | null
+        }
+        Relationships: []
+      }
+      suppliers: {
+        Row: {
+          abn: string | null
+          contact_name: string | null
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          type: string | null
+        }
+        Insert: {
+          abn?: string | null
+          contact_name?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          type?: string | null
+        }
+        Update: {
+          abn?: string | null
+          contact_name?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          type?: string | null
+        }
+        Relationships: []
+      }
+      transport_slots: {
+        Row: {
+          assigned_booking_ids: string[] | null
+          conflict_flag: boolean | null
+          date: string
+          id: string
+          max_truck_loads: number | null
+          plant_id: string | null
+          species: string
+          window_end_dt: string
+          window_start_dt: string
+        }
+        Insert: {
+          assigned_booking_ids?: string[] | null
+          conflict_flag?: boolean | null
+          date: string
+          id?: string
+          max_truck_loads?: number | null
+          plant_id?: string | null
+          species: string
+          window_end_dt: string
+          window_start_dt: string
+        }
+        Update: {
+          assigned_booking_ids?: string[] | null
+          conflict_flag?: boolean | null
+          date?: string
+          id?: string
+          max_truck_loads?: number | null
+          plant_id?: string | null
+          species?: string
+          window_end_dt?: string
+          window_start_dt?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_slots_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "plants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

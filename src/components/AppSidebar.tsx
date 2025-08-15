@@ -25,19 +25,20 @@ import {
 
 const mainItems = [
   { title: "Dashboard", url: "/", icon: Home },
-  { title: "Animal Tracking", url: "/animals", icon: ClipboardList },
-  { title: "Scheduling", url: "/scheduling", icon: Calendar },
-  { title: "Analytics", url: "/analytics", icon: BarChart3 },
+  { title: "Booking Board", url: "/bookings", icon: Calendar },
+  { title: "Transport Slotting", url: "/transport", icon: Truck },
+  { title: "Grid Specs", url: "/grid-specs", icon: ClipboardList },
+  { title: "KPI Dashboard", url: "/kpis", icon: BarChart3 },
 ];
 
-const stakeholderItems = [
-  { title: "Buyers Portal", url: "/buyers", icon: Users },
-  { title: "Retail Dashboard", url: "/retail", icon: PieChart },
-  { title: "Transport Hub", url: "/transport", icon: Truck },
+const dataItems = [
+  { title: "Plants", url: "/plants", icon: Users },
+  { title: "Suppliers", url: "/suppliers", icon: Users },
+  { title: "Import Data", url: "/import", icon: ClipboardList },
 ];
 
 const systemItems = [
-  { title: "Communications", url: "/messages", icon: MessageSquare },
+  { title: "Intake Status", url: "/intake", icon: MessageSquare },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
@@ -57,7 +58,7 @@ export function AppSidebar() {
         <div className="p-4 border-b border-sidebar-border">
           {!collapsed && (
             <h2 className="text-lg font-semibold text-sidebar-foreground">
-              AgriFlow Pro
+              Muster IT
             </h2>
           )}
         </div>
@@ -81,10 +82,10 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Stakeholders</SidebarGroupLabel>
+          <SidebarGroupLabel>Data Management</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {stakeholderItems.map((item) => (
+              {dataItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink to={item.url} className={getNavCls}>
