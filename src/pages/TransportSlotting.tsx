@@ -4,44 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Truck, AlertTriangle, Calendar, Clock } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 
-// Mock transport slots data
-const mockTransportSlots = [
-  {
-    id: "TS001",
-    plant: "JBS - Dinmore (test)",
-    date: "2025-08-18",
-    windowStart: "06:00",
-    windowEnd: "09:00",
-    species: "beef",
-    maxTruckLoads: 3,
-    assignedBookings: ["B001"],
-    conflictFlag: false,
-  },
-  {
-    id: "TS002",
-    plant: "Teys - Beenleigh (test)",
-    date: "2025-08-19",
-    windowStart: "07:00",
-    windowEnd: "10:00",
-    species: "lamb",
-    maxTruckLoads: 2,
-    assignedBookings: ["B002", "B004"],
-    conflictFlag: true,
-  },
-  {
-    id: "TS003",
-    plant: "NH Foods - Oakey (test)",
-    date: "2025-08-20",
-    windowStart: "05:30",
-    windowEnd: "08:30",
-    species: "beef",
-    maxTruckLoads: 4,
-    assignedBookings: ["B003"],
-    conflictFlag: false,
-  },
-];
+// Type definition for transport slot data
+type TransportSlot = Tables<'transport_slots'>;
 
 // Generate week view
 const getWeekDays = () => {
@@ -59,13 +27,47 @@ const getWeekDays = () => {
   return days;
 };
 
+const formatTime = (dateTimeString: string) => {
+  return new Date(dateTimeString).toLocaleTimeString('en-AU', { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    hour12: false 
+  });
+};
+
 export default function TransportSlotting() {
+  const [transportSlots, setTransportSlots] = useState<TransportSlot[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedPlant, setSelectedPlant] = useState("all");
   const [selectedSpecies, setSelectedSpecies] = useState("all");
   const weekDays = getWeekDays();
 
-  const filteredSlots = mockTransportSlots.filter(slot => {
-    const matchesPlant = selectedPlant === "all" || slot.plant === selectedPlant;
+  useEffect(() => {
+    fetchTransportSlots();
+  }, []);
+
+  const fetchTransportSlots = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('transport_slots')
+        .select('*')
+        .order('window_start_dt', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching transport slots:', error);
+        return;
+      }
+
+      setTransportSlots(data || []);
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredSlots = transportSlots.filter(slot => {
+    const matchesPlant = selectedPlant === "all" || slot.plant_id === selectedPlant;
     const matchesSpecies = selectedSpecies === "all" || slot.species === selectedSpecies;
     return matchesPlant && matchesSpecies;
   });
@@ -130,60 +132,66 @@ export default function TransportSlotting() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Truck className="h-5 w-5" />
-              Weekly Transport Slots
+              {loading ? "Loading Transport Slots..." : "Weekly Transport Slots"}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-7 gap-4">
-              {weekDays.map((day) => {
-                const daySlots = getSlotsByDate(day.date);
-                return (
-                  <div key={day.date} className="border border-border rounded-lg p-3">
-                    <div className="text-center mb-3">
-                      <div className="text-sm font-medium text-muted-foreground">{day.dayName}</div>
-                      <div className="text-lg font-bold text-foreground">{day.dayNumber}</div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      {daySlots.map((slot) => (
-                        <div
-                          key={slot.id}
-                          className={`p-2 rounded border text-xs ${
-                            slot.conflictFlag 
-                              ? "border-destructive bg-destructive/10" 
-                              : "border-border bg-card"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <Badge variant="outline" className="text-xs">
-                              {slot.species}
-                            </Badge>
-                            {slot.conflictFlag && (
-                              <AlertTriangle className="h-3 w-3 text-destructive" />
-                            )}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {slot.windowStart} - {slot.windowEnd}
-                          </div>
-                          <div className="text-xs">
-                            {slot.assignedBookings.length}/{slot.maxTruckLoads} loads
-                          </div>
-                          <div className="text-xs font-mono text-muted-foreground mt-1">
-                            {slot.plant.split(' - ')[0]}
-                          </div>
-                        </div>
-                      ))}
+            {loading ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Loading transport slots...
+              </div>
+            ) : (
+              <div className="grid grid-cols-7 gap-4">
+                {weekDays.map((day) => {
+                  const daySlots = getSlotsByDate(day.date);
+                  return (
+                    <div key={day.date} className="border border-border rounded-lg p-3">
+                      <div className="text-center mb-3">
+                        <div className="text-sm font-medium text-muted-foreground">{day.dayName}</div>
+                        <div className="text-lg font-bold text-foreground">{day.dayNumber}</div>
+                      </div>
                       
-                      {daySlots.length === 0 && (
-                        <div className="text-center py-4 text-muted-foreground text-xs">
-                          No slots
-                        </div>
-                      )}
+                      <div className="space-y-2">
+                        {daySlots.map((slot) => (
+                          <div
+                            key={slot.id}
+                            className={`p-2 rounded border text-xs ${
+                              slot.conflict_flag 
+                                ? "border-destructive bg-destructive/10" 
+                                : "border-border bg-card"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <Badge variant="outline" className="text-xs capitalize">
+                                {slot.species}
+                              </Badge>
+                              {slot.conflict_flag && (
+                                <AlertTriangle className="h-3 w-3 text-destructive" />
+                              )}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {slot.window_start_dt ? formatTime(slot.window_start_dt) : ''} - {slot.window_end_dt ? formatTime(slot.window_end_dt) : ''}
+                            </div>
+                            <div className="text-xs">
+                              {slot.assigned_booking_ids?.length || 0}/{slot.max_truck_loads || 1} loads
+                            </div>
+                            <div className="text-xs font-mono text-muted-foreground mt-1">
+                              Plant {slot.plant_id?.slice(-3) || 'N/A'}
+                            </div>
+                          </div>
+                        ))}
+                        
+                        {daySlots.length === 0 && (
+                          <div className="text-center py-4 text-muted-foreground text-xs">
+                            No slots
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -198,15 +206,15 @@ export default function TransportSlotting() {
           <CardContent>
             <div className="space-y-3">
               {filteredSlots
-                .filter(slot => slot.conflictFlag)
+                .filter(slot => slot.conflict_flag)
                 .map((slot) => (
                   <div key={slot.id} className="flex items-center justify-between p-3 border border-destructive rounded-lg bg-destructive/5">
                     <div>
                       <div className="font-medium text-foreground">
-                        {slot.plant} - {slot.species} slot
+                        Plant {slot.plant_id?.slice(-3) || 'N/A'} - {slot.species} slot
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {slot.date} {slot.windowStart}-{slot.windowEnd} • Over capacity: {slot.assignedBookings.length}/{slot.maxTruckLoads} loads
+                        {slot.date} {slot.window_start_dt ? formatTime(slot.window_start_dt) : ''}-{slot.window_end_dt ? formatTime(slot.window_end_dt) : ''} • Over capacity: {slot.assigned_booking_ids?.length || 0}/{slot.max_truck_loads || 1} loads
                       </div>
                     </div>
                     <Button variant="outline" size="sm">
@@ -215,7 +223,7 @@ export default function TransportSlotting() {
                   </div>
                 ))}
               
-              {filteredSlots.filter(slot => slot.conflictFlag).length === 0 && (
+              {filteredSlots.filter(slot => slot.conflict_flag).length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   No conflicts detected
                 </div>
@@ -246,7 +254,7 @@ export default function TransportSlotting() {
                 <AlertTriangle className="h-5 w-5 text-destructive" />
                 <div>
                   <div className="text-2xl font-bold text-foreground">
-                    {filteredSlots.filter(slot => slot.conflictFlag).length}
+                    {filteredSlots.filter(slot => slot.conflict_flag).length}
                   </div>
                   <div className="text-sm text-muted-foreground">Conflicts</div>
                 </div>
@@ -260,7 +268,7 @@ export default function TransportSlotting() {
                 <Truck className="h-5 w-5 text-accent" />
                 <div>
                   <div className="text-2xl font-bold text-foreground">
-                    {filteredSlots.reduce((sum, slot) => sum + slot.assignedBookings.length, 0)}
+                    {filteredSlots.reduce((sum, slot) => sum + (slot.assigned_booking_ids?.length || 0), 0)}
                   </div>
                   <div className="text-sm text-muted-foreground">Assigned Loads</div>
                 </div>
