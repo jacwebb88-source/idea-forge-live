@@ -20,7 +20,7 @@ const Index = () => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Dashboard Overview</h1>
+            <h1 className="text-3xl font-bold text-foreground">Processor ABC — Today's Schedule</h1>
             <p className="text-muted-foreground mt-1">
               Managing livestock processing and scheduling efficiently
             </p>
