@@ -1,5 +1,6 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { MetricCard } from "@/components/dashboard/MetricCard";
+import { ScheduleOverview } from "@/components/dashboard/ScheduleOverview";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -120,39 +121,7 @@ const Index = () => {
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Today's Schedule Overview
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                  <div>
-                    <div className="font-medium">JBS - Dinmore</div>
-                    <div className="text-sm text-muted-foreground">Beef: 150 head • 06:00-09:00</div>
-                  </div>
-                  <Badge variant="confirmed">Confirmed</Badge>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                  <div>
-                    <div className="font-medium">Teys - Beenleigh</div>
-                    <div className="text-sm text-muted-foreground">Lamb: 300 head • 07:00-10:00</div>
-                  </div>
-                  <Badge variant="requested">Requested</Badge>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                  <div>
-                    <div className="font-medium">NH Foods - Oakey</div>
-                    <div className="text-sm text-muted-foreground">Beef: 200 head • 05:30-08:30</div>
-                  </div>
-                  <Badge className="bg-orange-100 text-orange-800 border-orange-200">Changed</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <ScheduleOverview />
           
           <Card>
             <CardHeader>
@@ -196,47 +165,6 @@ const Index = () => {
           </Card>
         </div>
 
-        {/* Quick Actions & Alerts */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-gradient-accent p-6 rounded-lg shadow-country">
-            <div className="flex items-center gap-3 mb-3">
-              <Calendar className="h-6 w-6 text-primary" />
-              <h3 className="font-semibold text-foreground">Quick Schedule</h3>
-            </div>
-            <p className="text-muted-foreground text-sm mb-4">
-              Add new booking or modify existing schedule
-            </p>
-            <button className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-country">
-              Manage Schedule
-            </button>
-          </div>
-
-          <div className="bg-card border border-border p-6 rounded-lg shadow-country">
-            <div className="flex items-center gap-3 mb-3">
-              <Users className="h-6 w-6 text-primary" />
-              <h3 className="font-semibold text-foreground">Stakeholder Hub</h3>
-            </div>
-            <p className="text-muted-foreground text-sm mb-4">
-              Connect with buyers, retail partners, and transport
-            </p>
-            <button className="bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/90 transition-country">
-              View Portals
-            </button>
-          </div>
-
-          <div className="bg-destructive/10 border border-destructive/20 p-6 rounded-lg">
-            <div className="flex items-center gap-3 mb-3">
-              <AlertTriangle className="h-6 w-6 text-destructive" />
-              <h3 className="font-semibold text-foreground">Alerts</h3>
-            </div>
-            <p className="text-muted-foreground text-sm mb-4">
-              2 urgent items require attention
-            </p>
-            <button className="bg-destructive text-destructive-foreground px-4 py-2 rounded-md hover:bg-destructive/90 transition-country">
-              View Alerts
-            </button>
-          </div>
-        </div>
 
         {/* Demo Data Notice */}
         <Card className="border-dashed border-muted-foreground/30">
