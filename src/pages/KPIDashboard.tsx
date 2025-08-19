@@ -5,54 +5,174 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart3, TrendingUp, TrendingDown, Calendar, Download, FileText } from "lucide-react";
 import { MetricCard } from "@/components/dashboard/MetricCard";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { format, startOfWeek, endOfWeek, subWeeks } from "date-fns";
 
-// Mock KPI data
-const mockKPIData = {
-  currentWeek: {
-    fillRate: 87.5,
-    leadTimeVariance: 4.2,
-    changesCount: 12,
-    reworkHours: 6.5,
-    slotAdherence: 92.3,
-    onSpec: 94.8,
-  },
-  previousWeek: {
-    fillRate: 83.2,
-    leadTimeVariance: 5.8,
-    changesCount: 18,
-    reworkHours: 9.2,
-    slotAdherence: 88.7,
-    onSpec: 91.2,
-  },
-  plantBreakdown: [
-    {
-      plant: "JBS - Dinmore (test)",
-      fillRate: 92.1,
-      leadTimeVariance: 3.2,
-      slotAdherence: 95.5,
-      onSpec: 96.2,
-    },
-    {
-      plant: "Teys - Beenleigh (test)",
-      fillRate: 89.3,
-      leadTimeVariance: 4.1,
-      slotAdherence: 91.8,
-      onSpec: 94.7,
-    },
-    {
-      plant: "NH Foods - Oakey (test)",
-      fillRate: 81.7,
-      leadTimeVariance: 5.9,
-      slotAdherence: 87.1,
-      onSpec: 92.1,
-    },
-  ],
-};
+interface KPIData {
+  fillRate: number;
+  leadTimeVariance: number;
+  changesCount: number;
+  reworkHours: number;
+  slotAdherence: number;
+  onSpec: number;
+}
+
+interface PlantKPI {
+  plant: string;
+  plant_id: string;
+  fillRate: number;
+  leadTimeVariance: number;
+  slotAdherence: number;
+  onSpec: number;
+}
 
 export default function KPIDashboard() {
   const [selectedPlant, setSelectedPlant] = useState("all");
   const [timeRange, setTimeRange] = useState("week");
+  const [currentWeekKPIs, setCurrentWeekKPIs] = useState<KPIData | null>(null);
+  const [previousWeekKPIs, setPreviousWeekKPIs] = useState<KPIData | null>(null);
+  const [plantBreakdown, setPlantBreakdown] = useState<PlantKPI[]>([]);
+  const [plants, setPlants] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Calculate week dates
+  const currentWeekStart = startOfWeek(new Date());
+  const currentWeekEnd = endOfWeek(new Date());
+  const previousWeekStart = startOfWeek(subWeeks(new Date(), 1));
+  const previousWeekEnd = endOfWeek(subWeeks(new Date(), 1));
+
+  // Fetch plants
+  useEffect(() => {
+    const fetchPlants = async () => {
+      const { data } = await supabase
+        .from('plants')
+        .select('*')
+        .order('plant_name');
+      if (data) setPlants(data);
+    };
+    fetchPlants();
+  }, []);
+
+  // Calculate Fill Rate for a given period
+  const calculateFillRate = async (startDate: Date, endDate: Date, plantId?: string) => {
+    // Get planned head from day_plans
+    let plannedQuery = supabase
+      .from('day_plans')
+      .select('planned_head')
+      .gte('date', format(startDate, 'yyyy-MM-dd'))
+      .lte('date', format(endDate, 'yyyy-MM-dd'));
+    
+    if (plantId && plantId !== 'all') {
+      plannedQuery = plannedQuery.eq('plant_id', plantId);
+    }
+
+    const { data: plannedData } = await plannedQuery;
+    const totalPlanned = plannedData?.reduce((sum, row) => sum + row.planned_head, 0) || 0;
+
+    // Get booked head from bookings
+    let bookedQuery = supabase
+      .from('bookings')
+      .select('head_count')
+      .gte('requested_kill_date', format(startDate, 'yyyy-MM-dd'))
+      .lte('requested_kill_date', format(endDate, 'yyyy-MM-dd'));
+    
+    if (plantId && plantId !== 'all') {
+      bookedQuery = bookedQuery.eq('plant_id', plantId);
+    }
+
+    const { data: bookedData } = await bookedQuery;
+    const totalBooked = bookedData?.reduce((sum, row) => sum + (row.head_count || 0), 0) || 0;
+
+    return totalPlanned > 0 ? (totalBooked / totalPlanned) * 100 : 0;
+  };
+
+  // Calculate other KPIs from kpi_records
+  const calculateKPIsFromRecords = async (startDate: Date, endDate: Date, plantId?: string) => {
+    let query = supabase
+      .from('kpi_records')
+      .select('*')
+      .gte('date', format(startDate, 'yyyy-MM-dd'))
+      .lte('date', format(endDate, 'yyyy-MM-dd'));
+    
+    if (plantId && plantId !== 'all') {
+      query = query.eq('plant_id', plantId);
+    }
+
+    const { data } = await query;
+    
+    if (!data || data.length === 0) {
+      return {
+        leadTimeVariance: 0,
+        changesCount: 0,
+        reworkHours: 0,
+        slotAdherence: 0,
+        onSpec: 0,
+      };
+    }
+
+    const avg = (field: string) => data.reduce((sum, row) => sum + (row[field] || 0), 0) / data.length;
+    const sum = (field: string) => data.reduce((sum, row) => sum + (row[field] || 0), 0);
+
+    return {
+      leadTimeVariance: avg('lead_time_variance_hr'),
+      changesCount: sum('changes_count'),
+      reworkHours: sum('rework_hours'),
+      slotAdherence: avg('slot_adherence_pct'),
+      onSpec: avg('on_spec_pct'),
+    };
+  };
+
+  // Fetch KPI data
+  useEffect(() => {
+    const fetchKPIData = async () => {
+      setLoading(true);
+      
+      // Calculate fill rates
+      const currentFillRate = await calculateFillRate(currentWeekStart, currentWeekEnd, selectedPlant);
+      const previousFillRate = await calculateFillRate(previousWeekStart, previousWeekEnd, selectedPlant);
+      
+      // Calculate other KPIs
+      const currentOtherKPIs = await calculateKPIsFromRecords(currentWeekStart, currentWeekEnd, selectedPlant);
+      const previousOtherKPIs = await calculateKPIsFromRecords(previousWeekStart, previousWeekEnd, selectedPlant);
+
+      setCurrentWeekKPIs({
+        fillRate: currentFillRate,
+        ...currentOtherKPIs,
+      });
+
+      setPreviousWeekKPIs({
+        fillRate: previousFillRate,
+        ...previousOtherKPIs,
+      });
+
+      // Calculate plant breakdown if "all" plants selected
+      if (selectedPlant === 'all') {
+        const breakdown = await Promise.all(
+          plants.map(async (plant) => {
+            const fillRate = await calculateFillRate(currentWeekStart, currentWeekEnd, plant.id);
+            const otherKPIs = await calculateKPIsFromRecords(currentWeekStart, currentWeekEnd, plant.id);
+            
+            return {
+              plant: plant.plant_name,
+              plant_id: plant.id,
+              fillRate,
+              ...otherKPIs,
+            };
+          })
+        );
+        setPlantBreakdown(breakdown);
+      } else {
+        setPlantBreakdown([]);
+      }
+      
+      setLoading(false);
+    };
+
+    if (plants.length > 0) {
+      fetchKPIData();
+    }
+  }, [selectedPlant, plants, currentWeekStart, previousWeekStart]);
 
   const calculateChange = (current: number, previous: number): {
     value: string;
@@ -68,10 +188,33 @@ export default function KPIDashboard() {
     };
   };
 
-  const fillRateChange = calculateChange(mockKPIData.currentWeek.fillRate, mockKPIData.previousWeek.fillRate);
-  const leadTimeChange = calculateChange(mockKPIData.previousWeek.leadTimeVariance, mockKPIData.currentWeek.leadTimeVariance); // Reversed for better is lower
-  const slotAdherenceChange = calculateChange(mockKPIData.currentWeek.slotAdherence, mockKPIData.previousWeek.slotAdherence);
-  const onSpecChange = calculateChange(mockKPIData.currentWeek.onSpec, mockKPIData.previousWeek.onSpec);
+  const fillRateChange = currentWeekKPIs && previousWeekKPIs ? 
+    calculateChange(currentWeekKPIs.fillRate, previousWeekKPIs.fillRate) : 
+    { value: "0", type: "neutral" as const, symbol: "" };
+  
+  const leadTimeChange = currentWeekKPIs && previousWeekKPIs ? 
+    calculateChange(previousWeekKPIs.leadTimeVariance, currentWeekKPIs.leadTimeVariance) : // Reversed for better is lower
+    { value: "0", type: "neutral" as const, symbol: "" };
+  
+  const slotAdherenceChange = currentWeekKPIs && previousWeekKPIs ? 
+    calculateChange(currentWeekKPIs.slotAdherence, previousWeekKPIs.slotAdherence) : 
+    { value: "0", type: "neutral" as const, symbol: "" };
+  
+  const onSpecChange = currentWeekKPIs && previousWeekKPIs ? 
+    calculateChange(currentWeekKPIs.onSpec, previousWeekKPIs.onSpec) : 
+    { value: "0", type: "neutral" as const, symbol: "" };
+
+  if (loading || !currentWeekKPIs) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">Loading KPI data...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -103,9 +246,11 @@ export default function KPIDashboard() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Plants</SelectItem>
-                  <SelectItem value="JBS - Dinmore (test)">JBS - Dinmore</SelectItem>
-                  <SelectItem value="Teys - Beenleigh (test)">Teys - Beenleigh</SelectItem>
-                  <SelectItem value="NH Foods - Oakey (test)">NH Foods - Oakey</SelectItem>
+                  {plants.map((plant) => (
+                    <SelectItem key={plant.id} value={plant.id}>
+                      {plant.plant_name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Select value={timeRange} onValueChange={setTimeRange}>
@@ -126,15 +271,15 @@ export default function KPIDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <MetricCard
             title="Fill Rate"
-            value={`${mockKPIData.currentWeek.fillRate}%`}
+            value={`${currentWeekKPIs.fillRate.toFixed(1)}%`}
             change={`${fillRateChange.symbol}${fillRateChange.value}pp vs last week`}
             changeType={fillRateChange.type}
             icon={BarChart3}
-            description="Booked head / planned head"
+            description="Booked head ÷ planned head"
           />
           <MetricCard
             title="Lead Time Variance"
-            value={`${mockKPIData.currentWeek.leadTimeVariance}hr`}
+            value={`${currentWeekKPIs.leadTimeVariance.toFixed(1)}hr`}
             change={`${leadTimeChange.symbol}${leadTimeChange.value}hr vs last week`}
             changeType={leadTimeChange.type}
             icon={Calendar}
@@ -142,7 +287,7 @@ export default function KPIDashboard() {
           />
           <MetricCard
             title="Slot Adherence"
-            value={`${mockKPIData.currentWeek.slotAdherence}%`}
+            value={`${currentWeekKPIs.slotAdherence.toFixed(1)}%`}
             change={`${slotAdherenceChange.symbol}${slotAdherenceChange.value}pp vs last week`}
             changeType={slotAdherenceChange.type}
             icon={TrendingUp}
@@ -150,7 +295,7 @@ export default function KPIDashboard() {
           />
           <MetricCard
             title="On-Spec Rate"
-            value={`${mockKPIData.currentWeek.onSpec}%`}
+            value={`${currentWeekKPIs.onSpec.toFixed(1)}%`}
             change={`${onSpecChange.symbol}${onSpecChange.value}pp vs last week`}
             changeType={onSpecChange.type}
             icon={TrendingUp}
@@ -158,68 +303,70 @@ export default function KPIDashboard() {
           />
           <MetricCard
             title="Changes Count"
-            value={mockKPIData.currentWeek.changesCount}
-            change={`${mockKPIData.currentWeek.changesCount - mockKPIData.previousWeek.changesCount} vs last week`}
-            changeType={(mockKPIData.currentWeek.changesCount < mockKPIData.previousWeek.changesCount ? "positive" : "negative") as "positive" | "negative" | "neutral"}
+            value={currentWeekKPIs.changesCount}
+            change={`${previousWeekKPIs ? (currentWeekKPIs.changesCount - previousWeekKPIs.changesCount) : 0} vs last week`}
+            changeType={(previousWeekKPIs && currentWeekKPIs.changesCount < previousWeekKPIs.changesCount ? "positive" : "negative") as "positive" | "negative" | "neutral"}
             icon={Calendar}
             description="Weekly booking changes"
           />
           <MetricCard
             title="Rework Hours"
-            value={`${mockKPIData.currentWeek.reworkHours}hr`}
-            change={`${(mockKPIData.currentWeek.reworkHours - mockKPIData.previousWeek.reworkHours).toFixed(1)}hr vs last week`}
-            changeType={(mockKPIData.currentWeek.reworkHours < mockKPIData.previousWeek.reworkHours ? "positive" : "negative") as "positive" | "negative" | "neutral"}
+            value={`${currentWeekKPIs.reworkHours.toFixed(1)}hr`}
+            change={`${previousWeekKPIs ? (currentWeekKPIs.reworkHours - previousWeekKPIs.reworkHours).toFixed(1) : 0}hr vs last week`}
+            changeType={(previousWeekKPIs && currentWeekKPIs.reworkHours < previousWeekKPIs.reworkHours ? "positive" : "negative") as "positive" | "negative" | "neutral"}
             icon={TrendingDown}
             description="Changes × avg time per change"
           />
         </div>
 
-        {/* Plant Breakdown */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Plant Performance Breakdown</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Plant</th>
-                    <th className="text-right py-3 px-2 text-sm font-medium text-muted-foreground">Fill Rate</th>
-                    <th className="text-right py-3 px-2 text-sm font-medium text-muted-foreground">Lead Time Variance</th>
-                    <th className="text-right py-3 px-2 text-sm font-medium text-muted-foreground">Slot Adherence</th>
-                    <th className="text-right py-3 px-2 text-sm font-medium text-muted-foreground">On-Spec Rate</th>
-                    <th className="text-right py-3 px-2 text-sm font-medium text-muted-foreground">Performance</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mockKPIData.plantBreakdown.map((plant, index) => (
-                    <tr key={index} className="border-b border-border hover:bg-muted/50 transition-colors">
-                      <td className="py-3 px-2 font-medium">{plant.plant}</td>
-                      <td className="py-3 px-2 text-right">{plant.fillRate}%</td>
-                      <td className="py-3 px-2 text-right">{plant.leadTimeVariance}hr</td>
-                      <td className="py-3 px-2 text-right">{plant.slotAdherence}%</td>
-                      <td className="py-3 px-2 text-right">{plant.onSpec}%</td>
-                      <td className="py-3 px-2 text-right">
-                        <Badge 
-                          className={
-                            plant.fillRate > 90 
-                              ? "bg-green-100 text-green-800 border-green-200" 
-                              : plant.fillRate > 80 
-                              ? "bg-yellow-100 text-yellow-800 border-yellow-200"
-                              : "bg-red-100 text-red-800 border-red-200"
-                          }
-                        >
-                          {plant.fillRate > 90 ? "Excellent" : plant.fillRate > 80 ? "Good" : "Needs Improvement"}
-                        </Badge>
-                      </td>
+        {/* Plant Breakdown - Only show when "All Plants" is selected */}
+        {selectedPlant === 'all' && plantBreakdown.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Plant Performance Breakdown - This Week</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Plant</th>
+                      <th className="text-right py-3 px-2 text-sm font-medium text-muted-foreground">Fill Rate</th>
+                      <th className="text-right py-3 px-2 text-sm font-medium text-muted-foreground">Lead Time Variance</th>
+                      <th className="text-right py-3 px-2 text-sm font-medium text-muted-foreground">Slot Adherence</th>
+                      <th className="text-right py-3 px-2 text-sm font-medium text-muted-foreground">On-Spec Rate</th>
+                      <th className="text-right py-3 px-2 text-sm font-medium text-muted-foreground">Performance</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+                  </thead>
+                  <tbody>
+                    {plantBreakdown.map((plant, index) => (
+                      <tr key={index} className="border-b border-border hover:bg-muted/50 transition-colors">
+                        <td className="py-3 px-2 font-medium">{plant.plant}</td>
+                        <td className="py-3 px-2 text-right">{plant.fillRate.toFixed(1)}%</td>
+                        <td className="py-3 px-2 text-right">{plant.leadTimeVariance.toFixed(1)}hr</td>
+                        <td className="py-3 px-2 text-right">{plant.slotAdherence.toFixed(1)}%</td>
+                        <td className="py-3 px-2 text-right">{plant.onSpec.toFixed(1)}%</td>
+                        <td className="py-3 px-2 text-right">
+                          <Badge 
+                            className={
+                              plant.fillRate > 90 
+                                ? "bg-green-100 text-green-800 border-green-200" 
+                                : plant.fillRate > 80 
+                                ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+                                : "bg-red-100 text-red-800 border-red-200"
+                            }
+                          >
+                            {plant.fillRate > 90 ? "Excellent" : plant.fillRate > 80 ? "Good" : "Needs Improvement"}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Pilot Results Summary */}
         <Card>

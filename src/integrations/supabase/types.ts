@@ -85,7 +85,52 @@ export type Database = {
             foreignKeyName: "bookings_target_grid_id_fkey"
             columns: ["target_grid_id"]
             isOneToOne: false
+            referencedRelation: "app_gridspecs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_target_grid_id_fkey"
+            columns: ["target_grid_id"]
+            isOneToOne: false
             referencedRelation: "gridspecs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      day_plans: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          planned_head: number
+          plant_id: string | null
+          species: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          planned_head?: number
+          plant_id?: string | null
+          species: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          planned_head?: number
+          plant_id?: string | null
+          species?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "day_plans_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "plants"
             referencedColumns: ["id"]
           },
         ]
@@ -173,6 +218,13 @@ export type Database = {
             foreignKeyName: "intake_events_booking_id_fkey"
             columns: ["booking_id"]
             isOneToOne: false
+            referencedRelation: "app_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "intake_events_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
             referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
@@ -227,6 +279,7 @@ export type Database = {
           company_name: string | null
           created_at: string | null
           id: string
+          is_default: boolean | null
           licence_type: string | null
           plant_name: string
           species_supported: string[] | null
@@ -236,6 +289,7 @@ export type Database = {
           company_name?: string | null
           created_at?: string | null
           id?: string
+          is_default?: boolean | null
           licence_type?: string | null
           plant_name: string
           species_supported?: string[] | null
@@ -245,6 +299,7 @@ export type Database = {
           company_name?: string | null
           created_at?: string | null
           id?: string
+          is_default?: boolean | null
           licence_type?: string | null
           plant_name?: string
           species_supported?: string[] | null
@@ -349,7 +404,103 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      app_bookings: {
+        Row: {
+          agent_ref: string | null
+          created_at: string | null
+          est_avg_hscw: number | null
+          est_avg_live_wt: number | null
+          head_count: number | null
+          id: string | null
+          lot_id: string | null
+          plant_id: string | null
+          plant_name: string | null
+          requested_kill_date: string | null
+          requested_window_end: string | null
+          requested_window_start: string | null
+          species: string | null
+          status: string | null
+          supplier_id: string | null
+          target_grid_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "plants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_target_grid_id_fkey"
+            columns: ["target_grid_id"]
+            isOneToOne: false
+            referencedRelation: "app_gridspecs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_target_grid_id_fkey"
+            columns: ["target_grid_id"]
+            isOneToOne: false
+            referencedRelation: "gridspecs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      app_gridspecs: {
+        Row: {
+          dentition_or_age: string | null
+          effective_from: string | null
+          effective_to: string | null
+          fat_code: string | null
+          id: string | null
+          max_hscw: number | null
+          min_hscw: number | null
+          notes: string | null
+          plant_id: string | null
+          species: string | null
+          version: number | null
+          yield_adj_rules: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gridspecs_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "plants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      app_transport_slots: {
+        Row: {
+          assigned_booking_ids: string[] | null
+          conflict_flag: boolean | null
+          date: string | null
+          id: string | null
+          max_truck_loads: number | null
+          plant_id: string | null
+          species: string | null
+          window_end_dt: string | null
+          window_start_dt: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transport_slots_plant_id_fkey"
+            columns: ["plant_id"]
+            isOneToOne: false
+            referencedRelation: "plants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       [_ in never]: never
