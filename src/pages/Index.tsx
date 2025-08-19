@@ -3,6 +3,7 @@ import { MetricCard } from "@/components/dashboard/MetricCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Users, 
   Calendar, 
@@ -15,6 +16,29 @@ import {
 } from "lucide-react";
 
 const Index = () => {
+  const { toast } = useToast();
+
+  const handleConfirmSlot = () => {
+    toast({
+      title: "Booking locked in",
+      description: "The booking slot has been confirmed and locked.",
+    });
+  };
+
+  const handleChangeRequest = () => {
+    toast({
+      title: "Window updated", 
+      description: "The booking window has been successfully updated.",
+    });
+  };
+
+  const handleSendGrid = () => {
+    toast({
+      title: "ETA received",
+      description: "Grid specifications sent and ETA confirmation received.",
+    });
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -27,15 +51,15 @@ const Index = () => {
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
-            <Button variant="outline" className="flex items-center gap-2">
+            <Button variant="outline" className="flex items-center gap-2" onClick={handleConfirmSlot}>
               <CheckCircle className="h-4 w-4" />
               Confirm Slot
             </Button>
-            <Button variant="outline" className="flex items-center gap-2">
+            <Button variant="outline" className="flex items-center gap-2" onClick={handleChangeRequest}>
               <Calendar className="h-4 w-4" />
               Change Request
             </Button>
-            <Button className="flex items-center gap-2">
+            <Button className="flex items-center gap-2" onClick={handleSendGrid}>
               <BarChart3 className="h-4 w-4" />
               Send Grid
             </Button>
