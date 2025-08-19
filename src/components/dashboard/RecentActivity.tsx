@@ -4,56 +4,38 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
-interface BookingActivity {
-  id: string;
-  status: string;
+interface ActivityItem {
+  booking_id: string;
+  supplier_name: string | null;
   lot_id: string | null;
-  species: string;
-  head_count: number | null;
-  created_at: string;
-  supplier_name: string;
+  species: string | null;
+  event: string;
+  at_time: string;
+  type: 'booking' | 'intake';
 }
 
 export function RecentActivity() {
-  const [activities, setActivities] = useState<BookingActivity[]>([]);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchRecentBookings();
+    fetchRecentActivity();
   }, []);
 
-  const fetchRecentBookings = async () => {
+  const fetchRecentActivity = async () => {
     try {
       const { data, error } = await supabase
-        .from('bookings')
-        .select(`
-          id,
-          status,
-          lot_id,
-          species,
-          head_count,
-          created_at,
-          suppliers!inner(name)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(6);
+        .from('app_recent_activity' as any)
+        .select('*')
+        .order('at_time', { ascending: false })
+        .limit(10);
 
       if (error) {
-        console.error('Error fetching recent bookings:', error);
+        console.error('Error fetching recent activity:', error);
         return;
       }
 
-      const bookingActivities = data?.map(booking => ({
-        id: booking.id,
-        status: booking.status || 'requested',
-        lot_id: booking.lot_id,
-        species: booking.species,
-        head_count: booking.head_count,
-        created_at: booking.created_at,
-        supplier_name: (booking.suppliers as any)?.name || 'Unknown Supplier'
-      })) || [];
-
-      setActivities(bookingActivities);
+      setActivities((data as unknown as ActivityItem[]) || []);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -71,21 +53,30 @@ export function RecentActivity() {
     }
   };
 
-  const getActivityMessage = (activity: BookingActivity) => {
+  const getActivityMessage = (activity: ActivityItem) => {
     const lotInfo = activity.lot_id ? ` (Lot: ${activity.lot_id})` : '';
-    const headInfo = activity.head_count ? ` • ${activity.head_count} head` : '';
+    const speciesInfo = activity.species ? `${activity.species} ` : '';
     
-    switch (activity.status?.toLowerCase()) {
+    if (activity.type === 'intake') {
+      return `${activity.event}${lotInfo}`;
+    }
+    
+    // For booking events
+    switch (activity.event?.toLowerCase()) {
       case "confirmed":
-        return `Booking confirmed for ${activity.supplier_name}${lotInfo}${headInfo}`;
+        return `Booking confirmed${lotInfo ? ` ${lotInfo}` : ''}`;
       case "changed":
-        return `Booking modified for ${activity.supplier_name}${lotInfo}${headInfo}`;
+        return `Booking modified${lotInfo ? ` ${lotInfo}` : ''}`;
       case "cancelled":
-        return `Booking cancelled for ${activity.supplier_name}${lotInfo}${headInfo}`;
+        return `Booking cancelled${lotInfo ? ` ${lotInfo}` : ''}`;
       case "requested":
       default:
-        return `New booking from ${activity.supplier_name}${lotInfo}${headInfo}`;
+        return `New booking${lotInfo ? ` ${lotInfo}` : ''}`;
     }
+  };
+
+  const getTypeColor = (type: 'booking' | 'intake') => {
+    return type === 'booking' ? 'bg-primary' : 'bg-accent';
   };
 
   const getRelativeTime = (dateString: string) => {
@@ -121,19 +112,21 @@ export function RecentActivity() {
           </div>
         ) : (
           <div className="space-y-4">
-            {activities.map((activity) => (
-              <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-country">
-                <Calendar className="h-4 w-4 text-primary mt-1 flex-shrink-0" />
+            {activities.map((activity, index) => (
+              <div key={`${activity.booking_id}-${index}`} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                <div className="flex items-center gap-2 mt-1">
+                  <div className={`w-2 h-2 rounded-full ${getTypeColor(activity.type)}`}></div>
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-foreground font-medium">
                     {getActivityMessage(activity)}
                   </p>
                   <div className="flex items-center gap-2 mt-1">
                     <p className="text-xs text-muted-foreground">
-                      {getRelativeTime(activity.created_at)}
+                      {getRelativeTime(activity.at_time)}
                     </p>
-                    <Badge variant={getStatusVariant(activity.status)}>
-                      {activity.status}
+                    <Badge variant={getStatusVariant(activity.event)}>
+                      {activity.event}
                     </Badge>
                   </div>
                 </div>
