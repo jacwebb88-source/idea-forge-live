@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { NewBookingForm } from "@/components/NewBookingForm";
 import { Calendar, Search, Plus, Filter, Download } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +48,7 @@ export default function BookingBoard() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [isNewBookingOpen, setIsNewBookingOpen] = useState(false);
 
   useEffect(() => {
     fetchBookings();
@@ -78,6 +80,10 @@ export default function BookingBoard() {
     }
   };
 
+  const handleBookingCreated = () => {
+    fetchBookings(); // Refresh the bookings list
+  };
+
   const filteredBookings = bookings.filter(booking => {
     const matchesSearch = (booking.lot_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           booking.agent_ref?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -100,7 +106,7 @@ export default function BookingBoard() {
               <Download className="h-4 w-4 mr-2" />
               Export CSV
             </Button>
-            <Button>
+            <Button onClick={() => setIsNewBookingOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               New Booking
             </Button>
@@ -265,6 +271,13 @@ export default function BookingBoard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* New Booking Form */}
+        <NewBookingForm 
+          open={isNewBookingOpen}
+          onOpenChange={setIsNewBookingOpen}
+          onBookingCreated={handleBookingCreated}
+        />
       </div>
     </DashboardLayout>
   );
