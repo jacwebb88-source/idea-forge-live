@@ -5,85 +5,67 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileSpreadsheet, Plus, Search, Download, Edit, Eye } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 
-// Mock grid specs data
-const mockGridSpecs = [
-  {
-    id: "GS001",
-    plant: "JBS - Dinmore (test)",
-    species: "beef",
-    version: 1,
-    effectiveFrom: "2025-01-01",
-    effectiveTo: null,
-    minHSCW: 200,
-    maxHSCW: 380,
-    fatCode: "P8 2-4mm",
-    dentition: "0-2 teeth",
-    notes: "Standard beef grid for export",
-  },
-  {
-    id: "GS002",
-    plant: "Teys - Beenleigh (test)",
-    species: "lamb",
-    version: 2,
-    effectiveFrom: "2025-02-01",
-    effectiveTo: null,
-    minHSCW: 16,
-    maxHSCW: 32,
-    fatCode: "GR 6-15mm",
-    dentition: "Milk teeth",
-    notes: "Premium lamb specifications",
-  },
-  {
-    id: "GS003",
-    plant: "NH Foods - Oakey (test)",
-    species: "beef",
-    version: 1,
-    effectiveFrom: "2025-01-15",
-    effectiveTo: "2025-07-31",
-    minHSCW: 220,
-    maxHSCW: 350,
-    fatCode: "P8 3-5mm",
-    dentition: "0-4 teeth",
-    notes: "Domestic market specifications",
-  },
-  {
-    id: "GS004",
-    plant: "Greenham - Smithton (test)",
-    species: "mutton",
-    version: 1,
-    effectiveFrom: "2025-03-01",
-    effectiveTo: null,
-    minHSCW: 20,
-    maxHSCW: 40,
-    fatCode: "GR 8-20mm",
-    dentition: "4+ teeth",
-    notes: "Mature sheep processing grid",
-  },
-];
+type GridSpec = Tables<'gridspecs'>;
 
 export default function GridSpecs() {
+  const [gridSpecs, setGridSpecs] = useState<GridSpec[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [plantFilter, setPlantFilter] = useState("all");
   const [speciesFilter, setSpeciesFilter] = useState("all");
 
-  const filteredSpecs = mockGridSpecs.filter(spec => {
-    const matchesSearch = spec.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         spec.plant.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         spec.notes.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesPlant = plantFilter === "all" || spec.plant === plantFilter;
+  useEffect(() => {
+    fetchGridSpecs();
+  }, []);
+
+  const fetchGridSpecs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('gridspecs')
+        .select('*')
+        .order('species', { ascending: true })
+        .order('version', { ascending: false });
+
+      if (error) throw error;
+      setGridSpecs(data || []);
+    } catch (error) {
+      console.error('Error fetching grid specs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredSpecs = gridSpecs.filter(spec => {
+    const matchesSearch = spec.id?.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         spec.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         spec.species?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesSpecies = speciesFilter === "all" || spec.species === speciesFilter;
     
-    return matchesSearch && matchesPlant && matchesSpecies;
+    return matchesSearch && matchesSpecies;
   });
 
-  const getVersionBadge = (spec: any) => {
-    if (spec.effectiveTo) {
+  const getVersionBadge = (spec: GridSpec) => {
+    if (spec.effective_to) {
       return <Badge variant="secondary">v{spec.version} (Expired)</Badge>;
     }
     return <Badge variant="default">v{spec.version} (Current)</Badge>;
   };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">Loading grid specifications...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -158,7 +140,7 @@ export default function GridSpecs() {
                     <FileSpreadsheet className="h-5 w-5 text-primary" />
                     <div>
                       <CardTitle className="text-lg">{spec.id}</CardTitle>
-                      <p className="text-sm text-muted-foreground">{spec.plant}</p>
+                      <p className="text-sm text-muted-foreground">Plant ID: {spec.plant_id}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -173,21 +155,21 @@ export default function GridSpecs() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                   <div>
                     <div className="text-sm font-medium text-muted-foreground">HSCW Range</div>
-                    <div className="text-lg font-semibold">{spec.minHSCW} - {spec.maxHSCW} kg</div>
+                    <div className="text-lg font-semibold">{spec.min_hscw} - {spec.max_hscw} kg</div>
                   </div>
                   <div>
                     <div className="text-sm font-medium text-muted-foreground">Fat Code</div>
-                    <div className="text-lg font-semibold">{spec.fatCode}</div>
+                    <div className="text-lg font-semibold">{spec.fat_code}</div>
                   </div>
                   <div>
                     <div className="text-sm font-medium text-muted-foreground">Dentition</div>
-                    <div className="text-lg font-semibold">{spec.dentition}</div>
+                    <div className="text-lg font-semibold">{spec.dentition_or_age}</div>
                   </div>
                   <div>
                     <div className="text-sm font-medium text-muted-foreground">Effective</div>
                     <div className="text-sm">
-                      {spec.effectiveFrom}
-                      {spec.effectiveTo && ` to ${spec.effectiveTo}`}
+                      {spec.effective_from}
+                      {spec.effective_to && ` to ${spec.effective_to}`}
                     </div>
                   </div>
                 </div>
