@@ -77,13 +77,13 @@ const animalData = [
 ];
 
 const Animals = () => {
-  const getStatusColor = (status: string) => {
+  const getStatusVariant = (status: string): "confirmed" | "requested" | "changed" | "cancelled" | "secondary" => {
     switch (status) {
-      case "arrived": return "bg-blue-100 text-blue-800";
-      case "processing": return "bg-green-100 text-green-800";
-      case "scheduled": return "bg-yellow-100 text-yellow-800";
-      case "completed": return "bg-gray-100 text-gray-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "arrived": return "confirmed";
+      case "processing": return "confirmed";  
+      case "scheduled": return "requested";
+      case "completed": return "secondary";
+      default: return "secondary";
     }
   };
 
@@ -177,7 +177,7 @@ const Animals = () => {
                         </div>
                       </td>
                       <td className="p-4">
-                        <Badge className={getStatusColor(batch.status)}>
+                        <Badge variant={getStatusVariant(batch.status)}>
                           {batch.status}
                         </Badge>
                       </td>

@@ -390,7 +390,7 @@ export default function BookingBoard() {
                                   size="sm"
                                   onClick={() => handleStatusUpdate(booking.id, 'confirmed')}
                                   disabled={updatingBookings.has(booking.id)}
-                                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                  className="text-success hover:text-success/80 hover:bg-success/10"
                                 >
                                   {updatingBookings.has(booking.id) ? (
                                     <Loader2 className="h-3 w-3 animate-spin" />
@@ -404,7 +404,7 @@ export default function BookingBoard() {
                                   size="sm"
                                   onClick={() => handleStatusUpdate(booking.id, 'cancelled')}
                                   disabled={updatingBookings.has(booking.id)}
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
                                 >
                                   {updatingBookings.has(booking.id) ? (
                                     <Loader2 className="h-3 w-3 animate-spin" />

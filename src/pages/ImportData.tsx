@@ -433,9 +433,9 @@ export default function ImportData() {
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <CheckCircle className="h-5 w-5 text-success" />
                     <div>
-                      <div className="text-2xl font-bold text-green-600">{validRows.length}</div>
+                      <div className="text-2xl font-bold text-success">{validRows.length}</div>
                       <div className="text-sm text-muted-foreground">Valid Rows</div>
                     </div>
                   </div>

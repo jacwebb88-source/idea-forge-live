@@ -134,14 +134,14 @@ const Index = () => {
                     <div className="font-medium">JBS - Dinmore</div>
                     <div className="text-sm text-muted-foreground">Beef: 150 head • 06:00-09:00</div>
                   </div>
-                  <Badge className="bg-green-100 text-green-800 border-green-200">Confirmed</Badge>
+                  <Badge variant="confirmed">Confirmed</Badge>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
                   <div>
                     <div className="font-medium">Teys - Beenleigh</div>
                     <div className="text-sm text-muted-foreground">Lamb: 300 head • 07:00-10:00</div>
                   </div>
-                  <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Requested</Badge>
+                  <Badge variant="requested">Requested</Badge>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
                   <div>

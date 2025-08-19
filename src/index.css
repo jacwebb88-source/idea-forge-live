@@ -32,20 +32,20 @@
     --accent: 220 13% 95%;
     --accent-foreground: 220 39% 17%;
 
-    /* Status colors */
-    --destructive: 348 83% 47%;
+    /* Status colors - consistent semantics */
+    --destructive: 348 83% 47%;        /* #E11D48 - Red for danger */
     --destructive-foreground: 0 0% 100%;
 
-    --success: 150 65% 38%;
+    --success: 150 65% 38%;            /* #22A06B - Green for success */
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;             /* #F59E0B - Amber for warnings */
+    --warning-foreground: 220 39% 7%;  /* Dark text for better contrast */
 
-    --info: 217 91% 60%;
+    --info: 217 91% 60%;               /* Blue for info */
     --info-foreground: 0 0% 100%;
 
-    --changed: 24 95% 53%;
+    --changed: 24 95% 61%;             /* #FB923C - Orange for changed status */
     --changed-foreground: 0 0% 100%;
 
     /* Borders and inputs */
@@ -115,13 +115,13 @@
     --success: 150 65% 48%;
     --success-foreground: 220 39% 7%;
 
-    --warning: 38 92% 60%;
-    --warning-foreground: 220 39% 7%;
+    --warning: 38 92% 60%;             /* Darker amber for better contrast */
+    --warning-foreground: 220 39% 7%;  
 
-    --info: 217 91% 70%;
+    --info: 217 91% 70%;               /* Lighter blue for dark mode */
     --info-foreground: 220 39% 7%;
 
-    --changed: 24 95% 63%;
+    --changed: 24 95% 73%;             /* Lighter orange for dark mode */
     --changed-foreground: 220 39% 7%;
 
     --border: 220 39% 20%;
