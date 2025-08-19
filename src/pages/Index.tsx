@@ -237,6 +237,16 @@ const Index = () => {
             </button>
           </div>
         </div>
+
+        {/* Demo Data Notice */}
+        <Card className="border-dashed border-muted-foreground/30">
+          <CardContent className="pt-6">
+            <div className="text-center text-sm text-muted-foreground">
+              <p className="font-medium">🏭 Demo Data</p>
+              <p>This is sample dashboard data for demonstration. Production would show real processor metrics, live activity feeds, and actual plant performance.</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );

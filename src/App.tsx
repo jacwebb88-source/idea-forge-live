@@ -9,6 +9,7 @@ import TransportSlotting from "./pages/TransportSlotting";
 import GridSpecs from "./pages/GridSpecs";
 import KPIDashboard from "./pages/KPIDashboard";
 import ImportData from "./pages/ImportData";
+import Plants from "./pages/Plants";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/grid-specs" element={<GridSpecs />} />
           <Route path="/kpis" element={<KPIDashboard />} />
           <Route path="/import" element={<ImportData />} />
+          <Route path="/plants" element={<Plants />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

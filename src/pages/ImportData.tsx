@@ -543,6 +543,16 @@ export default function ImportData() {
             </CardContent>
           </Card>
         )}
+
+        {/* Demo Data Notice */}
+        <Card className="border-dashed border-muted-foreground/30">
+          <CardContent className="pt-6">
+            <div className="text-center text-sm text-muted-foreground">
+              <p className="font-medium">📤 CSV Import & Validation</p>
+              <p>This demonstrates data validation with preview functionality and error blocking. Upload a CSV to see validation in action with downloadable error reports.</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );

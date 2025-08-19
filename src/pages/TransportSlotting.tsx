@@ -312,6 +312,16 @@ export default function TransportSlotting() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Demo Data Notice */}
+        <Card className="border-dashed border-muted-foreground/30">
+          <CardContent className="pt-6">
+            <div className="text-center text-sm text-muted-foreground">
+              <p className="font-medium">🚛 Demo Data</p>
+              <p>This shows transport slot assignment and conflict detection. Assigned loads vs capacity ratios are displayed with visual warnings for overbooked slots.</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );

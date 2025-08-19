@@ -368,42 +368,12 @@ export default function KPIDashboard() {
           </Card>
         )}
 
-        {/* Pilot Results Summary */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Pilot Results Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="prose prose-sm max-w-none">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h4 className="font-semibold text-foreground mb-2">Key Improvements</h4>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li>• Fill rate improved by +4.3pp</li>
-                    <li>• Lead-time variance reduced by 1.6 hours</li>
-                    <li>• Changes down 33%</li>
-                    <li>• Slot adherence up 3.6pp</li>
-                    <li>• On-spec rate up 3.6pp</li>
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-foreground mb-2">Areas for Focus</h4>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li>• NH Foods - Oakey performance below target</li>
-                    <li>• Transport coordination improvements needed</li>
-                    <li>• Grid spec adherence training required</li>
-                    <li>• Booking change process optimization</li>
-                  </ul>
-                </div>
-              </div>
-              
-              <div className="mt-6 p-4 bg-muted rounded-lg">
-                <p className="text-sm text-muted-foreground">
-                  <strong>Overall Assessment:</strong> The Muster IT pilot shows significant improvements across key metrics. 
-                  Fill rate and adherence gains demonstrate successful implementation. Focus areas identified for optimization 
-                  in the next phase.
-                </p>
-              </div>
+        {/* Demo Data Notice */}
+        <Card className="border-dashed border-muted-foreground/30">
+          <CardContent className="pt-6">
+            <div className="text-center text-sm text-muted-foreground">
+              <p className="font-medium">📊 Demo Data</p>
+              <p>This is sample KPI data for demonstration purposes. Fill Rate now reads from day_plans table with actual calculations.</p>
             </div>
           </CardContent>
         </Card>

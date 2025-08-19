@@ -9,8 +9,13 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
-// Type definition for booking data
-type Booking = Tables<'bookings'>;
+// Type definition for booking data with supplier info
+type BookingWithSupplier = Tables<'bookings'> & {
+  suppliers?: {
+    name: string;
+    type: string;
+  } | null;
+};
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -38,7 +43,7 @@ const formatTimeWindow = (start?: string, end?: string) => {
 };
 
 export default function BookingBoard() {
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [bookings, setBookings] = useState<BookingWithSupplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -51,7 +56,13 @@ export default function BookingBoard() {
     try {
       const { data, error } = await supabase
         .from('bookings')
-        .select('*')
+        .select(`
+          *,
+          suppliers(
+            name,
+            type
+          )
+        `)
         .order('requested_kill_date', { ascending: true });
 
       if (error) {
@@ -69,7 +80,8 @@ export default function BookingBoard() {
 
   const filteredBookings = bookings.filter(booking => {
     const matchesSearch = (booking.lot_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          booking.agent_ref?.toLowerCase().includes(searchTerm.toLowerCase())) ?? false;
+                          booking.agent_ref?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          booking.suppliers?.name?.toLowerCase().includes(searchTerm.toLowerCase())) ?? false;
     const matchesStatus = statusFilter === "all" || booking.status === statusFilter;
     
     return matchesSearch && matchesStatus;
@@ -108,12 +120,12 @@ export default function BookingBoard() {
               <div className="flex-1">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search by lot ID or agent ref..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
+              <Input
+                placeholder="Search by supplier, lot ID or agent ref..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
                 </div>
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -145,12 +157,12 @@ export default function BookingBoard() {
                 <thead>
                   <tr className="border-b border-border">
                     <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Booking ID</th>
+                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Supplier</th>
                     <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Species</th>
                     <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Agent Ref</th>
                     <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Lot ID</th>
                     <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Head Count</th>
                     <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Kill Date</th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Window</th>
                     <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Status</th>
                     <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Actions</th>
                   </tr>
@@ -171,7 +183,13 @@ export default function BookingBoard() {
                   ) : (
                     filteredBookings.map((booking) => (
                       <tr key={booking.id} className="border-b border-border hover:bg-muted/50 transition-colors">
-                        <td className="py-3 px-2 text-sm font-medium">{booking.id}</td>
+                        <td className="py-3 px-2 text-sm font-medium">{booking.id.slice(-8)}</td>
+                        <td className="py-3 px-2">
+                          <div>
+                            <div className="font-medium text-sm">{booking.suppliers?.name || 'Unknown Supplier'}</div>
+                            <div className="text-xs text-muted-foreground capitalize">{booking.suppliers?.type || ''}</div>
+                          </div>
+                        </td>
                         <td className="py-3 px-2">
                           <Badge variant="outline" className="capitalize">
                             {booking.species}
@@ -182,9 +200,6 @@ export default function BookingBoard() {
                         <td className="py-3 px-2 text-sm">{booking.head_count || '-'}</td>
                         <td className="py-3 px-2 text-sm">
                           {booking.requested_kill_date ? new Date(booking.requested_kill_date).toLocaleDateString('en-AU') : '-'}
-                        </td>
-                        <td className="py-3 px-2 text-sm">
-                          {formatTimeWindow(booking.requested_window_start, booking.requested_window_end)}
                         </td>
                         <td className="py-3 px-2">
                           <Badge className={getStatusColor(booking.status || 'unknown')}>
@@ -217,6 +232,36 @@ export default function BookingBoard() {
           <CardContent>
             <div className="text-center py-8 text-muted-foreground">
               Calendar view coming soon - switch between table and calendar layouts
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Demo Data Notice */}
+        <Card className="border-dashed border-muted-foreground/30">
+          <CardContent className="pt-6">
+            <div className="text-center text-sm text-muted-foreground">
+              <p className="font-medium">📊 Demo Data</p>
+              <p>This is sample booking data for demonstration purposes. Real supplier names and booking details would appear in production.</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Transport Slotting Demo Notice */}
+        <Card className="border-dashed border-muted-foreground/30">
+          <CardContent className="pt-6">
+            <div className="text-center text-sm text-muted-foreground">
+              <p className="font-medium">🚛 Transport & Capacity Management</p>
+              <p>Visit Transport Slotting to see assigned/capacity ratios and conflict warnings in action.</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Import Preview Notice */}
+        <Card className="border-dashed border-muted-foreground/30">
+          <CardContent className="pt-6">
+            <div className="text-center text-sm text-muted-foreground">
+              <p className="font-medium">📤 Data Import & Validation</p>
+              <p>Check the Import Data page to see CSV preview and row validation features.</p>
             </div>
           </CardContent>
         </Card>

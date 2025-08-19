@@ -215,6 +215,16 @@ export default function GridSpecs() {
             </CardContent>
           </Card>
         )}
+
+        {/* Demo Data Notice */}
+        <Card className="border-dashed border-muted-foreground/30">
+          <CardContent className="pt-6">
+            <div className="text-center text-sm text-muted-foreground">
+              <p className="font-medium">📝 Demo Data</p>
+              <p>This is sample grid specification data for demonstration purposes. Production would show real grid specs with version control.</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );
