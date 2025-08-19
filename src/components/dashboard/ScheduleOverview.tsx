@@ -1,63 +1,95 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, MapPin } from "lucide-react";
+import { Calendar, Clock } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
-const todaySchedule = [
-  {
-    id: 1,
-    time: "06:00",
-    farm: "Green Valley Farm",
-    animals: 15,
-    type: "Cattle",
-    slot: "A-1",
-    status: "completed",
-  },
-  {
-    id: 2,
-    time: "08:30",
-    farm: "Highland Ranch",
-    animals: 22,
-    type: "Cattle",
-    slot: "A-2",
-    status: "in-progress",
-  },
-  {
-    id: 3,
-    time: "11:00",
-    farm: "Meadow Creek",
-    animals: 18,
-    type: "Cattle",
-    slot: "B-1",
-    status: "scheduled",
-  },
-  {
-    id: 4,
-    time: "14:00",
-    farm: "Pine Ridge Farm",
-    animals: 12,
-    type: "Sheep",
-    slot: "B-2",
-    status: "scheduled",
-  },
-  {
-    id: 5,
-    time: "16:30",
-    farm: "Oak Hill Ranch",
-    animals: 20,
-    type: "Cattle",
-    slot: "A-3",
-    status: "scheduled",
-  },
-];
+interface TodayBooking {
+  species: string;
+  head_count: number;
+  requested_window_start: string | null;
+  requested_window_end: string | null;
+  status: string;
+}
 
 export function ScheduleOverview() {
+  const [bookings, setBookings] = useState<TodayBooking[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchTodayBookings();
+  }, []);
+
+  const fetchTodayBookings = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0]; // Format as YYYY-MM-DD
+      
+      const { data, error } = await supabase
+        .from('app_bookings')
+        .select('species,head_count,requested_window_start,requested_window_end,status')
+        .eq('requested_kill_date', today)
+        .order('requested_window_start', { ascending: true })
+        .limit(6);
+
+      if (error) {
+        console.error('Error fetching today bookings:', error);
+        return;
+      }
+
+      setBookings(data || []);
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getStatusVariant = (status: string): "confirmed" | "requested" | "changed" | "cancelled" | "secondary" => {
-    switch (status) {
-      case "completed": return "confirmed";
-      case "in-progress": return "changed";
-      case "scheduled": return "requested";
+    switch (status?.toLowerCase()) {
+      case "confirmed": return "confirmed";
+      case "requested": return "requested"; 
+      case "changed": return "changed";
+      case "cancelled": return "cancelled";
       default: return "secondary";
     }
+  };
+
+  const getSpeciesVariant = (species: string): "beef" | "lamb" | "mutton" | "goat" | "secondary" => {
+    switch (species?.toLowerCase()) {
+      case "beef":
+      case "cattle": return "beef";
+      case "lamb": return "lamb";
+      case "mutton": 
+      case "sheep": return "mutton";
+      case "goat": return "goat";
+      default: return "secondary";
+    }
+  };
+
+  const formatTimeWindow = (start: string | null, end: string | null) => {
+    if (!start || !end) return "Time TBD";
+    
+    const startTime = new Date(start).toLocaleTimeString('en-AU', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    });
+    const endTime = new Date(end).toLocaleTimeString('en-AU', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    });
+    
+    return `${startTime}–${endTime}`;
+  };
+
+  const getStartTime = (start: string | null) => {
+    if (!start) return "TBD";
+    return new Date(start).toLocaleTimeString('en-AU', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    });
   };
 
   return (
@@ -69,31 +101,45 @@ export function ScheduleOverview() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {todaySchedule.map((item) => (
-            <div key={item.id} className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/30 transition-country">
-              <div className="flex flex-col items-center justify-center w-16 h-16 bg-primary/10 rounded-lg">
-                <Clock className="h-4 w-4 text-primary mb-1" />
-                <span className="text-xs font-medium text-primary">{item.time}</span>
-              </div>
-              
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <h4 className="font-medium text-foreground">{item.farm}</h4>
-                  <Badge variant="outline" className="text-xs">
-                    Slot {item.slot}
-                  </Badge>
+        {loading ? (
+          <div className="text-center text-muted-foreground py-8">
+            Loading today's schedule...
+          </div>
+        ) : bookings.length === 0 ? (
+          <div className="text-center text-muted-foreground py-8">
+            No bookings scheduled for today
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {bookings.map((booking, index) => (
+              <div key={index} className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/30 transition-country">
+                <div className="flex flex-col items-center justify-center w-16 h-16 bg-primary/10 rounded-lg">
+                  <Clock className="h-4 w-4 text-primary mb-1" />
+                  <span className="text-xs font-medium text-primary">
+                    {getStartTime(booking.requested_window_start)}
+                  </span>
                 </div>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <span>{item.animals} {item.type}</span>
-                  <Badge variant={getStatusVariant(item.status)}>
-                    {item.status.replace("-", " ")}
-                  </Badge>
+                
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge variant={getSpeciesVariant(booking.species)} className="capitalize">
+                      {booking.species}
+                    </Badge>
+                    <span className="text-sm font-medium text-foreground">
+                      {booking.head_count} head
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <span>{formatTimeWindow(booking.requested_window_start, booking.requested_window_end)}</span>
+                    <Badge variant={getStatusVariant(booking.status)}>
+                      {booking.status}
+                    </Badge>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
