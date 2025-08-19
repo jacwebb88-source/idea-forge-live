@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface TodayBooking {
   species: string;
   head_count: number;
+  requested_kill_date: string | null;
   requested_window_start: string | null;
   requested_window_end: string | null;
   status: string;
@@ -26,12 +27,14 @@ export function ScheduleOverview() {
       
       const { data, error } = await supabase
         .from('app_bookings')
-        .select('species,head_count,requested_window_start,requested_window_end,status')
-        .eq('requested_kill_date', today)
-        .order('requested_window_start', { ascending: true });
+        .select('species,head_count,requested_kill_date,requested_window_start,requested_window_end,status')
+        .gte('requested_kill_date', today)
+        .order('requested_kill_date', { ascending: true })
+        .order('requested_window_start', { ascending: true })
+        .limit(6);
 
       if (error) {
-        console.error('Error fetching today bookings:', error);
+        console.error('Error fetching upcoming bookings:', error);
         return;
       }
 
@@ -82,12 +85,12 @@ export function ScheduleOverview() {
     return `${startTime}–${endTime}`;
   };
 
-  const getStartTime = (start: string | null) => {
-    if (!start) return "TBD";
-    return new Date(start).toLocaleTimeString('en-AU', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false 
+  const formatKillDate = (dateString: string | null) => {
+    if (!dateString) return "TBD";
+    return new Date(dateString).toLocaleDateString('en-AU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
     });
   };
 
@@ -96,17 +99,17 @@ export function ScheduleOverview() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Calendar className="h-5 w-5 text-primary" />
-          Today's Schedule
+          Upcoming Schedule
         </CardTitle>
       </CardHeader>
       <CardContent>
         {loading ? (
           <div className="text-center text-muted-foreground py-8">
-            Loading today's schedule...
+            Loading schedule...
           </div>
         ) : bookings.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
-            No bookings scheduled for today
+            No upcoming bookings
           </div>
         ) : (
           <div className="space-y-3">
@@ -114,7 +117,7 @@ export function ScheduleOverview() {
               <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors">
                 <div className="flex-1">
                   <span className="text-sm font-medium text-foreground">
-                    {booking.species}: {booking.head_count} head • {formatTimeWindow(booking.requested_window_start, booking.requested_window_end)}
+                    {booking.species}: {booking.head_count} head • {formatKillDate(booking.requested_kill_date)} {formatTimeWindow(booking.requested_window_start, booking.requested_window_end)}
                   </span>
                 </div>
                 <Badge variant={getStatusVariant(booking.status)}>
