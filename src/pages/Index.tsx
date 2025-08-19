@@ -22,7 +22,7 @@ const Index = () => {
           <div>
             <h1 className="text-3xl font-bold text-foreground">Processor ABC — Today's Schedule</h1>
             <p className="text-muted-foreground mt-1">
-              Managing livestock processing and scheduling efficiently
+              Manage bookings, transport windows and grids without the scramble.
             </p>
           </div>
           <div className="text-right">
