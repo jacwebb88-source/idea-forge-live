@@ -59,6 +59,10 @@
     --table-zebra: 0 0% 98%;
     --table-hover: 220 13% 97%;
 
+    /* Primary button styling */
+    --primary-hover: 150 48% 28%;
+    --primary-focus-ring: 150 76% 85%;
+
     --radius: 0.875rem;
 
     /* Gradients and effects */
@@ -72,8 +76,8 @@
     --sidebar-foreground: 220 39% 17%;
     --sidebar-primary: 150 48% 36%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 150 48% 36%;
-    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-accent: 40 30% 85%;
+    --sidebar-accent-foreground: 150 48% 36%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 150 48% 36%;
   }
