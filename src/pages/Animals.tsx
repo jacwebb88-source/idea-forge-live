@@ -77,7 +77,19 @@ const animalData = [
 ];
 
 const Animals = () => {
-  const getStatusVariant = (status: string): "confirmed" | "requested" | "changed" | "cancelled" | "secondary" => {
+const getSpeciesVariant = (species: string): "beef" | "lamb" | "mutton" | "goat" | "secondary" => {
+  switch (species?.toLowerCase()) {
+    case "beef":
+    case "cattle": return "beef";
+    case "lamb": return "lamb";
+    case "mutton": 
+    case "sheep": return "mutton";
+    case "goat": return "goat";
+    default: return "secondary";
+  }
+};
+
+const getStatusVariant = (status: string): "confirmed" | "requested" | "changed" | "cancelled" | "secondary" => {
     switch (status) {
       case "arrived": return "confirmed";
       case "processing": return "confirmed";  
@@ -161,7 +173,12 @@ const Animals = () => {
                         </div>
                       </td>
                       <td className="p-4">
-                        <div className="font-medium text-foreground">{batch.count} {batch.type}</div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={getSpeciesVariant(batch.type)} className="capitalize">
+                            {batch.type}
+                          </Badge>
+                          <span className="font-medium text-foreground">{batch.count}</span>
+                        </div>
                         <div className="text-sm text-muted-foreground">{batch.breed}</div>
                       </td>
                       <td className="p-4">

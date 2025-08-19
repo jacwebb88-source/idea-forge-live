@@ -19,6 +19,18 @@ type BookingWithSupplier = Tables<'bookings'> & {
   } | null;
 };
 
+const getSpeciesVariant = (species: string): "beef" | "lamb" | "mutton" | "goat" | "secondary" => {
+  switch (species?.toLowerCase()) {
+    case "beef":
+    case "cattle": return "beef";
+    case "lamb": return "lamb";
+    case "mutton": 
+    case "sheep": return "mutton";
+    case "goat": return "goat";
+    default: return "secondary";
+  }
+};
+
 const getStatusVariant = (status: string): "confirmed" | "requested" | "changed" | "cancelled" | "secondary" => {
   switch (status) {
     case "confirmed": return "confirmed";
@@ -316,7 +328,7 @@ export default function BookingBoard() {
                           </div>
                         </td>
                         <td className="py-3 px-3">
-                          <Badge variant="outline" className="capitalize">
+                          <Badge variant={getSpeciesVariant(booking.species)} className="capitalize">
                             {booking.species}
                           </Badge>
                         </td>

@@ -19,6 +19,11 @@ const badgeVariants = cva(
         requested: "border-transparent bg-warning text-warning-foreground hover:bg-warning/80",
         changed: "border-transparent bg-changed text-changed-foreground hover:bg-changed/80",
         cancelled: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
+        // Species variants
+        beef: "border-transparent bg-species-beef-bg text-species-beef-foreground hover:bg-species-beef-bg/80",
+        lamb: "border-transparent bg-species-lamb-bg text-species-lamb-foreground hover:bg-species-lamb-bg/80", 
+        mutton: "border-transparent bg-species-mutton-bg text-species-mutton-foreground hover:bg-species-mutton-bg/80",
+        goat: "border-transparent bg-species-goat-bg text-species-goat-foreground hover:bg-species-goat-bg/80",
       },
     },
     defaultVariants: {

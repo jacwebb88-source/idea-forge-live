@@ -48,6 +48,23 @@
     --changed: 24 95% 61%;             /* Orange for changed status */
     --changed-foreground: 0 0% 100%;
 
+    /* Species colors */
+    --species-beef: 0 84% 60%;         /* #B91C1C - Red for beef */
+    --species-beef-bg: 0 84% 95%;      /* Soft red background */
+    --species-beef-foreground: 0 84% 25%;
+
+    --species-lamb: 142 76% 36%;       /* #15803D - Green for lamb */
+    --species-lamb-bg: 142 76% 95%;    /* Soft green background */
+    --species-lamb-foreground: 142 76% 20%;
+
+    --species-mutton: 263 90% 61%;     /* #7C3AED - Purple for mutton */
+    --species-mutton-bg: 263 90% 95%;  /* Soft purple background */
+    --species-mutton-foreground: 263 90% 25%;
+
+    --species-goat: 199 89% 48%;       /* #0EA5E9 - Sky blue for goat */
+    --species-goat-bg: 199 89% 95%;    /* Soft sky background */
+    --species-goat-foreground: 199 89% 25%;
+
     /* Borders and inputs */
     --border: 220 13% 91%;
     --input: 220 13% 91%;
