@@ -52,6 +52,8 @@ export default function BookingBoard() {
   const [statusFilter, setStatusFilter] = useState("requested"); // Default to "requested"
   const [isNewBookingOpen, setIsNewBookingOpen] = useState(false);
   const [updatingBookings, setUpdatingBookings] = useState<Set<string>>(new Set());
+  const [editingCell, setEditingCell] = useState<{bookingId: string, field: 'requested_window_start' | 'requested_window_end'} | null>(null);
+  const [tempValue, setTempValue] = useState("");
 
   useEffect(() => {
     fetchBookings();
@@ -128,6 +130,75 @@ export default function BookingBoard() {
         return newSet;
       });
     }
+  };
+
+  const handleCellEdit = (bookingId: string, field: 'requested_window_start' | 'requested_window_end', currentValue: string | null) => {
+    setEditingCell({ bookingId, field });
+    // Convert datetime to input format
+    const formattedValue = currentValue ? new Date(currentValue).toISOString().slice(0, 16) : '';
+    setTempValue(formattedValue);
+  };
+
+  const handleCellUpdate = async () => {
+    if (!editingCell || !tempValue) {
+      setEditingCell(null);
+      setTempValue("");
+      return;
+    }
+
+    const { bookingId, field } = editingCell;
+    
+    try {
+      const { error } = await supabase
+        .from('bookings')
+        .update({ [field]: tempValue })
+        .eq('id', bookingId);
+
+      if (error) {
+        console.error('Error updating booking time:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update booking time. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Time updated",
+        description: "Booking time has been successfully updated.",
+      });
+
+      // Refresh just this booking
+      fetchBookings();
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setEditingCell(null);
+      setTempValue("");
+    }
+  };
+
+  const handleCellCancel = () => {
+    setEditingCell(null);
+    setTempValue("");
+  };
+
+  const formatDateTime = (dateTimeString: string | null) => {
+    if (!dateTimeString) return '-';
+    return new Date(dateTimeString).toLocaleString('en-AU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
   };
 
   const filteredBookings = bookings.filter(booking => {
@@ -215,6 +286,8 @@ export default function BookingBoard() {
                     <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Lot ID</th>
                     <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Head Count</th>
                     <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Kill Date</th>
+                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Window Start</th>
+                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Window End</th>
                     <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Status</th>
                     <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Actions</th>
                   </tr>
@@ -222,13 +295,13 @@ export default function BookingBoard() {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={9} className="py-8 text-center text-muted-foreground">
+                      <td colSpan={11} className="py-8 text-center text-muted-foreground">
                         Loading bookings...
                       </td>
                     </tr>
                   ) : filteredBookings.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="py-8 text-center text-muted-foreground">
+                      <td colSpan={11} className="py-8 text-center text-muted-foreground">
                         No bookings found
                       </td>
                     </tr>
@@ -252,6 +325,56 @@ export default function BookingBoard() {
                         <td className="py-3 px-2 text-sm">{booking.head_count || '-'}</td>
                         <td className="py-3 px-2 text-sm">
                           {booking.requested_kill_date ? new Date(booking.requested_kill_date).toLocaleDateString('en-AU') : '-'}
+                        </td>
+                        <td className="py-3 px-2 text-sm">
+                          {editingCell?.bookingId === booking.id && editingCell.field === 'requested_window_start' ? (
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="datetime-local"
+                                value={tempValue}
+                                onChange={(e) => setTempValue(e.target.value)}
+                                className="w-40 h-8 text-xs"
+                                onBlur={handleCellUpdate}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleCellUpdate();
+                                  if (e.key === 'Escape') handleCellCancel();
+                                }}
+                                autoFocus
+                              />
+                            </div>
+                          ) : (
+                            <div 
+                              className="cursor-pointer hover:bg-muted/50 p-1 rounded"
+                              onClick={() => handleCellEdit(booking.id, 'requested_window_start', booking.requested_window_start)}
+                            >
+                              {formatDateTime(booking.requested_window_start)}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 px-2 text-sm">
+                          {editingCell?.bookingId === booking.id && editingCell.field === 'requested_window_end' ? (
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="datetime-local"
+                                value={tempValue}
+                                onChange={(e) => setTempValue(e.target.value)}
+                                className="w-40 h-8 text-xs"
+                                onBlur={handleCellUpdate}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleCellUpdate();
+                                  if (e.key === 'Escape') handleCellCancel();
+                                }}
+                                autoFocus
+                              />
+                            </div>
+                          ) : (
+                            <div 
+                              className="cursor-pointer hover:bg-muted/50 p-1 rounded"
+                              onClick={() => handleCellEdit(booking.id, 'requested_window_end', booking.requested_window_end)}
+                            >
+                              {formatDateTime(booking.requested_window_end)}
+                            </div>
+                          )}
                         </td>
                         <td className="py-3 px-2">
                           <Badge className={getStatusColor(booking.status || 'unknown')}>
