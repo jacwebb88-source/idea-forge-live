@@ -53,6 +53,10 @@
     --input: 220 13% 91%;
     --ring: 150 48% 36%;
 
+    /* KPI card colors */
+    --kpi-title: 220 39% 21%;
+    --kpi-value: 220 39% 7%;
+
     /* Table styling */
     --table-header-bg: 220 13% 96%;
     --table-header-text: 220 39% 21%;

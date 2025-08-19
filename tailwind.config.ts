@@ -68,6 +68,8 @@ export default {
 					DEFAULT: 'hsl(var(--changed))',
 					foreground: 'hsl(var(--changed-foreground))'
 				},
+				'kpi-title': 'hsl(var(--kpi-title))',
+				'kpi-value': 'hsl(var(--kpi-value))',
 				'primary-hover': 'hsl(var(--primary-hover))',
 				'primary-focus-ring': 'hsl(var(--primary-focus-ring))',
 				'table-header-bg': 'hsl(var(--table-header-bg))',
