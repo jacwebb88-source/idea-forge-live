@@ -8,7 +8,8 @@ import {
   Settings,
   Home,
   ClipboardList,
-  PieChart
+  PieChart,
+  UserCheck
 } from "lucide-react";
 
 import {
@@ -29,6 +30,7 @@ const mainItems = [
   { title: "Transport Slotting", url: "/transport", icon: Truck },
   { title: "Grid Specs", url: "/grid-specs", icon: ClipboardList },
   { title: "KPI Dashboard", url: "/kpis", icon: BarChart3 },
+  { title: "Buyer/Supplier Request", url: "/buyer-request", icon: UserCheck },
 ];
 
 const dataItems = [
