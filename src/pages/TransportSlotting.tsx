@@ -3,83 +3,37 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Truck, AlertTriangle, Calendar, Clock } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
-// Type definition for transport slot data with conflicts
-type TransportSlotWithConflicts = Tables<'transport_slots'> & {
-  slot_conflicts?: {
-    assigned_loads: number;
-    max_loads: number;
-    is_conflict: boolean;
-  } | null;
-};
-
-// Generate week view
-const getWeekDays = () => {
-  const days = [];
-  const today = new Date();
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(today);
-    date.setDate(today.getDate() + i);
-    days.push({
-      date: date.toISOString().split('T')[0],
-      dayName: date.toLocaleDateString('en-AU', { weekday: 'short' }),
-      dayNumber: date.getDate(),
-    });
-  }
-  return days;
-};
-
-const formatTime = (dateTimeString: string) => {
-  return new Date(dateTimeString).toLocaleTimeString('en-AU', { 
-    hour: '2-digit', 
-    minute: '2-digit',
-    hour12: false 
-  });
-};
+// Type definition for slot conflicts
+type SlotConflict = Tables<'slot_conflicts'>;
 
 export default function TransportSlotting() {
-  const [transportSlots, setTransportSlots] = useState<TransportSlotWithConflicts[]>([]);
+  const [slotConflicts, setSlotConflicts] = useState<SlotConflict[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedPlant, setSelectedPlant] = useState("all");
   const [selectedSpecies, setSelectedSpecies] = useState("all");
-  const weekDays = getWeekDays();
 
   useEffect(() => {
-    fetchTransportSlots();
+    fetchSlotConflicts();
   }, []);
 
-  const fetchTransportSlots = async () => {
+  const fetchSlotConflicts = async () => {
     try {
       const { data, error } = await supabase
-        .from('transport_slots')
-        .select(`
-          *,
-          slot_conflicts(
-            assigned_loads,
-            max_loads,
-            is_conflict
-          )
-        `)
-        .order('window_start_dt', { ascending: true });
+        .from('slot_conflicts')
+        .select('*')
+        .order('created_at', { ascending: true });
 
       if (error) {
-        console.error('Error fetching transport slots:', error);
+        console.error('Error fetching slot conflicts:', error);
         return;
       }
 
-      // Transform the data to match our expected type structure
-      const transformedData = data?.map(slot => ({
-        ...slot,
-        slot_conflicts: Array.isArray(slot.slot_conflicts) && slot.slot_conflicts.length > 0 
-          ? slot.slot_conflicts[0] 
-          : null
-      })) || [];
-
-      setTransportSlots(transformedData);
+      setSlotConflicts(data || []);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -87,14 +41,20 @@ export default function TransportSlotting() {
     }
   };
 
-  const filteredSlots = transportSlots.filter(slot => {
-    const matchesPlant = selectedPlant === "all" || slot.plant_id === selectedPlant;
-    const matchesSpecies = selectedSpecies === "all" || slot.species === selectedSpecies;
-    return matchesPlant && matchesSpecies;
+  const filteredConflicts = slotConflicts.filter(conflict => {
+    return selectedSpecies === "all" || (conflict as any).species === selectedSpecies;
   });
 
-  const getSlotsByDate = (date: string) => {
-    return filteredSlots.filter(slot => slot.date === date);
+  const formatDateTime = (dateTimeString: string | null) => {
+    if (!dateTimeString) return 'N/A';
+    return new Date(dateTimeString).toLocaleString('en-AU', { 
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    });
   };
 
   return (
@@ -103,12 +63,12 @@ export default function TransportSlotting() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Transport Slotting</h1>
-            <p className="text-muted-foreground">Manage transport windows and assignments</p>
+            <p className="text-muted-foreground">Monitor transport slot conflicts and capacity</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline">
               <Calendar className="h-4 w-4 mr-2" />
-              Change Week
+              Refresh
             </Button>
             <Button>
               <Truck className="h-4 w-4 mr-2" />
@@ -121,20 +81,9 @@ export default function TransportSlotting() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex gap-4">
-              <Select value={selectedPlant} onValueChange={setSelectedPlant}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Select plant" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Plants</SelectItem>
-                  <SelectItem value="JBS - Dinmore (test)">JBS - Dinmore</SelectItem>
-                  <SelectItem value="Teys - Beenleigh (test)">Teys - Beenleigh</SelectItem>
-                  <SelectItem value="NH Foods - Oakey (test)">NH Foods - Oakey</SelectItem>
-                </SelectContent>
-              </Select>
               <Select value={selectedSpecies} onValueChange={setSelectedSpecies}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Species" />
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Filter by species" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Species</SelectItem>
@@ -148,123 +97,81 @@ export default function TransportSlotting() {
           </CardContent>
         </Card>
 
-        {/* Weekly Transport Slot Grid */}
+        {/* Slot Conflicts Table */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Truck className="h-5 w-5" />
-              {loading ? "Loading Transport Slots..." : "Weekly Transport Slots"}
+              Transport Slot Conflicts
             </CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
               <div className="text-center py-8 text-muted-foreground">
-                Loading transport slots...
+                Loading slot conflicts...
               </div>
             ) : (
-              <div className="grid grid-cols-7 gap-4">
-                {weekDays.map((day) => {
-                  const daySlots = getSlotsByDate(day.date);
-                  return (
-                    <div key={day.date} className="border border-border rounded-lg p-3">
-                      <div className="text-center mb-3">
-                        <div className="text-sm font-medium text-muted-foreground">{day.dayName}</div>
-                        <div className="text-lg font-bold text-foreground">{day.dayNumber}</div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        {daySlots.map((slot) => {
-                          const conflicts = slot.slot_conflicts;
-                          const isConflict = conflicts?.is_conflict || false;
-                          const assignedLoads = conflicts?.assigned_loads || 0;
-                          const maxLoads = conflicts?.max_loads || slot.max_truck_loads || 1;
-                          
-                          return (
-                            <div
-                              key={slot.id}
-                              className={`p-2 rounded border text-xs transition-colors ${
-                                isConflict 
-                                  ? "border-destructive bg-destructive/20 shadow-md" 
-                                  : "border-border bg-card hover:bg-muted/50"
-                              }`}
-                            >
-                              <div className="flex items-center justify-between mb-1">
-                                <Badge variant="outline" className="text-xs capitalize">
-                                  {slot.species}
-                                </Badge>
-                                {isConflict && (
-                                  <AlertTriangle className="h-3 w-3 text-destructive animate-pulse" />
-                                )}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {slot.window_start_dt ? formatTime(slot.window_start_dt) : ''} - {slot.window_end_dt ? formatTime(slot.window_end_dt) : ''}
-                              </div>
-                              <div className={`text-xs font-medium ${isConflict ? 'text-destructive' : 'text-foreground'}`}>
-                                {assignedLoads}/{maxLoads} loads
-                              </div>
-                              <div className="text-xs font-mono text-muted-foreground mt-1">
-                                Plant {slot.plant_id?.slice(-3) || 'N/A'}
-                              </div>
-                            </div>
-                          );
-                        })}
-                        
-                        {daySlots.length === 0 && (
-                          <div className="text-center py-4 text-muted-foreground text-xs">
-                            No slots
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Window Start</TableHead>
+                      <TableHead>Window End</TableHead>
+                      <TableHead>Species</TableHead>
+                      <TableHead>Assigned Loads</TableHead>
+                      <TableHead>Max Truck Loads</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                     {filteredConflicts.map((conflict) => {
+                       const conflictAny = conflict as any;
+                       return (
+                         <TableRow 
+                           key={conflict.slot_id || conflictAny.id}
+                           className={conflict.is_conflict ? "bg-destructive/10 border-destructive/30" : ""}
+                         >
+                           <TableCell className="font-mono text-sm">
+                             {formatDateTime(conflictAny.window_start_dt)}
+                           </TableCell>
+                           <TableCell className="font-mono text-sm">
+                             {formatDateTime(conflictAny.window_end_dt)}
+                           </TableCell>
+                           <TableCell>
+                             <Badge variant="outline" className="capitalize">
+                               {conflictAny.species || 'N/A'}
+                             </Badge>
+                           </TableCell>
+                           <TableCell className="text-center font-medium">
+                             {conflict.assigned_loads || 0}
+                           </TableCell>
+                           <TableCell className="text-center font-medium">
+                             {conflictAny.max_truck_loads || conflictAny.max_loads || 0}
+                           </TableCell>
+                           <TableCell>
+                             {conflict.is_conflict ? (
+                               <div className="flex items-center gap-2">
+                                 <AlertTriangle className="h-4 w-4 text-destructive" />
+                                 <Badge variant="destructive">Conflict</Badge>
+                               </div>
+                             ) : (
+                               <Badge variant="secondary">Normal</Badge>
+                             )}
+                           </TableCell>
+                         </TableRow>
+                       );
+                     })}
+                    {filteredConflicts.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                          No slot conflicts found
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Conflict Highlighter */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-              Conflicts & Issues
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {filteredSlots
-                .filter(slot => slot.slot_conflicts?.is_conflict)
-                .map((slot) => {
-                  const conflicts = slot.slot_conflicts;
-                  const assignedLoads = conflicts?.assigned_loads || 0;
-                  const maxLoads = conflicts?.max_loads || slot.max_truck_loads || 1;
-                  
-                  return (
-                    <div key={slot.id} className="flex items-center justify-between p-4 border-2 border-destructive rounded-lg bg-destructive/10 shadow-sm">
-                      <div>
-                        <div className="font-medium text-foreground flex items-center gap-2">
-                          <AlertTriangle className="h-4 w-4 text-destructive" />
-                          Plant {slot.plant_id?.slice(-3) || 'N/A'} - {slot.species} slot
-                        </div>
-                        <div className="text-sm text-muted-foreground mt-1">
-                          {slot.date} {slot.window_start_dt ? formatTime(slot.window_start_dt) : ''}-{slot.window_end_dt ? formatTime(slot.window_end_dt) : ''} • 
-                          <span className="text-destructive font-medium ml-1">Over capacity: {assignedLoads}/{maxLoads} loads</span>
-                        </div>
-                      </div>
-                      <Button variant="outline" size="sm" className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground">
-                        Resolve
-                      </Button>
-                    </div>
-                  );
-                })}
-              
-              {filteredSlots.filter(slot => slot.slot_conflicts?.is_conflict).length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  No conflicts detected
-                </div>
-              )}
-            </div>
           </CardContent>
         </Card>
 
@@ -276,7 +183,7 @@ export default function TransportSlotting() {
                 <Clock className="h-5 w-5 text-primary" />
                 <div>
                   <div className="text-2xl font-bold text-foreground">
-                    {filteredSlots.length}
+                    {filteredConflicts.length}
                   </div>
                   <div className="text-sm text-muted-foreground">Total Slots</div>
                 </div>
@@ -290,7 +197,7 @@ export default function TransportSlotting() {
                 <AlertTriangle className="h-5 w-5 text-destructive" />
                 <div>
                   <div className="text-2xl font-bold text-foreground">
-                    {filteredSlots.filter(slot => slot.slot_conflicts?.is_conflict).length}
+                    {filteredConflicts.filter(conflict => conflict.is_conflict).length}
                   </div>
                   <div className="text-sm text-muted-foreground">Conflicts</div>
                 </div>
@@ -304,9 +211,9 @@ export default function TransportSlotting() {
                 <Truck className="h-5 w-5 text-accent" />
                 <div>
                   <div className="text-2xl font-bold text-foreground">
-                    {filteredSlots.reduce((sum, slot) => sum + (slot.slot_conflicts?.assigned_loads || 0), 0)}
+                    {filteredConflicts.reduce((sum, conflict) => sum + (conflict.assigned_loads || 0), 0)}
                   </div>
-                  <div className="text-sm text-muted-foreground">Assigned Loads</div>
+                  <div className="text-sm text-muted-foreground">Total Assigned Loads</div>
                 </div>
               </div>
             </CardContent>
@@ -318,7 +225,7 @@ export default function TransportSlotting() {
           <CardContent className="pt-6">
             <div className="text-center text-sm text-muted-foreground">
               <p className="font-medium">🚛 Demo Data</p>
-              <p>This shows transport slot assignment and conflict detection. Assigned loads vs capacity ratios are displayed with visual warnings for overbooked slots.</p>
+              <p>Data from slot_conflicts table showing transport capacity conflicts and assignments.</p>
             </div>
           </CardContent>
         </Card>
