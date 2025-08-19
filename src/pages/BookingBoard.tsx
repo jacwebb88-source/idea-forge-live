@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { NewBookingForm } from "@/components/NewBookingForm";
-import { Calendar, Search, Plus, Filter, Download } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Calendar, Search, Plus, Filter, Download, CheckCircle, X, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -44,11 +45,13 @@ const formatTimeWindow = (start?: string, end?: string) => {
 };
 
 export default function BookingBoard() {
+  const { toast } = useToast();
   const [bookings, setBookings] = useState<BookingWithSupplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("requested"); // Default to "requested"
   const [isNewBookingOpen, setIsNewBookingOpen] = useState(false);
+  const [updatingBookings, setUpdatingBookings] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchBookings();
@@ -82,6 +85,49 @@ export default function BookingBoard() {
 
   const handleBookingCreated = () => {
     fetchBookings(); // Refresh the bookings list
+  };
+
+  const handleStatusUpdate = async (bookingId: string, newStatus: 'confirmed' | 'cancelled') => {
+    setUpdatingBookings(prev => new Set([...prev, bookingId]));
+
+    try {
+      const { error } = await supabase
+        .from('bookings')
+        .update({ status: newStatus })
+        .eq('id', bookingId);
+
+      if (error) {
+        console.error('Error updating booking status:', error);
+        toast({
+          title: "Error",
+          description: `Failed to ${newStatus === 'confirmed' ? 'confirm' : 'cancel'} booking. Please try again.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Success
+      toast({
+        title: `Booking ${newStatus}`,
+        description: `Booking has been successfully ${newStatus}.`,
+      });
+
+      // Refresh bookings list
+      fetchBookings();
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingBookings(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(bookingId);
+        return newSet;
+      });
+    }
   };
 
   const filteredBookings = bookings.filter(booking => {
@@ -214,8 +260,44 @@ export default function BookingBoard() {
                         </td>
                         <td className="py-3 px-2">
                           <div className="flex gap-1">
-                            <Button variant="ghost" size="sm">Edit</Button>
-                            <Button variant="ghost" size="sm">View</Button>
+                            {booking.status === 'requested' && (
+                              <>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => handleStatusUpdate(booking.id, 'confirmed')}
+                                  disabled={updatingBookings.has(booking.id)}
+                                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                >
+                                  {updatingBookings.has(booking.id) ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                  )}
+                                  Confirm
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => handleStatusUpdate(booking.id, 'cancelled')}
+                                  disabled={updatingBookings.has(booking.id)}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  {updatingBookings.has(booking.id) ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <X className="h-3 w-3 mr-1" />
+                                  )}
+                                  Cancel
+                                </Button>
+                              </>
+                            )}
+                            {booking.status !== 'requested' && (
+                              <>
+                                <Button variant="ghost" size="sm">Edit</Button>
+                                <Button variant="ghost" size="sm">View</Button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>
