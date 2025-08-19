@@ -6,98 +6,117 @@
 
 @layer base {
   :root {
-    /* Agricultural earth tones with modern touch */
-    --background: 45 15% 97%;
-    --foreground: 25 25% 15%;
+    /* Modern clean theme */
+    --background: 40 33% 97%;
+    --foreground: 220 39% 17%;
 
     --card: 0 0% 100%;
-    --card-foreground: 25 25% 15%;
+    --card-foreground: 220 39% 17%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 25 25% 15%;
+    --popover-foreground: 220 39% 17%;
 
-    /* Rich earth brown as primary */
-    --primary: 25 65% 35%;
-    --primary-foreground: 45 15% 97%;
+    /* Primary green */
+    --primary: 150 48% 36%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Warm cream secondary */
-    --secondary: 45 35% 88%;
-    --secondary-foreground: 25 45% 25%;
+    /* Secondary light gray */
+    --secondary: 220 13% 95%;
+    --secondary-foreground: 220 39% 17%;
 
-    /* Soft sage muted tones */
-    --muted: 120 15% 92%;
-    --muted-foreground: 25 15% 55%;
+    /* Muted grays */
+    --muted: 220 13% 95%;
+    --muted-foreground: 220 14% 46%;
 
-    /* Warm accent green */
-    --accent: 85 35% 75%;
-    --accent-foreground: 25 45% 25%;
+    /* Accent with primary green */
+    --accent: 220 13% 95%;
+    --accent-foreground: 220 39% 17%;
 
-    /* Country red for alerts */
-    --destructive: 8 75% 55%;
-    --destructive-foreground: 45 15% 97%;
+    /* Status colors */
+    --destructive: 348 83% 47%;
+    --destructive-foreground: 0 0% 100%;
 
-    /* Subtle borders */
-    --border: 45 25% 85%;
-    --input: 45 25% 85%;
-    --ring: 25 65% 35%;
+    --success: 150 65% 38%;
+    --success-foreground: 0 0% 100%;
 
-    --radius: 0.75rem;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
 
-    /* Agricultural gradients and effects */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(25 45% 45%));
-    --gradient-accent: linear-gradient(180deg, hsl(var(--accent)), hsl(85 25% 85%));
-    --shadow-country: 0 4px 20px -4px hsl(var(--primary) / 0.15);
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 100%;
+
+    /* Borders and inputs */
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 150 48% 36%;
+
+    --radius: 0.875rem;
+
+    /* Gradients and effects */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(150 38% 46%));
+    --gradient-accent: linear-gradient(180deg, hsl(var(--accent)), hsl(220 8% 85%));
+    --shadow-country: 0 1px 3px 0 hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-    /* Sidebar with country theme */
-    --sidebar-background: 45 25% 96%;
-    --sidebar-foreground: 25 35% 25%;
-    --sidebar-primary: 25 65% 35%;
-    --sidebar-primary-foreground: 45 15% 97%;
-    --sidebar-accent: 85 25% 88%;
-    --sidebar-accent-foreground: 25 45% 25%;
-    --sidebar-border: 45 25% 85%;
-    --sidebar-ring: 25 65% 35%;
+    /* Sidebar theme */
+    --sidebar-background: 40 25% 93%;
+    --sidebar-foreground: 220 39% 17%;
+    --sidebar-primary: 150 48% 36%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 150 48% 36%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 150 48% 36%;
   }
 
   .dark {
-    /* Dark agricultural theme */
-    --background: 25 25% 8%;
-    --foreground: 45 15% 95%;
+    /* Dark modern theme */
+    --background: 220 39% 7%;
+    --foreground: 220 13% 91%;
 
-    --card: 25 25% 10%;
-    --card-foreground: 45 15% 95%;
+    --card: 220 39% 10%;
+    --card-foreground: 220 13% 91%;
 
-    --popover: 25 25% 10%;
-    --popover-foreground: 45 15% 95%;
+    --popover: 220 39% 10%;
+    --popover-foreground: 220 13% 91%;
 
-    --primary: 85 35% 65%;
-    --primary-foreground: 25 25% 8%;
+    --primary: 150 48% 46%;
+    --primary-foreground: 220 39% 7%;
 
-    --secondary: 25 15% 15%;
-    --secondary-foreground: 45 15% 95%;
+    --secondary: 220 39% 15%;
+    --secondary-foreground: 220 13% 91%;
 
-    --muted: 25 15% 15%;
-    --muted-foreground: 45 8% 65%;
+    --muted: 220 39% 15%;
+    --muted-foreground: 220 14% 56%;
 
-    --accent: 25 35% 25%;
-    --accent-foreground: 45 15% 95%;
+    --accent: 220 39% 15%;
+    --accent-foreground: 220 13% 91%;
 
-    --destructive: 8 65% 45%;
-    --destructive-foreground: 45 15% 95%;
+    --destructive: 348 83% 57%;
+    --destructive-foreground: 220 13% 91%;
 
-    --border: 25 15% 20%;
-    --input: 25 15% 20%;
-    --ring: 85 35% 65%;
+    --success: 150 65% 48%;
+    --success-foreground: 220 39% 7%;
+
+    --warning: 38 92% 60%;
+    --warning-foreground: 220 39% 7%;
+
+    --info: 217 91% 70%;
+    --info-foreground: 220 39% 7%;
+
+    --border: 220 39% 20%;
+    --input: 220 39% 20%;
+    --ring: 150 48% 46%;
+
     /* Dark sidebar */
-    --sidebar-background: 25 25% 8%;
-    --sidebar-foreground: 45 15% 85%;
-    --sidebar-primary: 85 35% 55%;
-    --sidebar-primary-foreground: 25 25% 8%;
-    --sidebar-accent: 25 15% 18%;
-    --sidebar-accent-foreground: 45 15% 85%;
-    --sidebar-border: 25 15% 18%;
-    --sidebar-ring: 85 35% 55%;
+    --sidebar-background: 220 39% 5%;
+    --sidebar-foreground: 220 13% 81%;
+    --sidebar-primary: 150 48% 46%;
+    --sidebar-primary-foreground: 220 39% 7%;
+    --sidebar-accent: 150 48% 46%;
+    --sidebar-accent-foreground: 220 39% 7%;
+    --sidebar-border: 220 39% 15%;
+    --sidebar-ring: 150 48% 46%;
   }
 }
 
