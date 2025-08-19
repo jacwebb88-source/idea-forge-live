@@ -8,8 +8,14 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
-// Type definition for transport slot data
-type TransportSlot = Tables<'transport_slots'>;
+// Type definition for transport slot data with conflicts
+type TransportSlotWithConflicts = Tables<'transport_slots'> & {
+  slot_conflicts?: {
+    assigned_loads: number;
+    max_loads: number;
+    is_conflict: boolean;
+  } | null;
+};
 
 // Generate week view
 const getWeekDays = () => {
@@ -36,7 +42,7 @@ const formatTime = (dateTimeString: string) => {
 };
 
 export default function TransportSlotting() {
-  const [transportSlots, setTransportSlots] = useState<TransportSlot[]>([]);
+  const [transportSlots, setTransportSlots] = useState<TransportSlotWithConflicts[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPlant, setSelectedPlant] = useState("all");
   const [selectedSpecies, setSelectedSpecies] = useState("all");
@@ -50,7 +56,14 @@ export default function TransportSlotting() {
     try {
       const { data, error } = await supabase
         .from('transport_slots')
-        .select('*')
+        .select(`
+          *,
+          slot_conflicts(
+            assigned_loads,
+            max_loads,
+            is_conflict
+          )
+        `)
         .order('window_start_dt', { ascending: true });
 
       if (error) {
@@ -58,7 +71,15 @@ export default function TransportSlotting() {
         return;
       }
 
-      setTransportSlots(data || []);
+      // Transform the data to match our expected type structure
+      const transformedData = data?.map(slot => ({
+        ...slot,
+        slot_conflicts: Array.isArray(slot.slot_conflicts) && slot.slot_conflicts.length > 0 
+          ? slot.slot_conflicts[0] 
+          : null
+      })) || [];
+
+      setTransportSlots(transformedData);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -152,34 +173,41 @@ export default function TransportSlotting() {
                       </div>
                       
                       <div className="space-y-2">
-                        {daySlots.map((slot) => (
-                          <div
-                            key={slot.id}
-                            className={`p-2 rounded border text-xs ${
-                              slot.conflict_flag 
-                                ? "border-destructive bg-destructive/10" 
-                                : "border-border bg-card"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between mb-1">
-                              <Badge variant="outline" className="text-xs capitalize">
-                                {slot.species}
-                              </Badge>
-                              {slot.conflict_flag && (
-                                <AlertTriangle className="h-3 w-3 text-destructive" />
-                              )}
+                        {daySlots.map((slot) => {
+                          const conflicts = slot.slot_conflicts;
+                          const isConflict = conflicts?.is_conflict || false;
+                          const assignedLoads = conflicts?.assigned_loads || 0;
+                          const maxLoads = conflicts?.max_loads || slot.max_truck_loads || 1;
+                          
+                          return (
+                            <div
+                              key={slot.id}
+                              className={`p-2 rounded border text-xs transition-colors ${
+                                isConflict 
+                                  ? "border-destructive bg-destructive/20 shadow-md" 
+                                  : "border-border bg-card hover:bg-muted/50"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <Badge variant="outline" className="text-xs capitalize">
+                                  {slot.species}
+                                </Badge>
+                                {isConflict && (
+                                  <AlertTriangle className="h-3 w-3 text-destructive animate-pulse" />
+                                )}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {slot.window_start_dt ? formatTime(slot.window_start_dt) : ''} - {slot.window_end_dt ? formatTime(slot.window_end_dt) : ''}
+                              </div>
+                              <div className={`text-xs font-medium ${isConflict ? 'text-destructive' : 'text-foreground'}`}>
+                                {assignedLoads}/{maxLoads} loads
+                              </div>
+                              <div className="text-xs font-mono text-muted-foreground mt-1">
+                                Plant {slot.plant_id?.slice(-3) || 'N/A'}
+                              </div>
                             </div>
-                            <div className="text-xs text-muted-foreground">
-                              {slot.window_start_dt ? formatTime(slot.window_start_dt) : ''} - {slot.window_end_dt ? formatTime(slot.window_end_dt) : ''}
-                            </div>
-                            <div className="text-xs">
-                              {slot.assigned_booking_ids?.length || 0}/{slot.max_truck_loads || 1} loads
-                            </div>
-                            <div className="text-xs font-mono text-muted-foreground mt-1">
-                              Plant {slot.plant_id?.slice(-3) || 'N/A'}
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                         
                         {daySlots.length === 0 && (
                           <div className="text-center py-4 text-muted-foreground text-xs">
@@ -206,24 +234,32 @@ export default function TransportSlotting() {
           <CardContent>
             <div className="space-y-3">
               {filteredSlots
-                .filter(slot => slot.conflict_flag)
-                .map((slot) => (
-                  <div key={slot.id} className="flex items-center justify-between p-3 border border-destructive rounded-lg bg-destructive/5">
-                    <div>
-                      <div className="font-medium text-foreground">
-                        Plant {slot.plant_id?.slice(-3) || 'N/A'} - {slot.species} slot
+                .filter(slot => slot.slot_conflicts?.is_conflict)
+                .map((slot) => {
+                  const conflicts = slot.slot_conflicts;
+                  const assignedLoads = conflicts?.assigned_loads || 0;
+                  const maxLoads = conflicts?.max_loads || slot.max_truck_loads || 1;
+                  
+                  return (
+                    <div key={slot.id} className="flex items-center justify-between p-4 border-2 border-destructive rounded-lg bg-destructive/10 shadow-sm">
+                      <div>
+                        <div className="font-medium text-foreground flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-destructive" />
+                          Plant {slot.plant_id?.slice(-3) || 'N/A'} - {slot.species} slot
+                        </div>
+                        <div className="text-sm text-muted-foreground mt-1">
+                          {slot.date} {slot.window_start_dt ? formatTime(slot.window_start_dt) : ''}-{slot.window_end_dt ? formatTime(slot.window_end_dt) : ''} • 
+                          <span className="text-destructive font-medium ml-1">Over capacity: {assignedLoads}/{maxLoads} loads</span>
+                        </div>
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        {slot.date} {slot.window_start_dt ? formatTime(slot.window_start_dt) : ''}-{slot.window_end_dt ? formatTime(slot.window_end_dt) : ''} • Over capacity: {slot.assigned_booking_ids?.length || 0}/{slot.max_truck_loads || 1} loads
-                      </div>
+                      <Button variant="outline" size="sm" className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground">
+                        Resolve
+                      </Button>
                     </div>
-                    <Button variant="outline" size="sm">
-                      Resolve
-                    </Button>
-                  </div>
-                ))}
+                  );
+                })}
               
-              {filteredSlots.filter(slot => slot.conflict_flag).length === 0 && (
+              {filteredSlots.filter(slot => slot.slot_conflicts?.is_conflict).length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   No conflicts detected
                 </div>
@@ -254,7 +290,7 @@ export default function TransportSlotting() {
                 <AlertTriangle className="h-5 w-5 text-destructive" />
                 <div>
                   <div className="text-2xl font-bold text-foreground">
-                    {filteredSlots.filter(slot => slot.conflict_flag).length}
+                    {filteredSlots.filter(slot => slot.slot_conflicts?.is_conflict).length}
                   </div>
                   <div className="text-sm text-muted-foreground">Conflicts</div>
                 </div>
@@ -268,7 +304,7 @@ export default function TransportSlotting() {
                 <Truck className="h-5 w-5 text-accent" />
                 <div>
                   <div className="text-2xl font-bold text-foreground">
-                    {filteredSlots.reduce((sum, slot) => sum + (slot.assigned_booking_ids?.length || 0), 0)}
+                    {filteredSlots.reduce((sum, slot) => sum + (slot.slot_conflicts?.assigned_loads || 0), 0)}
                   </div>
                   <div className="text-sm text-muted-foreground">Assigned Loads</div>
                 </div>

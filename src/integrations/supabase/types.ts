@@ -328,6 +328,51 @@ export type Database = {
         }
         Relationships: []
       }
+      slot_conflicts: {
+        Row: {
+          assigned_loads: number
+          created_at: string
+          id: string
+          is_conflict: boolean
+          max_loads: number
+          slot_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_loads?: number
+          created_at?: string
+          id?: string
+          is_conflict?: boolean
+          max_loads?: number
+          slot_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_loads?: number
+          created_at?: string
+          id?: string
+          is_conflict?: boolean
+          max_loads?: number
+          slot_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "slot_conflicts_slot_id_fkey"
+            columns: ["slot_id"]
+            isOneToOne: false
+            referencedRelation: "app_transport_slots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "slot_conflicts_slot_id_fkey"
+            columns: ["slot_id"]
+            isOneToOne: false
+            referencedRelation: "transport_slots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           abn: string | null
