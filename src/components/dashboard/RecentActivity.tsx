@@ -54,29 +54,29 @@ export function RecentActivity() {
   };
 
   const getActivityMessage = (activity: ActivityItem) => {
-    const lotInfo = activity.lot_id ? ` (Lot: ${activity.lot_id})` : '';
-    const speciesInfo = activity.species ? `${activity.species} ` : '';
-    
     if (activity.type === 'intake') {
-      return `${activity.event}${lotInfo}`;
+      return `Intake ${activity.event} recorded`;
     }
     
     // For booking events
-    switch (activity.event?.toLowerCase()) {
-      case "confirmed":
-        return `Booking confirmed${lotInfo ? ` ${lotInfo}` : ''}`;
-      case "changed":
-        return `Booking modified${lotInfo ? ` ${lotInfo}` : ''}`;
-      case "cancelled":
-        return `Booking cancelled${lotInfo ? ` ${lotInfo}` : ''}`;
-      case "requested":
-      default:
-        return `New booking${lotInfo ? ` ${lotInfo}` : ''}`;
+    return `Booking ${activity.booking_id} ${activity.event}`;
+  };
+
+  const getActivitySubtext = (activity: ActivityItem) => {
+    if (activity.type === 'intake') {
+      return null;
     }
+    
+    // For booking events, show species and lot info
+    const parts = [];
+    if (activity.species) parts.push(activity.species);
+    if (activity.lot_id) parts.push(`lot ${activity.lot_id}`);
+    
+    return parts.length > 0 ? parts.join(' • ') : null;
   };
 
   const getTypeColor = (type: 'booking' | 'intake') => {
-    return type === 'booking' ? 'bg-primary' : 'bg-accent';
+    return type === 'booking' ? 'bg-blue-500' : 'bg-teal-500';
   };
 
   const getRelativeTime = (dateString: string) => {
@@ -113,7 +113,7 @@ export function RecentActivity() {
         ) : (
           <div className="space-y-4">
             {activities.map((activity, index) => (
-              <div key={`${activity.booking_id}-${index}`} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+              <div key={`${activity.booking_id}-${index}`} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/30 transition-colors">
                 <div className="flex items-center gap-2 mt-1">
                   <div className={`w-2 h-2 rounded-full ${getTypeColor(activity.type)}`}></div>
                 </div>
@@ -121,14 +121,14 @@ export function RecentActivity() {
                   <p className="text-sm text-foreground font-medium">
                     {getActivityMessage(activity)}
                   </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <p className="text-xs text-muted-foreground">
-                      {getRelativeTime(activity.at_time)}
+                  {getActivitySubtext(activity) && (
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {getActivitySubtext(activity)}
                     </p>
-                    <Badge variant={getStatusVariant(activity.event)}>
-                      {activity.event}
-                    </Badge>
-                  </div>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {getRelativeTime(activity.at_time)}
+                  </p>
                 </div>
               </div>
             ))}
