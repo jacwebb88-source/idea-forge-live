@@ -28,8 +28,7 @@ export function ScheduleOverview() {
         .from('app_bookings')
         .select('species,head_count,requested_window_start,requested_window_end,status')
         .eq('requested_kill_date', today)
-        .order('requested_window_start', { ascending: true })
-        .limit(6);
+        .order('requested_window_start', { ascending: true });
 
       if (error) {
         console.error('Error fetching today bookings:', error);
@@ -110,32 +109,17 @@ export function ScheduleOverview() {
             No bookings scheduled for today
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {bookings.map((booking, index) => (
-              <div key={index} className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/30 transition-country">
-                <div className="flex flex-col items-center justify-center w-16 h-16 bg-primary/10 rounded-lg">
-                  <Clock className="h-4 w-4 text-primary mb-1" />
-                  <span className="text-xs font-medium text-primary">
-                    {getStartTime(booking.requested_window_start)}
+              <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors">
+                <div className="flex-1">
+                  <span className="text-sm font-medium text-foreground">
+                    {booking.species}: {booking.head_count} head • {formatTimeWindow(booking.requested_window_start, booking.requested_window_end)}
                   </span>
                 </div>
-                
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge variant={getSpeciesVariant(booking.species)} className="capitalize">
-                      {booking.species}
-                    </Badge>
-                    <span className="text-sm font-medium text-foreground">
-                      {booking.head_count} head
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span>{formatTimeWindow(booking.requested_window_start, booking.requested_window_end)}</span>
-                    <Badge variant={getStatusVariant(booking.status)}>
-                      {booking.status}
-                    </Badge>
-                  </div>
-                </div>
+                <Badge variant={getStatusVariant(booking.status)}>
+                  {booking.status}
+                </Badge>
               </div>
             ))}
           </div>
