@@ -19,13 +19,13 @@ type BookingWithSupplier = Tables<'bookings'> & {
   } | null;
 };
 
-const getStatusColor = (status: string) => {
+const getStatusVariant = (status: string): "confirmed" | "requested" | "changed" | "cancelled" | "secondary" => {
   switch (status) {
-    case "confirmed": return "bg-green-100 text-green-800 border-green-200";
-    case "requested": return "bg-yellow-100 text-yellow-800 border-yellow-200";
-    case "changed": return "bg-orange-100 text-orange-800 border-orange-200";
-    case "cancelled": return "bg-red-100 text-red-800 border-red-200";
-    default: return "bg-muted text-muted-foreground";
+    case "confirmed": return "confirmed";
+    case "requested": return "requested";
+    case "changed": return "changed";
+    case "cancelled": return "cancelled";
+    default: return "secondary";
   }
 };
 
@@ -377,7 +377,7 @@ export default function BookingBoard() {
                           )}
                         </td>
                         <td className="py-3 px-2">
-                          <Badge className={getStatusColor(booking.status || 'unknown')}>
+                          <Badge variant={getStatusVariant(booking.status || 'unknown')}>
                             {booking.status || 'unknown'}
                           </Badge>
                         </td>

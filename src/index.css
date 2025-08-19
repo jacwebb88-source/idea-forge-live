@@ -45,6 +45,9 @@
     --info: 217 91% 60%;
     --info-foreground: 0 0% 100%;
 
+    --changed: 24 95% 53%;
+    --changed-foreground: 0 0% 100%;
+
     /* Borders and inputs */
     --border: 220 13% 91%;
     --input: 220 13% 91%;
@@ -103,6 +106,9 @@
 
     --info: 217 91% 70%;
     --info-foreground: 220 39% 7%;
+
+    --changed: 24 95% 63%;
+    --changed-foreground: 220 39% 7%;
 
     --border: 220 39% 20%;
     --input: 220 39% 20%;

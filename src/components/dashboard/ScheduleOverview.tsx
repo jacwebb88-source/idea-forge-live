@@ -51,12 +51,12 @@ const todaySchedule = [
 ];
 
 export function ScheduleOverview() {
-  const getStatusColor = (status: string) => {
+  const getStatusVariant = (status: string): "confirmed" | "requested" | "changed" | "cancelled" | "secondary" => {
     switch (status) {
-      case "completed": return "bg-green-100 text-green-800";
-      case "in-progress": return "bg-blue-100 text-blue-800";
-      case "scheduled": return "bg-yellow-100 text-yellow-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "completed": return "confirmed";
+      case "in-progress": return "changed";
+      case "scheduled": return "requested";
+      default: return "secondary";
     }
   };
 
@@ -86,7 +86,7 @@ export function ScheduleOverview() {
                 </div>
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <span>{item.animals} {item.type}</span>
-                  <Badge className={getStatusColor(item.status)}>
+                  <Badge variant={getStatusVariant(item.status)}>
                     {item.status.replace("-", " ")}
                   </Badge>
                 </div>

@@ -46,13 +46,13 @@ const activities = [
 ];
 
 export function RecentActivity() {
-  const getStatusColor = (status: string) => {
+  const getStatusVariant = (status: string): "confirmed" | "requested" | "changed" | "cancelled" | "secondary" => {
     switch (status) {
-      case "completed": return "bg-green-100 text-green-800";
-      case "pending": return "bg-yellow-100 text-yellow-800";
-      case "warning": return "bg-red-100 text-red-800";
-      case "confirmed": return "bg-blue-100 text-blue-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "completed": return "confirmed";
+      case "confirmed": return "confirmed";
+      case "pending": return "requested";
+      case "warning": return "cancelled";
+      default: return "secondary";
     }
   };
 
@@ -77,7 +77,7 @@ export function RecentActivity() {
                   <p className="text-xs text-muted-foreground">
                     {activity.time}
                   </p>
-                  <Badge variant="secondary" className={getStatusColor(activity.status)}>
+                  <Badge variant={getStatusVariant(activity.status)}>
                     {activity.status}
                   </Badge>
                 </div>
