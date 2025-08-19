@@ -276,20 +276,20 @@ export default function BookingBoard() {
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full border-collapse">
                 <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Booking ID</th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Supplier</th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Species</th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Agent Ref</th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Lot ID</th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Head Count</th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Kill Date</th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Window Start</th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Window End</th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Status</th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Actions</th>
+                  <tr className="table-header">
+                    <th className="text-left py-3 px-3 text-sm font-medium">Booking ID</th>
+                    <th className="text-left py-3 px-3 text-sm font-medium">Supplier</th>
+                    <th className="text-left py-3 px-3 text-sm font-medium">Species</th>
+                    <th className="text-left py-3 px-3 text-sm font-medium">Agent Ref</th>
+                    <th className="text-left py-3 px-3 text-sm font-medium">Lot ID</th>
+                    <th className="text-right py-3 px-2 text-sm font-medium">Head Count</th>
+                    <th className="text-left py-3 px-3 text-sm font-medium">Kill Date</th>
+                    <th className="text-left py-3 px-3 text-sm font-medium">Window Start</th>
+                    <th className="text-left py-3 px-3 text-sm font-medium">Window End</th>
+                    <th className="text-left py-3 px-3 text-sm font-medium">Status</th>
+                    <th className="text-left py-3 px-3 text-sm font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -306,27 +306,27 @@ export default function BookingBoard() {
                       </td>
                     </tr>
                   ) : (
-                    filteredBookings.map((booking) => (
-                      <tr key={booking.id} className="border-b border-border hover:bg-muted/50 transition-colors">
-                        <td className="py-3 px-2 text-sm font-medium">{booking.id.slice(-8)}</td>
-                        <td className="py-3 px-2">
+                    filteredBookings.map((booking, index) => (
+                      <tr key={booking.id} className={`table-row-hover table-row-zebra border-b border-border transition-colors`}>
+                        <td className="py-3 px-3 text-sm font-medium">{booking.id.slice(-8)}</td>
+                        <td className="py-3 px-3">
                           <div>
                             <div className="font-medium text-sm">{booking.suppliers?.name || 'Unknown Supplier'}</div>
                             <div className="text-xs text-muted-foreground capitalize">{booking.suppliers?.type || ''}</div>
                           </div>
                         </td>
-                        <td className="py-3 px-2">
+                        <td className="py-3 px-3">
                           <Badge variant="outline" className="capitalize">
                             {booking.species}
                           </Badge>
                         </td>
-                        <td className="py-3 px-2 text-sm">{booking.agent_ref || '-'}</td>
-                        <td className="py-3 px-2 text-sm font-mono">{booking.lot_id || '-'}</td>
-                        <td className="py-3 px-2 text-sm">{booking.head_count || '-'}</td>
-                        <td className="py-3 px-2 text-sm">
+                        <td className="py-3 px-3 text-sm">{booking.agent_ref || '-'}</td>
+                        <td className="py-3 px-3 text-sm font-mono">{booking.lot_id || '-'}</td>
+                        <td className="py-3 px-2 text-sm table-cell-numeric">{booking.head_count || '-'}</td>
+                        <td className="py-3 px-3 text-sm">
                           {booking.requested_kill_date ? new Date(booking.requested_kill_date).toLocaleDateString('en-AU') : '-'}
                         </td>
-                        <td className="py-3 px-2 text-sm">
+                        <td className="py-3 px-3 text-sm">
                           {editingCell?.bookingId === booking.id && editingCell.field === 'requested_window_start' ? (
                             <div className="flex items-center gap-2">
                               <Input
@@ -351,7 +351,7 @@ export default function BookingBoard() {
                             </div>
                           )}
                         </td>
-                        <td className="py-3 px-2 text-sm">
+                        <td className="py-3 px-3 text-sm">
                           {editingCell?.bookingId === booking.id && editingCell.field === 'requested_window_end' ? (
                             <div className="flex items-center gap-2">
                               <Input
@@ -376,12 +376,12 @@ export default function BookingBoard() {
                             </div>
                           )}
                         </td>
-                        <td className="py-3 px-2">
+                        <td className="py-3 px-3">
                           <Badge variant={getStatusVariant(booking.status || 'unknown')}>
                             {booking.status || 'unknown'}
                           </Badge>
                         </td>
-                        <td className="py-3 px-2">
+                        <td className="py-3 px-3">
                           <div className="flex gap-1">
                             {booking.status === 'requested' && (
                               <>

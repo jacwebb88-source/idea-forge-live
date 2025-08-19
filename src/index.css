@@ -53,6 +53,12 @@
     --input: 220 13% 91%;
     --ring: 150 48% 36%;
 
+    /* Table styling */
+    --table-header-bg: 220 13% 96%;
+    --table-header-text: 220 39% 21%;
+    --table-zebra: 0 0% 98%;
+    --table-hover: 220 13% 97%;
+
     --radius: 0.875rem;
 
     /* Gradients and effects */
@@ -148,7 +154,21 @@
     box-shadow: var(--shadow-country);
   }
   
-  .transition-country {
-    transition: var(--transition-smooth);
+  
+  /* Table utilities */
+  .table-header {
+    @apply bg-table-header-bg text-table-header-text font-medium;
+  }
+  
+  .table-row-zebra:nth-child(even) {
+    @apply bg-table-zebra;
+  }
+  
+  .table-row-hover:hover {
+    @apply bg-table-hover;
+  }
+  
+  .table-cell-numeric {
+    @apply text-right tabular-nums;
   }
 }

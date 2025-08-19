@@ -68,6 +68,10 @@ export default {
 					DEFAULT: 'hsl(var(--changed))',
 					foreground: 'hsl(var(--changed-foreground))'
 				},
+				'table-header-bg': 'hsl(var(--table-header-bg))',
+				'table-header-text': 'hsl(var(--table-header-text))',
+				'table-zebra': 'hsl(var(--table-zebra))',
+				'table-hover': 'hsl(var(--table-hover))',
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
