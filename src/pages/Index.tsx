@@ -2,6 +2,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { 
   Users, 
   Calendar, 
@@ -18,23 +19,26 @@ const Index = () => {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Processor ABC — Today's Schedule</h1>
             <p className="text-muted-foreground mt-1">
               Manage bookings, transport windows and grids without the scramble.
             </p>
           </div>
-          <div className="text-right">
-            <p className="text-sm text-muted-foreground">Today</p>
-            <p className="text-lg font-semibold text-foreground">
-              {new Date().toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
-            </p>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4" />
+              Confirm Slot
+            </Button>
+            <Button variant="outline" className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Change Request
+            </Button>
+            <Button className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Send Grid
+            </Button>
           </div>
         </div>
 
