@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface ActivityItem {
   booking_id: string;
-  supplier_name: string | null;
   lot_id: string | null;
   species: string | null;
   event: string;
@@ -40,16 +39,6 @@ export function RecentActivity() {
       console.error('Error:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const getStatusVariant = (status: string): "confirmed" | "requested" | "changed" | "cancelled" | "secondary" => {
-    switch (status?.toLowerCase()) {
-      case "confirmed": return "confirmed";
-      case "requested": return "requested";
-      case "changed": return "changed";
-      case "cancelled": return "cancelled";
-      default: return "secondary";
     }
   };
 
@@ -108,7 +97,7 @@ export function RecentActivity() {
           </div>
         ) : activities.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
-            No recent booking activity
+            No recent activity
           </div>
         ) : (
           <div className="space-y-4">
