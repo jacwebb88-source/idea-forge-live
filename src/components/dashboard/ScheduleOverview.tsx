@@ -25,16 +25,14 @@ export function ScheduleOverview() {
     try {
       const today = new Date().toISOString().split('T')[0]; // Format as YYYY-MM-DD
       
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('app_bookings')
         .select('species,head_count,requested_kill_date,requested_window_start,requested_window_end,status')
-        .gte('requested_kill_date', today)
-        .order('requested_kill_date', { ascending: true })
-        .order('requested_window_start', { ascending: true })
-        .limit(6);
+        .eq('requested_kill_date', today)
+        .order('requested_window_start', { ascending: true });
 
       if (error) {
-        console.error('Error fetching upcoming bookings:', error);
+        console.error('Error fetching today\'s bookings:', error);
         return;
       }
 
@@ -99,7 +97,7 @@ export function ScheduleOverview() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Calendar className="h-5 w-5 text-primary" />
-          Upcoming Schedule
+          Today's Schedule Overview
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -109,7 +107,7 @@ export function ScheduleOverview() {
           </div>
         ) : bookings.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
-            No upcoming bookings
+            No bookings today
           </div>
         ) : (
           <div className="space-y-3">
@@ -117,7 +115,7 @@ export function ScheduleOverview() {
               <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors">
                 <div className="flex-1">
                   <span className="text-sm font-medium text-foreground">
-                    {booking.species}: {booking.head_count} head • {formatKillDate(booking.requested_kill_date)} {formatTimeWindow(booking.requested_window_start, booking.requested_window_end)}
+                    {booking.species}: {booking.head_count} head • {formatTimeWindow(booking.requested_window_start, booking.requested_window_end)}
                   </span>
                 </div>
                 <Badge variant={getStatusVariant(booking.status)}>
