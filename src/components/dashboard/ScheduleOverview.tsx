@@ -28,8 +28,9 @@ export function ScheduleOverview() {
       const { data, error } = await (supabase as any)
         .from('app_bookings')
         .select('species,head_count,requested_kill_date,requested_window_start,requested_window_end,status')
-        .eq('requested_kill_date', today)
-        .order('requested_window_start', { ascending: true });
+        .gte('requested_kill_date', today)
+        .order('requested_window_start', { ascending: true })
+        .limit(6);
 
       if (error) {
         console.error('Error fetching today\'s bookings:', error);
