@@ -29,6 +29,7 @@ export function ScheduleOverview() {
         .from('app_bookings')
         .select('species,head_count,requested_kill_date,requested_window_start,requested_window_end,status')
         .gte('requested_kill_date', today)
+        .order('requested_kill_date', { ascending: true })
         .order('requested_window_start', { ascending: true })
         .limit(6);
 
@@ -116,7 +117,7 @@ export function ScheduleOverview() {
               <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/30 transition-colors">
                 <div className="flex-1">
                   <span className="text-sm font-medium text-foreground">
-                    {booking.species}: {booking.head_count} head • {formatTimeWindow(booking.requested_window_start, booking.requested_window_end)}
+                    {booking.species}: {booking.head_count} head • {formatKillDate(booking.requested_kill_date)} {formatTimeWindow(booking.requested_window_start, booking.requested_window_end)}
                   </span>
                 </div>
                 <Badge variant={getStatusVariant(booking.status)}>
