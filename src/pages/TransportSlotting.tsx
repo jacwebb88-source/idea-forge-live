@@ -9,31 +9,31 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
-// Type definition for transport slots
-type TransportSlot = Tables<'app_transport_slots'>;
+// Type definition for slot conflicts
+type SlotConflict = Tables<'slot_conflicts'>;
 
 export default function TransportSlotting() {
-  const [transportSlots, setTransportSlots] = useState<TransportSlot[]>([]);
+  const [slotConflicts, setSlotConflicts] = useState<SlotConflict[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSpecies, setSelectedSpecies] = useState("all");
 
   useEffect(() => {
-    fetchTransportSlots();
+    fetchSlotConflicts();
   }, []);
 
-  const fetchTransportSlots = async () => {
+  const fetchSlotConflicts = async () => {
     try {
       const { data, error } = await (supabase as any)
-        .from('app_transport_slots')
+        .from('slot_conflicts')
         .select('*')
         .order('window_start_dt', { ascending: true });
 
       if (error) {
-        console.error('Error fetching transport slots:', error);
+        console.error('Error fetching slot conflicts:', error);
         return;
       }
 
-      setTransportSlots(data || []);
+      setSlotConflicts(data || []);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -41,8 +41,8 @@ export default function TransportSlotting() {
     }
   };
 
-  const filteredSlots = transportSlots.filter(slot => {
-    return selectedSpecies === "all" || slot.species === selectedSpecies;
+  const filteredConflicts = slotConflicts.filter(conflict => {
+    return selectedSpecies === "all" || conflict.species === selectedSpecies;
   });
 
   const formatDateTime = (dateTimeString: string | null) => {
@@ -108,7 +108,7 @@ export default function TransportSlotting() {
           <CardContent>
             {loading ? (
               <div className="text-center py-8 text-muted-foreground">
-                Loading transport slots...
+                Loading slot conflicts...
               </div>
             ) : (
               <div className="rounded-md border">
@@ -118,36 +118,36 @@ export default function TransportSlotting() {
                       <TableHead>Window Start</TableHead>
                       <TableHead>Window End</TableHead>
                       <TableHead>Species</TableHead>
-                      <TableHead>Assigned Bookings</TableHead>
+                      <TableHead>Assigned Loads</TableHead>
                       <TableHead>Max Truck Loads</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>Conflict Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                     {filteredSlots.map((slot) => (
+                     {filteredConflicts.map((conflict, index) => (
                         <TableRow 
-                          key={slot.id}
-                          className={slot.conflict_flag ? "bg-destructive/10 border-destructive/30" : ""}
+                          key={conflict.slot_id || `conflict-${index}`}
+                          className={conflict.is_conflict ? "bg-destructive/10 border-destructive/30" : ""}
                         >
                           <TableCell className="font-mono text-sm">
-                            {formatDateTime(slot.window_start_dt)}
+                            {formatDateTime(conflict.window_start_dt)}
                           </TableCell>
                           <TableCell className="font-mono text-sm">
-                            {formatDateTime(slot.window_end_dt)}
+                            {formatDateTime(conflict.window_end_dt)}
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline" className="capitalize">
-                              {slot.species || 'N/A'}
+                              {conflict.species || 'N/A'}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-center font-medium">
-                            {slot.assigned_booking_ids?.length || 0}
+                            {conflict.assigned_loads || 0}
                           </TableCell>
                           <TableCell className="text-center font-medium">
-                            {slot.max_truck_loads || 0}
+                            {conflict.max_truck_loads || 0}
                           </TableCell>
                           <TableCell>
-                            {slot.conflict_flag ? (
+                            {conflict.is_conflict ? (
                               <div className="flex items-center gap-2">
                                 <AlertTriangle className="h-4 w-4 text-destructive" />
                                 <Badge variant="destructive">Conflict</Badge>
@@ -158,10 +158,10 @@ export default function TransportSlotting() {
                           </TableCell>
                         </TableRow>
                       ))}
-                    {filteredSlots.length === 0 && (
+                    {filteredConflicts.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                          No transport slots found
+                          No slot conflicts found
                         </TableCell>
                       </TableRow>
                     )}
@@ -180,7 +180,7 @@ export default function TransportSlotting() {
                 <Clock className="h-5 w-5 text-primary" />
                 <div>
                   <div className="text-2xl font-bold text-foreground">
-                    {filteredSlots.length}
+                    {filteredConflicts.length}
                   </div>
                   <div className="text-sm text-muted-foreground">Total Slots</div>
                 </div>
@@ -194,7 +194,7 @@ export default function TransportSlotting() {
                 <AlertTriangle className="h-5 w-5 text-destructive" />
                 <div>
                   <div className="text-2xl font-bold text-foreground">
-                    {filteredSlots.filter(slot => slot.conflict_flag).length}
+                    {filteredConflicts.filter(conflict => conflict.is_conflict).length}
                   </div>
                   <div className="text-sm text-muted-foreground">Conflicts</div>
                 </div>
@@ -208,9 +208,9 @@ export default function TransportSlotting() {
                 <Truck className="h-5 w-5 text-accent" />
                 <div>
                   <div className="text-2xl font-bold text-foreground">
-                    {filteredSlots.reduce((sum, slot) => sum + (slot.assigned_booking_ids?.length || 0), 0)}
+                    {filteredConflicts.reduce((sum, conflict) => sum + (conflict.assigned_loads || 0), 0)}
                   </div>
-                  <div className="text-sm text-muted-foreground">Total Assigned Bookings</div>
+                  <div className="text-sm text-muted-foreground">Total Assigned Loads</div>
                 </div>
               </div>
             </CardContent>
@@ -221,8 +221,8 @@ export default function TransportSlotting() {
         <Card className="border-dashed border-muted-foreground/30">
           <CardContent className="pt-6">
             <div className="text-center text-sm text-muted-foreground">
-              <p className="font-medium">🚛 Transport Slots</p>
-              <p>Data from app_transport_slots table showing transport capacity and assignments.</p>
+              <p className="font-medium">🚛 Slot Conflicts</p>
+              <p>Data from slot_conflicts table showing transport capacity conflicts and assignments.</p>
             </div>
           </CardContent>
         </Card>
