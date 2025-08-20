@@ -1,6 +1,7 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { ScheduleOverview } from "@/components/dashboard/ScheduleOverview";
+import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -122,47 +123,7 @@ const Index = () => {
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <ScheduleOverview />
-          
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5" />
-                Recent Activity
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                  <div>
-                    <div className="text-sm font-medium">Booking B001 confirmed</div>
-                    <div className="text-xs text-muted-foreground">Murray Valley Livestock • 2 minutes ago</div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
-                  <div>
-                    <div className="text-sm font-medium">Transport slot conflict detected</div>
-                    <div className="text-xs text-muted-foreground">Teys - Beenleigh • 15 minutes ago</div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                  <div>
-                    <div className="text-sm font-medium">New grid spec published</div>
-                    <div className="text-xs text-muted-foreground">Beef v2.1 • 1 hour ago</div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
-                  <div>
-                    <div className="text-sm font-medium">Booking change requested</div>
-                    <div className="text-xs text-muted-foreground">Queensland Cattle Co • 2 hours ago</div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <RecentActivity />
         </div>
 
 
