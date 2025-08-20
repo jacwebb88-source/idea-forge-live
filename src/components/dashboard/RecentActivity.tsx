@@ -55,11 +55,11 @@ export function RecentActivity() {
 
   const getActivityMessage = (activity: ActivityItem) => {
     if (activity.type === 'intake') {
-      return `Intake ${activity.event} recorded`;
+      return `Intake ${activity.event}`;
     }
     
     // For booking events
-    return `Booking ${activity.booking_id} ${activity.event}`;
+    return `Booking ${activity.event}`;
   };
 
   const getActivitySubtext = (activity: ActivityItem) => {
