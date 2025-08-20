@@ -24,8 +24,8 @@ export function RecentActivity() {
 
   const fetchRecentActivity = async () => {
     try {
-      const { data, error } = await supabase
-        .from('app_recent_activity' as any)
+      const { data, error } = await (supabase as any)
+        .from('app_recent_activity')
         .select('*')
         .order('at_time', { ascending: false })
         .limit(10);
@@ -55,7 +55,7 @@ export function RecentActivity() {
 
   const getActivityMessage = (activity: ActivityItem) => {
     if (activity.type === 'intake') {
-      return `Intake ${activity.event}`;
+      return `Intake ${activity.event} recorded`;
     }
     
     // For booking events
