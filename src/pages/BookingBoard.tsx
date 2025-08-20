@@ -11,12 +11,24 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
-// Type definition for booking data with supplier info
-type BookingWithSupplier = Tables<'bookings'> & {
-  suppliers?: {
-    name: string;
-    type: string;
-  } | null;
+// Type definition for booking data from app_bookings
+type BookingData = {
+  id: string | null;
+  status: string | null;
+  plant_id: string | null;
+  supplier_id: string | null;
+  head_count: number | null;
+  plant_name: string | null;
+  requested_kill_date: string | null;
+  requested_window_start: string | null;
+  requested_window_end: string | null;
+  created_at: string | null;
+  lot_id: string | null;
+  agent_ref: string | null;
+  species: string | null;
+  est_avg_hscw: number | null;
+  est_avg_live_wt: number | null;
+  target_grid_id: string | null;
 };
 
 const getSpeciesVariant = (species: string): "beef" | "lamb" | "mutton" | "goat" | "secondary" => {
@@ -58,7 +70,7 @@ const formatTimeWindow = (start?: string, end?: string) => {
 
 export default function BookingBoard() {
   const { toast } = useToast();
-  const [bookings, setBookings] = useState<BookingWithSupplier[]>([]);
+  const [bookings, setBookings] = useState<BookingData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("requested"); // Default to "requested"
@@ -73,15 +85,9 @@ export default function BookingBoard() {
 
   const fetchBookings = async () => {
     try {
-      const { data, error } = await supabase
-        .from('bookings')
-        .select(`
-          *,
-          suppliers(
-            name,
-            type
-          )
-        `)
+      const { data, error } = await (supabase as any)
+        .from('app_bookings')
+        .select('*')
         .order('requested_kill_date', { ascending: true });
 
       if (error) {
@@ -105,8 +111,8 @@ export default function BookingBoard() {
     setUpdatingBookings(prev => new Set([...prev, bookingId]));
 
     try {
-      const { error } = await supabase
-        .from('bookings')
+      const { error } = await (supabase as any)
+        .from('app_bookings')
         .update({ status: newStatus })
         .eq('id', bookingId);
 
@@ -161,8 +167,8 @@ export default function BookingBoard() {
     const { bookingId, field } = editingCell;
     
     try {
-      const { error } = await supabase
-        .from('bookings')
+      const { error } = await (supabase as any)
+        .from('app_bookings')
         .update({ [field]: tempValue })
         .eq('id', bookingId);
 
@@ -215,8 +221,7 @@ export default function BookingBoard() {
 
   const filteredBookings = bookings.filter(booking => {
     const matchesSearch = (booking.lot_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          booking.agent_ref?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          booking.suppliers?.name?.toLowerCase().includes(searchTerm.toLowerCase())) ?? false;
+                          booking.agent_ref?.toLowerCase().includes(searchTerm.toLowerCase())) ?? false;
     const matchesStatus = statusFilter === "all" || booking.status === statusFilter;
     
     return matchesSearch && matchesStatus;
@@ -255,8 +260,8 @@ export default function BookingBoard() {
               <div className="flex-1">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by supplier, lot ID or agent ref..."
+                <Input
+                placeholder="Search by lot ID or agent ref..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -292,7 +297,6 @@ export default function BookingBoard() {
                 <thead>
                   <tr className="table-header">
                     <th className="text-left py-3 px-3 text-sm font-medium">Booking ID</th>
-                    <th className="text-left py-3 px-3 text-sm font-medium">Supplier</th>
                     <th className="text-left py-3 px-3 text-sm font-medium">Species</th>
                     <th className="text-left py-3 px-3 text-sm font-medium">Agent Ref</th>
                     <th className="text-left py-3 px-3 text-sm font-medium">Lot ID</th>
@@ -307,28 +311,22 @@ export default function BookingBoard() {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={11} className="py-8 text-center text-muted-foreground">
+                      <td colSpan={10} className="py-8 text-center text-muted-foreground">
                         Loading bookings...
                       </td>
                     </tr>
                   ) : filteredBookings.length === 0 ? (
                     <tr>
-                      <td colSpan={11} className="py-8 text-center text-muted-foreground">
+                      <td colSpan={10} className="py-8 text-center text-muted-foreground">
                         No bookings found
                       </td>
                     </tr>
                   ) : (
                     filteredBookings.map((booking, index) => (
                       <tr key={booking.id} className={`table-row-hover table-row-zebra border-b border-border transition-colors`}>
-                        <td className="py-3 px-3 text-sm font-medium">{booking.id.slice(-8)}</td>
+                        <td className="py-3 px-3 text-sm font-medium">{booking.id?.slice(-8)}</td>
                         <td className="py-3 px-3">
-                          <div>
-                            <div className="font-medium text-sm">{booking.suppliers?.name || 'Unknown Supplier'}</div>
-                            <div className="text-xs text-muted-foreground capitalize">{booking.suppliers?.type || ''}</div>
-                          </div>
-                        </td>
-                        <td className="py-3 px-3">
-                          <Badge variant={getSpeciesVariant(booking.species)} className="capitalize">
+                          <Badge variant={getSpeciesVariant(booking.species || '')} className="capitalize">
                             {booking.species}
                           </Badge>
                         </td>
