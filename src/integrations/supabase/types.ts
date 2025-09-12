@@ -479,6 +479,18 @@ export type Database = {
           },
         ]
       }
+      app_recent_activity: {
+        Row: {
+          at_time: string | null
+          booking_id: string | null
+          event: string | null
+          lot_id: string | null
+          species: string | null
+          supplier_name: string | null
+          type: string | null
+        }
+        Relationships: []
+      }
       app_transport_slots: {
         Row: {
           assigned_booking_ids: string[] | null
