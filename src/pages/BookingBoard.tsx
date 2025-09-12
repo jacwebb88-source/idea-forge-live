@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { NewBookingForm } from "@/components/NewBookingForm";
+import { BookingCalendar } from "@/components/BookingCalendar";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar, Search, Plus, Filter, Download, CheckCircle, X, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -442,20 +443,8 @@ export default function BookingBoard() {
           </CardContent>
         </Card>
 
-        {/* Calendar View Toggle */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Calendar View
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8 text-muted-foreground">
-              Calendar view coming soon - switch between table and calendar layouts
-            </div>
-          </CardContent>
-        </Card>
+        {/* Calendar View */}
+        <BookingCalendar />
 
         {/* Demo Data Notice */}
         <Card className="border-dashed border-muted-foreground/30">
