@@ -23,6 +23,7 @@ interface KPIData {
   loadsPending: number;
   complianceRate: number;
   complianceOk: number;
+  missingCompliance: number;
 }
 
 interface PlantKPI {
@@ -234,6 +235,27 @@ export default function KPIDashboard() {
     return (okCount / complianceData.length) * 100;
   };
 
+  // Calculate missing compliance records from compliance_checks
+  const calculateMissingCompliance = async (startDate: Date, endDate: Date, plantIds?: string[]) => {
+    if (!plantIds || plantIds.length === 0) return 0;
+
+    // Get all compliance checks
+    const { data: complianceData } = await (supabase as any)
+      .from('compliance_checks')
+      .select('nvd_status, nlis_status, pic_status');
+
+    if (!complianceData || complianceData.length === 0) return 0;
+
+    // Count how many have any status = 'missing'
+    const missingCount = complianceData.filter((c: any) => 
+      c.nvd_status === 'missing' || 
+      c.nlis_status === 'missing' || 
+      c.pic_status === 'missing'
+    ).length;
+
+    return missingCount;
+  };
+
   // Calculate other KPIs from kpi_records
   const calculateKPIsFromRecords = async (startDate: Date, endDate: Date, plantIds?: string[]) => {
     if (!plantIds || plantIds.length === 0) {
@@ -302,6 +324,10 @@ export default function KPIDashboard() {
       // Calculate compliance OK
       const currentComplianceOk = await calculateComplianceOk(currentWeekStart, currentWeekEnd, plantIds);
       const previousComplianceOk = await calculateComplianceOk(previousWeekStart, previousWeekEnd, plantIds);
+      
+      // Calculate missing compliance
+      const currentMissingCompliance = await calculateMissingCompliance(currentWeekStart, currentWeekEnd, plantIds);
+      const previousMissingCompliance = await calculateMissingCompliance(previousWeekStart, previousWeekEnd, plantIds);
 
       setCurrentWeekKPIs({
         fillRate: currentFillRate,
@@ -309,6 +335,7 @@ export default function KPIDashboard() {
         ...currentOtherKPIs,
         complianceRate: currentCompliance,
         complianceOk: currentComplianceOk,
+        missingCompliance: currentMissingCompliance,
       });
 
       setPreviousWeekKPIs({
@@ -317,6 +344,7 @@ export default function KPIDashboard() {
         ...previousOtherKPIs,
         complianceRate: previousCompliance,
         complianceOk: previousComplianceOk,
+        missingCompliance: previousMissingCompliance,
       });
 
       // Calculate plant breakdown if "all" plants selected
@@ -409,6 +437,10 @@ export default function KPIDashboard() {
 
   const complianceOkChange = currentWeekKPIs && previousWeekKPIs ? 
     calculateChange(currentWeekKPIs.complianceOk, previousWeekKPIs.complianceOk) : 
+    { value: "0", type: "neutral" as const, symbol: "" };
+
+  const missingComplianceChange = currentWeekKPIs && previousWeekKPIs ? 
+    calculateChange(previousWeekKPIs.missingCompliance, currentWeekKPIs.missingCompliance) : // Reversed: fewer missing is better
     { value: "0", type: "neutral" as const, symbol: "" };
 
   if (loading || !currentWeekKPIs) {
@@ -584,6 +616,14 @@ export default function KPIDashboard() {
             changeType={complianceOkChange.type}
             icon={Target}
             description="Checks where all statuses are OK"
+          />
+          <MetricCard
+            title="Missing Compliance Records"
+            value={currentWeekKPIs.missingCompliance}
+            change={`${missingComplianceChange.symbol}${missingComplianceChange.value} vs last week`}
+            changeType={missingComplianceChange.type}
+            icon={Target}
+            description="Checks with any status marked as missing"
           />
         </div>
 
