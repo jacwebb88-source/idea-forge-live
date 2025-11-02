@@ -162,28 +162,39 @@ const Index = () => {
             icon={AlertTriangle}
             description="Active scheduling conflicts"
           />
-          <MetricCard
-            title="Compliance OK %"
-            value={loadingCompliance ? "Loading..." : complianceOk !== null ? `${complianceOk.toFixed(1)}%` : "No compliance data yet"}
-            change={complianceOk !== null ? "Fully compliant bookings" : undefined}
-            changeType="neutral"
-            icon={Shield}
-            description="All three compliance checks passed"
-            thresholds={complianceOk !== null ? {
-              value: complianceOk,
-              greenAbove: 95,
-              amberAbove: 80
-            } : undefined}
-          />
-          <MetricCard
-            title="Missing Compliance Records"
-            value={loadingCompliance ? "Loading..." : missingCompliance === 0 ? "No missing records 🎉" : missingCompliance}
-            change={missingCompliance > 0 ? "Requires attention" : "All records complete"}
-            changeType={missingCompliance === 0 ? "positive" : "negative"}
-            icon={AlertTriangle}
-            description="Records with any missing status"
-          />
         </div>
+
+        {/* Compliance Summary */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Compliance Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <MetricCard
+                title="Compliance OK %"
+                value={loadingCompliance ? "Loading..." : complianceOk !== null ? `${complianceOk.toFixed(1)}%` : "No compliance data yet"}
+                change={complianceOk !== null ? "Fully compliant bookings" : undefined}
+                changeType="neutral"
+                icon={Shield}
+                description="All three compliance checks passed"
+                thresholds={complianceOk !== null ? {
+                  value: complianceOk,
+                  greenAbove: 95,
+                  amberAbove: 80
+                } : undefined}
+              />
+              <MetricCard
+                title="Missing Compliance Records"
+                value={loadingCompliance ? "Loading..." : missingCompliance === 0 ? "No missing records 🎉" : missingCompliance}
+                change={missingCompliance > 0 ? "Requires attention" : "All records complete"}
+                changeType={missingCompliance === 0 ? "positive" : "negative"}
+                icon={AlertTriangle}
+                description="Records with any missing status"
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
