@@ -22,6 +22,7 @@ interface KPIData {
   hasGridScoreData: boolean;
   loadsPending: number;
   complianceRate: number;
+  complianceOk: number;
 }
 
 interface PlantKPI {
@@ -212,6 +213,27 @@ export default function KPIDashboard() {
     return (completeCount / complianceData.length) * 100;
   };
 
+  // Calculate compliance OK from compliance_checks
+  const calculateComplianceOk = async (startDate: Date, endDate: Date, plantIds?: string[]) => {
+    if (!plantIds || plantIds.length === 0) return 0;
+
+    // Get all compliance checks
+    const { data: complianceData } = await (supabase as any)
+      .from('compliance_checks')
+      .select('nvd_status, nlis_status, pic_status');
+
+    if (!complianceData || complianceData.length === 0) return 0;
+
+    // Count how many have all three statuses = 'ok'
+    const okCount = complianceData.filter((c: any) => 
+      c.nvd_status === 'ok' && 
+      c.nlis_status === 'ok' && 
+      c.pic_status === 'ok'
+    ).length;
+
+    return (okCount / complianceData.length) * 100;
+  };
+
   // Calculate other KPIs from kpi_records
   const calculateKPIsFromRecords = async (startDate: Date, endDate: Date, plantIds?: string[]) => {
     if (!plantIds || plantIds.length === 0) {
@@ -276,12 +298,17 @@ export default function KPIDashboard() {
       // Calculate compliance rates
       const currentCompliance = await calculateComplianceRate(currentWeekStart, currentWeekEnd, plantIds);
       const previousCompliance = await calculateComplianceRate(previousWeekStart, previousWeekEnd, plantIds);
+      
+      // Calculate compliance OK
+      const currentComplianceOk = await calculateComplianceOk(currentWeekStart, currentWeekEnd, plantIds);
+      const previousComplianceOk = await calculateComplianceOk(previousWeekStart, previousWeekEnd, plantIds);
 
       setCurrentWeekKPIs({
         fillRate: currentFillRate,
         ...currentBookingsKPIs,
         ...currentOtherKPIs,
         complianceRate: currentCompliance,
+        complianceOk: currentComplianceOk,
       });
 
       setPreviousWeekKPIs({
@@ -289,6 +316,7 @@ export default function KPIDashboard() {
         ...previousBookingsKPIs,
         ...previousOtherKPIs,
         complianceRate: previousCompliance,
+        complianceOk: previousComplianceOk,
       });
 
       // Calculate plant breakdown if "all" plants selected
@@ -377,6 +405,10 @@ export default function KPIDashboard() {
 
   const complianceChange = currentWeekKPIs && previousWeekKPIs ? 
     calculateChange(currentWeekKPIs.complianceRate, previousWeekKPIs.complianceRate) : 
+    { value: "0", type: "neutral" as const, symbol: "" };
+
+  const complianceOkChange = currentWeekKPIs && previousWeekKPIs ? 
+    calculateChange(currentWeekKPIs.complianceOk, previousWeekKPIs.complianceOk) : 
     { value: "0", type: "neutral" as const, symbol: "" };
 
   if (loading || !currentWeekKPIs) {
@@ -544,6 +576,14 @@ export default function KPIDashboard() {
             changeType={complianceChange.type}
             icon={Target}
             description="Bookings with all compliance checks complete"
+          />
+          <MetricCard
+            title="Compliance OK"
+            value={`${currentWeekKPIs.complianceOk.toFixed(1)}%`}
+            change={`${complianceOkChange.symbol}${complianceOkChange.value}pp vs last week`}
+            changeType={complianceOkChange.type}
+            icon={Target}
+            description="Checks where all statuses are OK"
           />
         </div>
 
