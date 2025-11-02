@@ -10,7 +10,8 @@ import {
   ClipboardList,
   PieChart,
   UserCheck,
-  Lightbulb
+  Lightbulb,
+  ShieldCheck
 } from "lucide-react";
 
 import {
@@ -31,6 +32,7 @@ const mainItems = [
   { title: "Transport Slotting", url: "/transport", icon: Truck },
   { title: "Grid Specs", url: "/grid-specs", icon: ClipboardList },
   { title: "KPI Dashboard", url: "/kpis", icon: BarChart3 },
+  { title: "Compliance Checks", url: "/compliance", icon: ShieldCheck },
   { title: "Pilot Projects", url: "/pilots", icon: Lightbulb },
   { title: "Buyer/Supplier Request", url: "/buyer-request", icon: UserCheck },
 ];

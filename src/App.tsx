@@ -12,6 +12,7 @@ import ImportData from "./pages/ImportData";
 import Plants from "./pages/Plants";
 import BuyerSupplierRequest from "./pages/BuyerSupplierRequest";
 import PilotProjects from "./pages/PilotProjects";
+import ComplianceChecks from "./pages/ComplianceChecks";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/plants" element={<Plants />} />
           <Route path="/buyer-request" element={<BuyerSupplierRequest />} />
           <Route path="/pilots" element={<PilotProjects />} />
+          <Route path="/compliance" element={<ComplianceChecks />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
