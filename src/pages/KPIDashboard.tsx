@@ -54,11 +54,11 @@ export default function KPIDashboard() {
     fetchPlants();
   }, []);
 
-  // Get Fill Rate from app_bookings
+  // Get Fill Rate from bookings table
   const calculateFillRate = async (startDate: Date, endDate: Date, plantId?: string) => {
     let query = supabase
-      .from('app_bookings')
-      .select('head_count')
+      .from('bookings')
+      .select('fill_rate')
       .gte('requested_kill_date', format(startDate, 'yyyy-MM-dd'))
       .lte('requested_kill_date', format(endDate, 'yyyy-MM-dd'));
     
@@ -70,9 +70,9 @@ export default function KPIDashboard() {
     
     if (!data || data.length === 0) return 0;
     
-    // Calculate average fill rate from bookings
-    const totalHead = data.reduce((sum, row) => sum + (row.head_count || 0), 0);
-    return totalHead > 0 ? (totalHead / data.length) * 100 : 0;
+    // Calculate average fill rate from fill_rate column
+    const totalFillRate = data.reduce((sum, row) => sum + (row.fill_rate || 0), 0);
+    return data.length > 0 ? totalFillRate / data.length : 0;
   };
 
   // Calculate other KPIs from kpi_records
