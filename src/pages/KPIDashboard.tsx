@@ -21,6 +21,7 @@ interface KPIData {
   transportConfirmed: number;
   hasGridScoreData: boolean;
   loadsPending: number;
+  complianceRate: number;
 }
 
 interface PlantKPI {
@@ -171,6 +172,46 @@ export default function KPIDashboard() {
     };
   };
 
+  // Calculate compliance rate from compliance_checks
+  const calculateComplianceRate = async (startDate: Date, endDate: Date, plantIds?: string[]) => {
+    if (!plantIds || plantIds.length === 0) return 0;
+
+    // Get all bookings in the date range
+    let bookingsQuery = supabase
+      .from('bookings')
+      .select('id')
+      .gte('requested_kill_date', format(startDate, 'yyyy-MM-dd'))
+      .lte('requested_kill_date', format(endDate, 'yyyy-MM-dd'));
+    
+    if (plantIds.length === 1) {
+      bookingsQuery = bookingsQuery.eq('plant_id', plantIds[0]);
+    } else {
+      bookingsQuery = bookingsQuery.in('plant_id', plantIds);
+    }
+
+    const { data: bookings } = await bookingsQuery;
+    if (!bookings || bookings.length === 0) return 0;
+
+    const bookingIds = bookings.map(b => b.id);
+
+    // Get compliance checks for these bookings
+    const { data: complianceData } = await (supabase as any)
+      .from('compliance_checks')
+      .select('nvd_status, nlis_status, pic_status, booking_id')
+      .in('booking_id', bookingIds);
+
+    if (!complianceData || complianceData.length === 0) return 0;
+
+    // Count how many have all three statuses = 'complete'
+    const completeCount = complianceData.filter((c: any) => 
+      c.nvd_status === 'complete' && 
+      c.nlis_status === 'complete' && 
+      c.pic_status === 'complete'
+    ).length;
+
+    return (completeCount / complianceData.length) * 100;
+  };
+
   // Calculate other KPIs from kpi_records
   const calculateKPIsFromRecords = async (startDate: Date, endDate: Date, plantIds?: string[]) => {
     if (!plantIds || plantIds.length === 0) {
@@ -231,17 +272,23 @@ export default function KPIDashboard() {
       // Calculate other KPIs
       const currentOtherKPIs = await calculateKPIsFromRecords(currentWeekStart, currentWeekEnd, plantIds);
       const previousOtherKPIs = await calculateKPIsFromRecords(previousWeekStart, previousWeekEnd, plantIds);
+      
+      // Calculate compliance rates
+      const currentCompliance = await calculateComplianceRate(currentWeekStart, currentWeekEnd, plantIds);
+      const previousCompliance = await calculateComplianceRate(previousWeekStart, previousWeekEnd, plantIds);
 
       setCurrentWeekKPIs({
         fillRate: currentFillRate,
         ...currentBookingsKPIs,
         ...currentOtherKPIs,
+        complianceRate: currentCompliance,
       });
 
       setPreviousWeekKPIs({
         fillRate: previousFillRate,
         ...previousBookingsKPIs,
         ...previousOtherKPIs,
+        complianceRate: previousCompliance,
       });
 
       // Calculate plant breakdown if "all" plants selected
@@ -326,6 +373,10 @@ export default function KPIDashboard() {
 
   const loadsPendingChange = currentWeekKPIs && previousWeekKPIs ? 
     calculateChange(previousWeekKPIs.loadsPending, currentWeekKPIs.loadsPending) : // Reversed: fewer pending is better
+    { value: "0", type: "neutral" as const, symbol: "" };
+
+  const complianceChange = currentWeekKPIs && previousWeekKPIs ? 
+    calculateChange(currentWeekKPIs.complianceRate, previousWeekKPIs.complianceRate) : 
     { value: "0", type: "neutral" as const, symbol: "" };
 
   if (loading || !currentWeekKPIs) {
@@ -485,6 +536,14 @@ export default function KPIDashboard() {
             changeType={loadsPendingChange.type}
             icon={Truck}
             description="Bookings awaiting transport confirmation"
+          />
+          <MetricCard
+            title="Compliance Rate"
+            value={`${currentWeekKPIs.complianceRate.toFixed(1)}%`}
+            change={`${complianceChange.symbol}${complianceChange.value}pp vs last week`}
+            changeType={complianceChange.type}
+            icon={Target}
+            description="Bookings with all compliance checks complete"
           />
         </div>
 
