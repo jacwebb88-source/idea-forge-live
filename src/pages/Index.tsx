@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 import { 
   Users, 
   Calendar, 
@@ -14,11 +16,43 @@ import {
   AlertTriangle,
   CheckCircle,
   Activity,
-  BarChart3
+  BarChart3,
+  Shield
 } from "lucide-react";
 
 const Index = () => {
   const { toast } = useToast();
+  const [complianceOk, setComplianceOk] = useState<number | null>(null);
+  const [loadingCompliance, setLoadingCompliance] = useState(true);
+
+  useEffect(() => {
+    const fetchComplianceData = async () => {
+      setLoadingCompliance(true);
+      
+      const { data, error } = await (supabase as any)
+        .from('compliance_checks')
+        .select('nvd_status, nlis_status, pic_status');
+
+      if (error) {
+        console.error('Error fetching compliance data:', error);
+        setComplianceOk(null);
+      } else if (data && data.length > 0) {
+        const okCount = data.filter((c: any) => 
+          c.nvd_status === 'ok' && 
+          c.nlis_status === 'ok' && 
+          c.pic_status === 'ok'
+        ).length;
+        
+        setComplianceOk((okCount / data.length) * 100);
+      } else {
+        setComplianceOk(null);
+      }
+      
+      setLoadingCompliance(false);
+    };
+
+    fetchComplianceData();
+  }, []);
 
   const handleConfirmSlot = () => {
     toast({
@@ -117,6 +151,14 @@ const Index = () => {
             changeType="negative"
             icon={AlertTriangle}
             description="Active scheduling conflicts"
+          />
+          <MetricCard
+            title="Compliance OK %"
+            value={loadingCompliance ? "Loading..." : complianceOk !== null ? `${complianceOk.toFixed(1)}%` : "No compliance data yet"}
+            change={complianceOk !== null ? "Fully compliant bookings" : undefined}
+            changeType="neutral"
+            icon={Shield}
+            description="All three compliance checks passed"
           />
         </div>
 
