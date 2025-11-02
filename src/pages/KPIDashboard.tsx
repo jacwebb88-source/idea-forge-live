@@ -20,6 +20,7 @@ interface KPIData {
   varianceHours: number;
   transportConfirmed: number;
   hasGridScoreData: boolean;
+  loadsPending: number;
 }
 
 interface PlantKPI {
@@ -124,7 +125,7 @@ export default function KPIDashboard() {
   // Calculate bookings-based KPIs
   const calculateBookingsKPIs = async (startDate: Date, endDate: Date, plantIds?: string[]) => {
     if (!plantIds || plantIds.length === 0) {
-      return { gridFitScore: 0, varianceHours: 0, transportConfirmed: 0, hasGridScoreData: false };
+      return { gridFitScore: 0, varianceHours: 0, transportConfirmed: 0, hasGridScoreData: false, loadsPending: 0 };
     }
 
     let query = supabase
@@ -147,6 +148,7 @@ export default function KPIDashboard() {
         varianceHours: 0,
         transportConfirmed: 0,
         hasGridScoreData: false,
+        loadsPending: 0,
       };
     }
 
@@ -158,12 +160,14 @@ export default function KPIDashboard() {
     const avgVariance = data.reduce((sum, row) => sum + ((row as any).variance_hours || 0), 0) / data.length;
     const confirmedCount = data.filter(row => (row as any).transport_status === 'confirmed').length;
     const transportConfirmedPct = data.length > 0 ? (confirmedCount / data.length) * 100 : 0;
+    const pendingCount = data.filter(row => (row as any).transport_status === 'pending').length;
 
     return {
       gridFitScore: avgGridFit,
       varianceHours: avgVariance,
       transportConfirmed: transportConfirmedPct,
       hasGridScoreData,
+      loadsPending: pendingCount,
     };
   };
 
@@ -320,6 +324,10 @@ export default function KPIDashboard() {
     calculateChange(currentWeekKPIs.transportConfirmed, previousWeekKPIs.transportConfirmed) : 
     { value: "0", type: "neutral" as const, symbol: "" };
 
+  const loadsPendingChange = currentWeekKPIs && previousWeekKPIs ? 
+    calculateChange(previousWeekKPIs.loadsPending, currentWeekKPIs.loadsPending) : // Reversed: fewer pending is better
+    { value: "0", type: "neutral" as const, symbol: "" };
+
   if (loading || !currentWeekKPIs) {
     return (
       <DashboardLayout>
@@ -469,6 +477,14 @@ export default function KPIDashboard() {
             changeType={transportChange.type}
             icon={Truck}
             description="Confirmed transport bookings"
+          />
+          <MetricCard
+            title="Loads Pending"
+            value={currentWeekKPIs.loadsPending}
+            change={`${loadsPendingChange.symbol}${loadsPendingChange.value} vs last week`}
+            changeType={loadsPendingChange.type}
+            icon={Truck}
+            description="Bookings awaiting transport confirmation"
           />
         </div>
 
