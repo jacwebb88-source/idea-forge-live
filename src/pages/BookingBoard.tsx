@@ -18,8 +18,9 @@ type BookingData = {
   species: string | null;
   head_count: number | null;
   requested_kill_date: string | null;
-  fill_rate: number | null;
   status: string | null;
+  fill_rate: number | null;
+  plant_id: string | null;
 };
 
 const getSpeciesVariant = (species: string): "beef" | "lamb" | "mutton" | "goat" | "secondary" => {
@@ -71,17 +72,73 @@ export default function BookingBoard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isNewBookingOpen, setIsNewBookingOpen] = useState(false);
+  const [selectedProcessor, setSelectedProcessor] = useState("all");
+  const [selectedPlant, setSelectedPlant] = useState("all");
+  const [plants, setPlants] = useState<any[]>([]);
+  const [processors, setProcessors] = useState<string[]>([]);
+
+  // Fetch plants and processors
+  useEffect(() => {
+    const fetchPlants = async () => {
+      const { data } = await supabase
+        .from('plants')
+        .select('*')
+        .order('plant_name');
+      if (data) {
+        setPlants(data);
+        const uniqueProcessors = [...new Set(data.map(p => p.company_name).filter(Boolean))] as string[];
+        setProcessors(uniqueProcessors);
+      }
+    };
+    fetchPlants();
+  }, []);
+
+  // Reset plant selection when processor changes
+  useEffect(() => {
+    setSelectedPlant("all");
+  }, [selectedProcessor]);
+
+  // Filter plants based on selected processor
+  const filteredPlants = selectedProcessor === "all" 
+    ? plants 
+    : plants.filter(p => p.company_name === selectedProcessor);
+
+  // Get plant IDs for the current filter
+  const getFilteredPlantIds = () => {
+    if (selectedPlant !== "all") {
+      return [selectedPlant];
+    }
+    if (selectedProcessor !== "all") {
+      return filteredPlants.map(p => p.id);
+    }
+    return plants.map(p => p.id);
+  };
 
   useEffect(() => {
-    fetchBookings();
-  }, []);
+    if (plants.length > 0) {
+      fetchBookings();
+    }
+  }, [selectedProcessor, selectedPlant, plants]);
 
   const fetchBookings = async () => {
     try {
-      const { data, error } = await supabase
+      setLoading(true);
+      const plantIds = getFilteredPlantIds();
+      
+      let query = supabase
         .from('bookings')
-        .select('id, species, head_count, requested_kill_date, fill_rate, status')
+        .select('id, species, head_count, requested_kill_date, status, fill_rate, plant_id')
         .order('requested_kill_date', { ascending: true });
+
+      if (plantIds.length > 0) {
+        if (plantIds.length === 1) {
+          query = query.eq('plant_id', plantIds[0]);
+        } else {
+          query = query.in('plant_id', plantIds);
+        }
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching bookings:', error);
@@ -141,7 +198,33 @@ export default function BookingBoard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-4">
+            <div className="flex gap-4 flex-wrap">
+              <Select value={selectedProcessor} onValueChange={setSelectedProcessor}>
+                <SelectTrigger className="w-56">
+                  <SelectValue placeholder="Select processor" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-50">
+                  <SelectItem value="all">All Processors</SelectItem>
+                  {processors.map((processor) => (
+                    <SelectItem key={processor} value={processor}>
+                      {processor}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={selectedPlant} onValueChange={setSelectedPlant}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Select plant" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-50">
+                  <SelectItem value="all">All Plants</SelectItem>
+                  {filteredPlants.map((plant) => (
+                    <SelectItem key={plant.id} value={plant.id}>
+                      {plant.plant_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <div className="flex-1">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -157,7 +240,7 @@ export default function BookingBoard() {
                 <SelectTrigger className="w-32">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-popover z-50">
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="requested">Requested</SelectItem>
                   <SelectItem value="confirmed">Confirmed</SelectItem>
@@ -184,9 +267,9 @@ export default function BookingBoard() {
                     <th className="text-left py-3 px-3 text-sm font-medium">Booking ID</th>
                     <th className="text-left py-3 px-3 text-sm font-medium">Species</th>
                     <th className="text-right py-3 px-3 text-sm font-medium">Head Count</th>
+                    <th className="text-left py-3 px-3 text-sm font-medium">Status</th>
                     <th className="text-left py-3 px-3 text-sm font-medium">Kill Date</th>
                     <th className="text-right py-3 px-3 text-sm font-medium">Fill Rate</th>
-                    <th className="text-left py-3 px-3 text-sm font-medium">Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -212,14 +295,16 @@ export default function BookingBoard() {
                           </Badge>
                         </td>
                         <td className="py-3 px-3 text-sm text-right table-cell-numeric">{booking.head_count || '-'}</td>
-                        <td className="py-3 px-3 text-sm">
-                          {booking.requested_kill_date ? new Date(booking.requested_kill_date).toLocaleDateString('en-AU') : '-'}
-                        </td>
-                        <td className="py-3 px-3 text-sm text-right table-cell-numeric">{formatFillRate(booking.fill_rate)}</td>
                         <td className="py-3 px-3">
                           <Badge variant={getStatusVariant(booking.status || 'unknown')}>
                             {booking.status || 'unknown'}
                           </Badge>
+                        </td>
+                        <td className="py-3 px-3 text-sm">
+                          {booking.requested_kill_date ? new Date(booking.requested_kill_date).toLocaleDateString('en-AU') : '-'}
+                        </td>
+                        <td className="py-3 px-3 text-sm text-right table-cell-numeric">
+                          {booking.fill_rate != null ? `${booking.fill_rate.toFixed(1)}%` : '-'}
                         </td>
                       </tr>
                     ))
