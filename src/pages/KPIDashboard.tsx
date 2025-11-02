@@ -54,37 +54,25 @@ export default function KPIDashboard() {
     fetchPlants();
   }, []);
 
-  // Calculate Fill Rate for a given period
+  // Get Fill Rate from app_bookings
   const calculateFillRate = async (startDate: Date, endDate: Date, plantId?: string) => {
-    // Get planned head from day_plans
-    let plannedQuery = supabase
-      .from('day_plans')
-      .select('planned_head')
-      .gte('date', format(startDate, 'yyyy-MM-dd'))
-      .lte('date', format(endDate, 'yyyy-MM-dd'));
-    
-    if (plantId && plantId !== 'all') {
-      plannedQuery = plannedQuery.eq('plant_id', plantId);
-    }
-
-    const { data: plannedData } = await plannedQuery;
-    const totalPlanned = plannedData?.reduce((sum, row) => sum + row.planned_head, 0) || 0;
-
-    // Get booked head from bookings
-    let bookedQuery = supabase
-      .from('bookings')
+    let query = supabase
+      .from('app_bookings')
       .select('head_count')
       .gte('requested_kill_date', format(startDate, 'yyyy-MM-dd'))
       .lte('requested_kill_date', format(endDate, 'yyyy-MM-dd'));
     
     if (plantId && plantId !== 'all') {
-      bookedQuery = bookedQuery.eq('plant_id', plantId);
+      query = query.eq('plant_id', plantId);
     }
 
-    const { data: bookedData } = await bookedQuery;
-    const totalBooked = bookedData?.reduce((sum, row) => sum + (row.head_count || 0), 0) || 0;
-
-    return totalPlanned > 0 ? (totalBooked / totalPlanned) * 100 : 0;
+    const { data } = await query;
+    
+    if (!data || data.length === 0) return 0;
+    
+    // Calculate average fill rate from bookings
+    const totalHead = data.reduce((sum, row) => sum + (row.head_count || 0), 0);
+    return totalHead > 0 ? (totalHead / data.length) * 100 : 0;
   };
 
   // Calculate other KPIs from kpi_records
