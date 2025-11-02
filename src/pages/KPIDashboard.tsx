@@ -32,11 +32,13 @@ interface PlantKPI {
 
 export default function KPIDashboard() {
   const [selectedPlant, setSelectedPlant] = useState("all");
+  const [selectedProcessor, setSelectedProcessor] = useState("all");
   const [timeRange, setTimeRange] = useState("week");
   const [currentWeekKPIs, setCurrentWeekKPIs] = useState<KPIData | null>(null);
   const [previousWeekKPIs, setPreviousWeekKPIs] = useState<KPIData | null>(null);
   const [plantBreakdown, setPlantBreakdown] = useState<PlantKPI[]>([]);
   const [plants, setPlants] = useState<any[]>([]);
+  const [processors, setProcessors] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Calculate week dates
@@ -45,25 +47,69 @@ export default function KPIDashboard() {
   const previousWeekStart = startOfWeek(subWeeks(new Date(), 1));
   const previousWeekEnd = endOfWeek(subWeeks(new Date(), 1));
 
-  // Fetch plants
+  // Fetch plants and processors
   useEffect(() => {
     const fetchPlants = async () => {
       const { data } = await supabase
         .from('plants')
         .select('*')
         .order('plant_name');
-      if (data) setPlants(data);
+      if (data) {
+        setPlants(data);
+        // Extract unique processors
+        const uniqueProcessors = [...new Set(data.map(p => p.company_name).filter(Boolean))] as string[];
+        setProcessors(uniqueProcessors);
+      }
     };
     fetchPlants();
   }, []);
 
+  // Reset plant selection when processor changes
+  useEffect(() => {
+    setSelectedPlant("all");
+  }, [selectedProcessor]);
+
+  // Filter plants based on selected processor
+  const filteredPlants = selectedProcessor === "all" 
+    ? plants 
+    : plants.filter(p => p.company_name === selectedProcessor);
+
+  // Get plant IDs for the current filter
+  const getFilteredPlantIds = () => {
+    if (selectedPlant !== "all") {
+      return [selectedPlant];
+    }
+    if (selectedProcessor !== "all") {
+      return filteredPlants.map(p => p.id);
+    }
+    return plants.map(p => p.id);
+  };
+
   // Get Fill Rate from bookings table using SQL AVG
-  const calculateFillRate = async (startDate: Date, endDate: Date, plantId?: string) => {
+  const calculateFillRate = async (startDate: Date, endDate: Date, plantIds?: string[]) => {
+    if (!plantIds || plantIds.length === 0) return 0;
+
+    // If multiple plants, calculate average across all
+    if (plantIds.length > 1) {
+      const results = await Promise.all(
+        plantIds.map(plantId => 
+          supabase.rpc('get_avg_fill_rate' as any, {
+            start_date: format(startDate, 'yyyy-MM-dd'),
+            end_date: format(endDate, 'yyyy-MM-dd'),
+            plant_filter: plantId
+          })
+        )
+      );
+      const validResults = results.filter(r => !r.error).map(r => Number(r.data) || 0);
+      return validResults.length > 0 ? validResults.reduce((a, b) => a + b, 0) / validResults.length : 0;
+    }
+
+    // Single plant
     const { data, error } = await supabase
       .rpc('get_avg_fill_rate' as any, {
         start_date: format(startDate, 'yyyy-MM-dd'),
         end_date: format(endDate, 'yyyy-MM-dd'),
-        plant_filter: plantId && plantId !== 'all' ? plantId : null
+        plant_filter: plantIds[0]
       });
     
     if (error) {
@@ -75,15 +121,21 @@ export default function KPIDashboard() {
   };
 
   // Calculate bookings-based KPIs
-  const calculateBookingsKPIs = async (startDate: Date, endDate: Date, plantId?: string) => {
+  const calculateBookingsKPIs = async (startDate: Date, endDate: Date, plantIds?: string[]) => {
+    if (!plantIds || plantIds.length === 0) {
+      return { gridFitScore: 0, varianceHours: 0, transportConfirmed: 0 };
+    }
+
     let query = supabase
       .from('bookings')
       .select('*')
       .gte('requested_kill_date', format(startDate, 'yyyy-MM-dd'))
       .lte('requested_kill_date', format(endDate, 'yyyy-MM-dd'));
     
-    if (plantId && plantId !== 'all') {
-      query = query.eq('plant_id', plantId);
+    if (plantIds.length === 1) {
+      query = query.eq('plant_id', plantIds[0]);
+    } else {
+      query = query.in('plant_id', plantIds);
     }
 
     const { data } = await query;
@@ -109,15 +161,21 @@ export default function KPIDashboard() {
   };
 
   // Calculate other KPIs from kpi_records
-  const calculateKPIsFromRecords = async (startDate: Date, endDate: Date, plantId?: string) => {
+  const calculateKPIsFromRecords = async (startDate: Date, endDate: Date, plantIds?: string[]) => {
+    if (!plantIds || plantIds.length === 0) {
+      return { leadTimeVariance: 0, changesCount: 0, reworkHours: 0, slotAdherence: 0, onSpec: 0 };
+    }
+
     let query = supabase
       .from('kpi_records')
       .select('*')
       .gte('date', format(startDate, 'yyyy-MM-dd'))
       .lte('date', format(endDate, 'yyyy-MM-dd'));
     
-    if (plantId && plantId !== 'all') {
-      query = query.eq('plant_id', plantId);
+    if (plantIds.length === 1) {
+      query = query.eq('plant_id', plantIds[0]);
+    } else {
+      query = query.in('plant_id', plantIds);
     }
 
     const { data } = await query;
@@ -149,17 +207,19 @@ export default function KPIDashboard() {
     const fetchKPIData = async () => {
       setLoading(true);
       
+      const plantIds = getFilteredPlantIds();
+      
       // Calculate fill rates
-      const currentFillRate = await calculateFillRate(currentWeekStart, currentWeekEnd, selectedPlant);
-      const previousFillRate = await calculateFillRate(previousWeekStart, previousWeekEnd, selectedPlant);
+      const currentFillRate = await calculateFillRate(currentWeekStart, currentWeekEnd, plantIds);
+      const previousFillRate = await calculateFillRate(previousWeekStart, previousWeekEnd, plantIds);
       
       // Calculate bookings KPIs
-      const currentBookingsKPIs = await calculateBookingsKPIs(currentWeekStart, currentWeekEnd, selectedPlant);
-      const previousBookingsKPIs = await calculateBookingsKPIs(previousWeekStart, previousWeekEnd, selectedPlant);
+      const currentBookingsKPIs = await calculateBookingsKPIs(currentWeekStart, currentWeekEnd, plantIds);
+      const previousBookingsKPIs = await calculateBookingsKPIs(previousWeekStart, previousWeekEnd, plantIds);
       
       // Calculate other KPIs
-      const currentOtherKPIs = await calculateKPIsFromRecords(currentWeekStart, currentWeekEnd, selectedPlant);
-      const previousOtherKPIs = await calculateKPIsFromRecords(previousWeekStart, previousWeekEnd, selectedPlant);
+      const currentOtherKPIs = await calculateKPIsFromRecords(currentWeekStart, currentWeekEnd, plantIds);
+      const previousOtherKPIs = await calculateKPIsFromRecords(previousWeekStart, previousWeekEnd, plantIds);
 
       setCurrentWeekKPIs({
         fillRate: currentFillRate,
@@ -174,11 +234,11 @@ export default function KPIDashboard() {
       });
 
       // Calculate plant breakdown if "all" plants selected
-      if (selectedPlant === 'all') {
+      if (selectedPlant === 'all' && filteredPlants.length > 0) {
         const breakdown = await Promise.all(
-          plants.map(async (plant) => {
-            const fillRate = await calculateFillRate(currentWeekStart, currentWeekEnd, plant.id);
-            const otherKPIs = await calculateKPIsFromRecords(currentWeekStart, currentWeekEnd, plant.id);
+          filteredPlants.map(async (plant) => {
+            const fillRate = await calculateFillRate(currentWeekStart, currentWeekEnd, [plant.id]);
+            const otherKPIs = await calculateKPIsFromRecords(currentWeekStart, currentWeekEnd, [plant.id]);
             
             return {
               plant: plant.plant_name,
@@ -199,7 +259,7 @@ export default function KPIDashboard() {
     if (plants.length > 0) {
       fetchKPIData();
     }
-  }, [selectedPlant, plants, currentWeekStart, previousWeekStart]);
+  }, [selectedPlant, selectedProcessor, plants, currentWeekStart, previousWeekStart]);
 
   const calculateChange = (current: number, previous: number): {
     value: string;
@@ -279,13 +339,26 @@ export default function KPIDashboard() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex gap-4">
+              <Select value={selectedProcessor} onValueChange={setSelectedProcessor}>
+                <SelectTrigger className="w-56">
+                  <SelectValue placeholder="Select processor" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-50">
+                  <SelectItem value="all">All Processors</SelectItem>
+                  {processors.map((processor) => (
+                    <SelectItem key={processor} value={processor}>
+                      {processor}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Select value={selectedPlant} onValueChange={setSelectedPlant}>
                 <SelectTrigger className="w-48">
                   <SelectValue placeholder="Select plant" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-popover z-50">
                   <SelectItem value="all">All Plants</SelectItem>
-                  {plants.map((plant) => (
+                  {filteredPlants.map((plant) => (
                     <SelectItem key={plant.id} value={plant.id}>
                       {plant.plant_name}
                     </SelectItem>
@@ -296,7 +369,7 @@ export default function KPIDashboard() {
                 <SelectTrigger className="w-32">
                   <SelectValue placeholder="Time Range" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-popover z-50">
                   <SelectItem value="week">This Week</SelectItem>
                   <SelectItem value="month">This Month</SelectItem>
                   <SelectItem value="quarter">This Quarter</SelectItem>
