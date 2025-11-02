@@ -11,6 +11,7 @@ import KPIDashboard from "./pages/KPIDashboard";
 import ImportData from "./pages/ImportData";
 import Plants from "./pages/Plants";
 import BuyerSupplierRequest from "./pages/BuyerSupplierRequest";
+import PilotProjects from "./pages/PilotProjects";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/import" element={<ImportData />} />
           <Route path="/plants" element={<Plants />} />
           <Route path="/buyer-request" element={<BuyerSupplierRequest />} />
+          <Route path="/pilots" element={<PilotProjects />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

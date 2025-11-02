@@ -71,7 +71,7 @@ export default function KPIDashboard() {
     if (!data || data.length === 0) return 0;
     
     // Calculate average fill rate from fill_rate column
-    const totalFillRate = data.reduce((sum, row) => sum + (row.fill_rate || 0), 0);
+    const totalFillRate = data.reduce((sum, row) => sum + ((row as any).fill_rate || 0), 0);
     return data.length > 0 ? totalFillRate / data.length : 0;
   };
 

@@ -9,7 +9,8 @@ import {
   Home,
   ClipboardList,
   PieChart,
-  UserCheck
+  UserCheck,
+  Lightbulb
 } from "lucide-react";
 
 import {
@@ -30,6 +31,7 @@ const mainItems = [
   { title: "Transport Slotting", url: "/transport", icon: Truck },
   { title: "Grid Specs", url: "/grid-specs", icon: ClipboardList },
   { title: "KPI Dashboard", url: "/kpis", icon: BarChart3 },
+  { title: "Pilot Projects", url: "/pilots", icon: Lightbulb },
   { title: "Buyer/Supplier Request", url: "/buyer-request", icon: UserCheck },
 ];
 
