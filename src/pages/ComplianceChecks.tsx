@@ -5,6 +5,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ArrowUpDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ComplianceCheck {
   id: number;
@@ -19,14 +22,15 @@ interface ComplianceCheck {
 export default function ComplianceChecks() {
   const [checks, setChecks] = useState<ComplianceCheck[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
     const fetchComplianceChecks = async () => {
       setLoading(true);
       const { data, error } = await (supabase as any)
-        .from('Compliance_checks')
+        .from('compliance_checks')
         .select('*')
-        .order('checked_at', { ascending: false });
+        .order('checked_at', { ascending: sortOrder === 'asc' });
       
       if (error) {
         console.error('Error fetching compliance checks:', error);
@@ -37,7 +41,11 @@ export default function ComplianceChecks() {
     };
 
     fetchComplianceChecks();
-  }, []);
+  }, [sortOrder]);
+
+  const toggleSortOrder = () => {
+    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+  };
 
   const getStatusBadgeVariant = (status: string | null): "confirmed" | "cancelled" | "secondary" => {
     if (!status) return "secondary";
@@ -81,46 +89,54 @@ export default function ComplianceChecks() {
                 No compliance checks found
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Booking ID</th>
-                      <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">NLIS Status</th>
-                      <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">NVD Status</th>
-                      <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">PIC Status</th>
-                      <th className="text-left py-3 px-2 text-sm font-medium text-muted-foreground">Checked At</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {checks.map((check) => (
-                      <tr key={check.id} className="border-b border-border hover:bg-muted/50 transition-colors">
-                        <td className="py-3 px-2 font-mono text-sm">{check.booking_id || "—"}</td>
-                        <td className="py-3 px-2">
-                          <Badge variant={getStatusBadgeVariant(check.nlis_status)}>
-                            {check.nlis_status || "Pending"}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-2">
-                          <Badge variant={getStatusBadgeVariant(check.nvd_status)}>
-                            {check.nvd_status || "Pending"}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-2">
-                          <Badge variant={getStatusBadgeVariant(check.pic_status)}>
-                            {check.pic_status || "Pending"}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-2 text-muted-foreground">
-                          {check.checked_at 
-                            ? format(new Date(check.checked_at), 'MMM d, yyyy HH:mm')
-                            : "—"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Booking ID</TableHead>
+                    <TableHead>NLIS Status</TableHead>
+                    <TableHead>NVD Status</TableHead>
+                    <TableHead>PIC Status</TableHead>
+                    <TableHead>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={toggleSortOrder}
+                        className="flex items-center gap-1 hover:bg-transparent"
+                      >
+                        Checked At
+                        <ArrowUpDown className="h-4 w-4" />
+                      </Button>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {checks.map((check) => (
+                    <TableRow key={check.id}>
+                      <TableCell className="font-mono text-sm">{check.booking_id || "—"}</TableCell>
+                      <TableCell>
+                        <Badge variant={getStatusBadgeVariant(check.nlis_status)}>
+                          {check.nlis_status || "Pending"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getStatusBadgeVariant(check.nvd_status)}>
+                          {check.nvd_status || "Pending"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getStatusBadgeVariant(check.pic_status)}>
+                          {check.pic_status || "Pending"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {check.checked_at 
+                          ? format(new Date(check.checked_at), 'MMM d, yyyy HH:mm')
+                          : "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
           </CardContent>
         </Card>
