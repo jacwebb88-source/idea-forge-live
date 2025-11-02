@@ -54,7 +54,7 @@ export default function KPIDashboard() {
     fetchPlants();
   }, []);
 
-  // Get Fill Rate from bookings table
+  // Get Fill Rate from bookings table using AVG
   const calculateFillRate = async (startDate: Date, endDate: Date, plantId?: string) => {
     let query = supabase
       .from('bookings')
@@ -70,9 +70,12 @@ export default function KPIDashboard() {
     
     if (!data || data.length === 0) return 0;
     
-    // Calculate average fill rate from fill_rate column
-    const totalFillRate = data.reduce((sum, row) => sum + ((row as any).fill_rate || 0), 0);
-    return data.length > 0 ? totalFillRate / data.length : 0;
+    // Calculate average of fill_rate column
+    const validRates = data.filter(row => (row as any).fill_rate != null);
+    if (validRates.length === 0) return 0;
+    
+    const avgFillRate = validRates.reduce((sum, row) => sum + ((row as any).fill_rate || 0), 0) / validRates.length;
+    return avgFillRate;
   };
 
   // Calculate other KPIs from kpi_records
