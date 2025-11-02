@@ -24,6 +24,7 @@ const Index = () => {
   const { toast } = useToast();
   const [complianceOk, setComplianceOk] = useState<number | null>(null);
   const [missingCompliance, setMissingCompliance] = useState<number>(0);
+  const [pendingCompliance, setPendingCompliance] = useState<number>(0);
   const [loadingCompliance, setLoadingCompliance] = useState(true);
 
   useEffect(() => {
@@ -51,11 +52,19 @@ const Index = () => {
           c.pic_status === 'missing'
         ).length;
         
+        const pendingCount = data.filter((c: any) => 
+          c.nvd_status === 'pending' || 
+          c.nlis_status === 'pending' || 
+          c.pic_status === 'pending'
+        ).length;
+        
         setComplianceOk((okCount / data.length) * 100);
         setMissingCompliance(missingCount);
+        setPendingCompliance(pendingCount);
       } else {
         setComplianceOk(null);
         setMissingCompliance(0);
+        setPendingCompliance(0);
       }
       
       setLoadingCompliance(false);
@@ -170,7 +179,7 @@ const Index = () => {
             <CardTitle>Compliance Summary</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <MetricCard
                 title="Compliance OK %"
                 value={loadingCompliance ? "Loading..." : complianceOk !== null ? `${complianceOk.toFixed(1)}%` : "No compliance data yet"}
@@ -191,6 +200,14 @@ const Index = () => {
                 changeType={missingCompliance === 0 ? "positive" : "negative"}
                 icon={AlertTriangle}
                 description="Records with any missing status"
+              />
+              <MetricCard
+                title="Compliance Pending"
+                value={loadingCompliance ? "Loading..." : pendingCompliance === 0 ? "All clear ✅" : pendingCompliance}
+                change={pendingCompliance > 0 ? "Awaiting checks" : "No pending checks"}
+                changeType={pendingCompliance === 0 ? "positive" : "neutral"}
+                icon={Activity}
+                description="Records with pending status"
               />
             </div>
           </CardContent>
