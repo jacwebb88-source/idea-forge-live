@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface ComplianceCheck {
   id: number;
@@ -19,10 +20,20 @@ interface ComplianceCheck {
   notes: string | null;
 }
 
+interface BookingDetails {
+  head_count: number | null;
+  species: string | null;
+  requested_kill_date: string | null;
+}
+
 export default function ComplianceChecks() {
   const [checks, setChecks] = useState<ComplianceCheck[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [selectedCheck, setSelectedCheck] = useState<ComplianceCheck | null>(null);
+  const [bookingDetails, setBookingDetails] = useState<BookingDetails | null>(null);
+  const [loadingBooking, setLoadingBooking] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchComplianceChecks = async () => {
@@ -45,6 +56,29 @@ export default function ComplianceChecks() {
 
   const toggleSortOrder = () => {
     setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+  };
+
+  const handleRowClick = async (check: ComplianceCheck) => {
+    if (!check.booking_id) return;
+    
+    setSelectedCheck(check);
+    setDialogOpen(true);
+    setLoadingBooking(true);
+    
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('head_count, species, requested_kill_date')
+      .eq('id', check.booking_id)
+      .single();
+    
+    if (error) {
+      console.error('Error fetching booking details:', error);
+      setBookingDetails(null);
+    } else {
+      setBookingDetails(data);
+    }
+    
+    setLoadingBooking(false);
   };
 
   const getStatusBadgeVariant = (status: string | null): "confirmed" | "cancelled" | "secondary" => {
@@ -111,7 +145,11 @@ export default function ComplianceChecks() {
                 </TableHeader>
                 <TableBody>
                   {checks.map((check) => (
-                    <TableRow key={check.id}>
+                    <TableRow 
+                      key={check.id} 
+                      onClick={() => handleRowClick(check)}
+                      className={check.booking_id ? "cursor-pointer" : ""}
+                    >
                       <TableCell className="font-mono text-sm">{check.booking_id || "—"}</TableCell>
                       <TableCell>
                         <Badge variant={getStatusBadgeVariant(check.nlis_status)}>
@@ -140,6 +178,49 @@ export default function ComplianceChecks() {
             )}
           </CardContent>
         </Card>
+
+        {/* Booking Details Dialog */}
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Booking Details</DialogTitle>
+            </DialogHeader>
+            {loadingBooking ? (
+              <div className="space-y-3">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+              </div>
+            ) : bookingDetails ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Booking ID</p>
+                    <p className="text-sm font-mono">{selectedCheck?.booking_id}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Head Count</p>
+                    <p className="text-sm">{bookingDetails.head_count || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Species</p>
+                    <p className="text-sm">{bookingDetails.species || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Requested Kill Date</p>
+                    <p className="text-sm">
+                      {bookingDetails.requested_kill_date 
+                        ? format(new Date(bookingDetails.requested_kill_date), 'MMM d, yyyy')
+                        : "—"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No booking details found</p>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
