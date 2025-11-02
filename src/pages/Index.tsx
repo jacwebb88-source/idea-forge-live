@@ -23,6 +23,7 @@ import {
 const Index = () => {
   const { toast } = useToast();
   const [complianceOk, setComplianceOk] = useState<number | null>(null);
+  const [missingCompliance, setMissingCompliance] = useState<number>(0);
   const [loadingCompliance, setLoadingCompliance] = useState(true);
 
   useEffect(() => {
@@ -36,6 +37,7 @@ const Index = () => {
       if (error) {
         console.error('Error fetching compliance data:', error);
         setComplianceOk(null);
+        setMissingCompliance(0);
       } else if (data && data.length > 0) {
         const okCount = data.filter((c: any) => 
           c.nvd_status === 'ok' && 
@@ -43,9 +45,17 @@ const Index = () => {
           c.pic_status === 'ok'
         ).length;
         
+        const missingCount = data.filter((c: any) => 
+          c.nvd_status === 'missing' || 
+          c.nlis_status === 'missing' || 
+          c.pic_status === 'missing'
+        ).length;
+        
         setComplianceOk((okCount / data.length) * 100);
+        setMissingCompliance(missingCount);
       } else {
         setComplianceOk(null);
+        setMissingCompliance(0);
       }
       
       setLoadingCompliance(false);
@@ -103,7 +113,7 @@ const Index = () => {
         </div>
 
         {/* Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <MetricCard
             title="Fill Rate"
             value="87.5%"
@@ -164,6 +174,14 @@ const Index = () => {
               greenAbove: 95,
               amberAbove: 80
             } : undefined}
+          />
+          <MetricCard
+            title="Missing Compliance Records"
+            value={loadingCompliance ? "Loading..." : missingCompliance === 0 ? "No missing records 🎉" : missingCompliance}
+            change={missingCompliance > 0 ? "Requires attention" : "All records complete"}
+            changeType={missingCompliance === 0 ? "positive" : "negative"}
+            icon={AlertTriangle}
+            description="Records with any missing status"
           />
         </div>
 
