@@ -57,7 +57,7 @@ export default function KPIDashboard() {
   // Get Fill Rate from bookings table using SQL AVG
   const calculateFillRate = async (startDate: Date, endDate: Date, plantId?: string) => {
     const { data, error } = await supabase
-      .rpc('get_avg_fill_rate', {
+      .rpc('get_avg_fill_rate' as any, {
         start_date: format(startDate, 'yyyy-MM-dd'),
         end_date: format(endDate, 'yyyy-MM-dd'),
         plant_filter: plantId && plantId !== 'all' ? plantId : null
@@ -68,7 +68,7 @@ export default function KPIDashboard() {
       return 0;
     }
     
-    return data || 0;
+    return Number(data) || 0;
   };
 
   // Calculate other KPIs from kpi_records

@@ -20,6 +20,7 @@ export type Database = {
           created_at: string | null
           est_avg_hscw: number | null
           est_avg_live_wt: number | null
+          fill_rate: number | null
           head_count: number | null
           id: string
           lot_id: string | null
@@ -37,6 +38,7 @@ export type Database = {
           created_at?: string | null
           est_avg_hscw?: number | null
           est_avg_live_wt?: number | null
+          fill_rate?: number | null
           head_count?: number | null
           id?: string
           lot_id?: string | null
@@ -54,6 +56,7 @@ export type Database = {
           created_at?: string | null
           est_avg_hscw?: number | null
           est_avg_live_wt?: number | null
+          fill_rate?: number | null
           head_count?: number | null
           id?: string
           lot_id?: string | null
@@ -96,6 +99,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      Compliance_checks: {
+        Row: {
+          booking_id: string | null
+          checked_at: string | null
+          created_at: string
+          id: number
+          nlis_status: string | null
+          notes: string | null
+          nvd_status: string | null
+          pic_status: string | null
+        }
+        Insert: {
+          booking_id?: string | null
+          checked_at?: string | null
+          created_at?: string
+          id?: number
+          nlis_status?: string | null
+          notes?: string | null
+          nvd_status?: string | null
+          pic_status?: string | null
+        }
+        Update: {
+          booking_id?: string | null
+          checked_at?: string | null
+          created_at?: string
+          id?: number
+          nlis_status?: string | null
+          notes?: string | null
+          nvd_status?: string | null
+          pic_status?: string | null
+        }
+        Relationships: []
       }
       day_plans: {
         Row: {
@@ -273,6 +309,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pilots: {
+        Row: {
+          created_at: string
+          funding_source: string | null
+          id: number
+          partner_name: string | null
+          processor_id: string | null
+          start_date: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string
+          funding_source?: string | null
+          id?: number
+          partner_name?: string | null
+          processor_id?: string | null
+          start_date?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string
+          funding_source?: string | null
+          id?: number
+          partner_name?: string | null
+          processor_id?: string | null
+          start_date?: string | null
+          status?: string | null
+        }
+        Relationships: []
       }
       plants: {
         Row: {
@@ -545,7 +611,10 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      get_avg_fill_rate: {
+        Args: { end_date: string; plant_filter?: string; start_date: string }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
