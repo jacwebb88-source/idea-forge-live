@@ -40,7 +40,7 @@ export default function ComplianceChecks() {
       setLoading(true);
       const { data, error } = await (supabase as any)
         .from('compliance_checks')
-        .select('*')
+        .select('*, bookings!inner(plant_id)')
         .order('checked_at', { ascending: sortOrder === 'asc' });
       
       if (error) {
