@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BarChart3, TrendingUp, TrendingDown, Calendar, Download, FileText } from "lucide-react";
+import { BarChart3, TrendingUp, TrendingDown, Calendar, Download, FileText, Target, Clock, Truck } from "lucide-react";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +16,9 @@ interface KPIData {
   reworkHours: number;
   slotAdherence: number;
   onSpec: number;
+  gridFitScore: number;
+  varianceHours: number;
+  transportConfirmed: number;
 }
 
 interface PlantKPI {
@@ -71,6 +74,40 @@ export default function KPIDashboard() {
     return Number(data) || 0;
   };
 
+  // Calculate bookings-based KPIs
+  const calculateBookingsKPIs = async (startDate: Date, endDate: Date, plantId?: string) => {
+    let query = supabase
+      .from('bookings')
+      .select('*')
+      .gte('requested_kill_date', format(startDate, 'yyyy-MM-dd'))
+      .lte('requested_kill_date', format(endDate, 'yyyy-MM-dd'));
+    
+    if (plantId && plantId !== 'all') {
+      query = query.eq('plant_id', plantId);
+    }
+
+    const { data } = await query;
+    
+    if (!data || data.length === 0) {
+      return {
+        gridFitScore: 0,
+        varianceHours: 0,
+        transportConfirmed: 0,
+      };
+    }
+
+    const avgGridFit = data.reduce((sum, row) => sum + ((row as any).grid_fit_score || 0), 0) / data.length;
+    const avgVariance = data.reduce((sum, row) => sum + ((row as any).variance_hours || 0), 0) / data.length;
+    const confirmedCount = data.filter(row => (row as any).transport_status === 'confirmed').length;
+    const transportConfirmedPct = data.length > 0 ? (confirmedCount / data.length) * 100 : 0;
+
+    return {
+      gridFitScore: avgGridFit,
+      varianceHours: avgVariance,
+      transportConfirmed: transportConfirmedPct,
+    };
+  };
+
   // Calculate other KPIs from kpi_records
   const calculateKPIsFromRecords = async (startDate: Date, endDate: Date, plantId?: string) => {
     let query = supabase
@@ -116,17 +153,23 @@ export default function KPIDashboard() {
       const currentFillRate = await calculateFillRate(currentWeekStart, currentWeekEnd, selectedPlant);
       const previousFillRate = await calculateFillRate(previousWeekStart, previousWeekEnd, selectedPlant);
       
+      // Calculate bookings KPIs
+      const currentBookingsKPIs = await calculateBookingsKPIs(currentWeekStart, currentWeekEnd, selectedPlant);
+      const previousBookingsKPIs = await calculateBookingsKPIs(previousWeekStart, previousWeekEnd, selectedPlant);
+      
       // Calculate other KPIs
       const currentOtherKPIs = await calculateKPIsFromRecords(currentWeekStart, currentWeekEnd, selectedPlant);
       const previousOtherKPIs = await calculateKPIsFromRecords(previousWeekStart, previousWeekEnd, selectedPlant);
 
       setCurrentWeekKPIs({
         fillRate: currentFillRate,
+        ...currentBookingsKPIs,
         ...currentOtherKPIs,
       });
 
       setPreviousWeekKPIs({
         fillRate: previousFillRate,
+        ...previousBookingsKPIs,
         ...previousOtherKPIs,
       });
 
@@ -186,6 +229,18 @@ export default function KPIDashboard() {
   
   const onSpecChange = currentWeekKPIs && previousWeekKPIs ? 
     calculateChange(currentWeekKPIs.onSpec, previousWeekKPIs.onSpec) : 
+    { value: "0", type: "neutral" as const, symbol: "" };
+
+  const gridFitChange = currentWeekKPIs && previousWeekKPIs ? 
+    calculateChange(currentWeekKPIs.gridFitScore, previousWeekKPIs.gridFitScore) : 
+    { value: "0", type: "neutral" as const, symbol: "" };
+
+  const varianceHoursChange = currentWeekKPIs && previousWeekKPIs ? 
+    calculateChange(previousWeekKPIs.varianceHours, currentWeekKPIs.varianceHours) : // Reversed for better is lower
+    { value: "0", type: "neutral" as const, symbol: "" };
+
+  const transportChange = currentWeekKPIs && previousWeekKPIs ? 
+    calculateChange(currentWeekKPIs.transportConfirmed, previousWeekKPIs.transportConfirmed) : 
     { value: "0", type: "neutral" as const, symbol: "" };
 
   if (loading || !currentWeekKPIs) {
@@ -300,6 +355,30 @@ export default function KPIDashboard() {
             changeType={(previousWeekKPIs && currentWeekKPIs.reworkHours < previousWeekKPIs.reworkHours ? "positive" : "negative") as "positive" | "negative" | "neutral"}
             icon={TrendingDown}
             description="Changes × avg time per change"
+          />
+          <MetricCard
+            title="Grid Fit Score"
+            value={currentWeekKPIs.gridFitScore.toFixed(1)}
+            change={`${gridFitChange.symbol}${gridFitChange.value} vs last week`}
+            changeType={gridFitChange.type}
+            icon={Target}
+            description="Average booking grid alignment"
+          />
+          <MetricCard
+            title="Variance Hours"
+            value={`${currentWeekKPIs.varianceHours.toFixed(1)}hr`}
+            change={`${varianceHoursChange.symbol}${varianceHoursChange.value}hr vs last week`}
+            changeType={varianceHoursChange.type}
+            icon={Clock}
+            description="Average scheduling variance"
+          />
+          <MetricCard
+            title="Transport Confirmed"
+            value={`${currentWeekKPIs.transportConfirmed.toFixed(1)}%`}
+            change={`${transportChange.symbol}${transportChange.value}pp vs last week`}
+            changeType={transportChange.type}
+            icon={Truck}
+            description="Confirmed transport bookings"
           />
         </div>
 
