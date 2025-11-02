@@ -19,6 +19,7 @@ interface KPIData {
   gridFitScore: number;
   varianceHours: number;
   transportConfirmed: number;
+  hasGridScoreData: boolean;
 }
 
 interface PlantKPI {
@@ -123,7 +124,7 @@ export default function KPIDashboard() {
   // Calculate bookings-based KPIs
   const calculateBookingsKPIs = async (startDate: Date, endDate: Date, plantIds?: string[]) => {
     if (!plantIds || plantIds.length === 0) {
-      return { gridFitScore: 0, varianceHours: 0, transportConfirmed: 0 };
+      return { gridFitScore: 0, varianceHours: 0, transportConfirmed: 0, hasGridScoreData: false };
     }
 
     let query = supabase
@@ -145,10 +146,15 @@ export default function KPIDashboard() {
         gridFitScore: 0,
         varianceHours: 0,
         transportConfirmed: 0,
+        hasGridScoreData: false,
       };
     }
 
-    const avgGridFit = data.reduce((sum, row) => sum + ((row as any).grid_fit_score || 0), 0) / data.length;
+    const validGridScores = data.filter(row => (row as any).grid_fit_score != null);
+    const hasGridScoreData = validGridScores.length > 0;
+    const avgGridFit = hasGridScoreData 
+      ? validGridScores.reduce((sum, row) => sum + ((row as any).grid_fit_score || 0), 0) / validGridScores.length 
+      : 0;
     const avgVariance = data.reduce((sum, row) => sum + ((row as any).variance_hours || 0), 0) / data.length;
     const confirmedCount = data.filter(row => (row as any).transport_status === 'confirmed').length;
     const transportConfirmedPct = data.length > 0 ? (confirmedCount / data.length) * 100 : 0;
@@ -157,6 +163,7 @@ export default function KPIDashboard() {
       gridFitScore: avgGridFit,
       varianceHours: avgVariance,
       transportConfirmed: transportConfirmedPct,
+      hasGridScoreData,
     };
   };
 
@@ -431,8 +438,8 @@ export default function KPIDashboard() {
           />
           <MetricCard
             title="Grid Fit Score"
-            value={currentWeekKPIs.gridFitScore.toFixed(1)}
-            change={`${gridFitChange.symbol}${gridFitChange.value} vs last week`}
+            value={currentWeekKPIs.hasGridScoreData ? currentWeekKPIs.gridFitScore.toFixed(1) : "No grid scores yet"}
+            change={currentWeekKPIs.hasGridScoreData ? `${gridFitChange.symbol}${gridFitChange.value} vs last week` : undefined}
             changeType={gridFitChange.type}
             icon={Target}
             description="Average booking grid alignment"
