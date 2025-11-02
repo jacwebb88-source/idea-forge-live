@@ -616,6 +616,11 @@ export default function KPIDashboard() {
             changeType={complianceOkChange.type}
             icon={Target}
             description="Checks where all statuses are OK"
+            thresholds={{
+              value: currentWeekKPIs.complianceOk,
+              greenAbove: 95,
+              amberAbove: 80
+            }}
           />
           <MetricCard
             title="Missing Compliance Records"

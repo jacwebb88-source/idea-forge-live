@@ -9,6 +9,11 @@ interface MetricCardProps {
   changeType?: "positive" | "negative" | "neutral";
   icon: LucideIcon;
   description?: string;
+  thresholds?: {
+    value: number;
+    greenAbove?: number;
+    amberAbove?: number;
+  };
 }
 
 export function MetricCard({ 
@@ -17,7 +22,8 @@ export function MetricCard({
   change, 
   changeType = "neutral", 
   icon: Icon,
-  description 
+  description,
+  thresholds
 }: MetricCardProps) {
   const getChangeBadgeVariant = (): "confirmed" | "cancelled" | "secondary" => {
     switch (changeType) {
@@ -27,8 +33,22 @@ export function MetricCard({
     }
   };
 
+  const getCardClassName = () => {
+    if (!thresholds) return "bg-card shadow-sm hover:shadow-md transition-all duration-300";
+    
+    const { value: numValue, greenAbove = 95, amberAbove = 80 } = thresholds;
+    
+    if (numValue >= greenAbove) {
+      return "bg-card shadow-sm hover:shadow-md transition-all duration-300 border-l-4 border-green-500";
+    } else if (numValue >= amberAbove) {
+      return "bg-card shadow-sm hover:shadow-md transition-all duration-300 border-l-4 border-amber-500";
+    } else {
+      return "bg-card shadow-sm hover:shadow-md transition-all duration-300 border-l-4 border-red-500";
+    }
+  };
+
   return (
-    <Card className="bg-card shadow-sm hover:shadow-md transition-all duration-300">
+    <Card className={getCardClassName()}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-kpi-title">
           {title}
