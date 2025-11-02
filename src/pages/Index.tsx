@@ -159,6 +159,11 @@ const Index = () => {
             changeType="neutral"
             icon={Shield}
             description="All three compliance checks passed"
+            thresholds={complianceOk !== null ? {
+              value: complianceOk,
+              greenAbove: 95,
+              amberAbove: 80
+            } : undefined}
           />
         </div>
 
