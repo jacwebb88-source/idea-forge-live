@@ -286,8 +286,18 @@ export default function KPIDashboard() {
     calculateChange(currentWeekKPIs.fillRate, previousWeekKPIs.fillRate) : 
     { value: "0", type: "neutral" as const, symbol: "" };
   
+  // Determine changeType based on variance_hours value
+  const getVarianceChangeType = (variance: number): "positive" | "negative" | "neutral" => {
+    if (variance <= 0.5) return "positive";
+    if (variance > 1.5) return "negative";
+    return "neutral";
+  };
+  
   const leadTimeChange = currentWeekKPIs && previousWeekKPIs ? 
-    calculateChange(previousWeekKPIs.leadTimeVariance, currentWeekKPIs.leadTimeVariance) : // Reversed for better is lower
+    {
+      ...calculateChange(previousWeekKPIs.varianceHours, currentWeekKPIs.varianceHours),
+      type: getVarianceChangeType(currentWeekKPIs.varianceHours)
+    } : 
     { value: "0", type: "neutral" as const, symbol: "" };
   
   const slotAdherenceChange = currentWeekKPIs && previousWeekKPIs ? 
@@ -398,11 +408,11 @@ export default function KPIDashboard() {
           />
           <MetricCard
             title="Lead Time Variance"
-            value={`${currentWeekKPIs.leadTimeVariance.toFixed(1)}hr`}
+            value={`${currentWeekKPIs.varianceHours.toFixed(1)}hr`}
             change={`${leadTimeChange.symbol}${leadTimeChange.value}hr vs last week`}
             changeType={leadTimeChange.type}
             icon={Calendar}
-            description="Confirmed vs requested timing"
+            description="Booking variance from requested time"
           />
           <MetricCard
             title="Slot Adherence"
