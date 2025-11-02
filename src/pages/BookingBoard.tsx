@@ -12,24 +12,14 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 
-// Type definition for booking data from app_bookings
+// Type definition for booking data from public.bookings
 type BookingData = {
-  id: string | null;
-  status: string | null;
-  plant_id: string | null;
-  supplier_id: string | null;
-  head_count: number | null;
-  plant_name: string | null;
-  requested_kill_date: string | null;
-  requested_window_start: string | null;
-  requested_window_end: string | null;
-  created_at: string | null;
-  lot_id: string | null;
-  agent_ref: string | null;
+  id: string;
   species: string | null;
-  est_avg_hscw: number | null;
-  est_avg_live_wt: number | null;
-  target_grid_id: string | null;
+  head_count: number | null;
+  requested_kill_date: string | null;
+  fill_rate: number | null;
+  status: string | null;
 };
 
 const getSpeciesVariant = (species: string): "beef" | "lamb" | "mutton" | "goat" | "secondary" => {
@@ -42,6 +32,11 @@ const getSpeciesVariant = (species: string): "beef" | "lamb" | "mutton" | "goat"
     case "goat": return "goat";
     default: return "secondary";
   }
+};
+
+const formatFillRate = (fillRate: number | null) => {
+  if (fillRate === null || fillRate === undefined) return '-';
+  return `${fillRate.toFixed(1)}%`;
 };
 
 const getStatusVariant = (status: string): "confirmed" | "requested" | "changed" | "cancelled" | "secondary" => {
@@ -74,11 +69,8 @@ export default function BookingBoard() {
   const [bookings, setBookings] = useState<BookingData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("requested"); // Default to "requested"
+  const [statusFilter, setStatusFilter] = useState("all");
   const [isNewBookingOpen, setIsNewBookingOpen] = useState(false);
-  const [updatingBookings, setUpdatingBookings] = useState<Set<string>>(new Set());
-  const [editingCell, setEditingCell] = useState<{bookingId: string, field: 'requested_window_start' | 'requested_window_end'} | null>(null);
-  const [tempValue, setTempValue] = useState("");
 
   useEffect(() => {
     fetchBookings();
@@ -86,13 +78,18 @@ export default function BookingBoard() {
 
   const fetchBookings = async () => {
     try {
-      const { data, error } = await (supabase as any)
-        .from('app_bookings')
-        .select('*')
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('id, species, head_count, requested_kill_date, fill_rate, status')
         .order('requested_kill_date', { ascending: true });
 
       if (error) {
         console.error('Error fetching bookings:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch bookings. Please try again.",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -108,121 +105,8 @@ export default function BookingBoard() {
     fetchBookings(); // Refresh the bookings list
   };
 
-  const handleStatusUpdate = async (bookingId: string, newStatus: 'confirmed' | 'cancelled') => {
-    setUpdatingBookings(prev => new Set([...prev, bookingId]));
-
-    try {
-      const { error } = await (supabase as any)
-        .from('app_bookings')
-        .update({ status: newStatus })
-        .eq('id', bookingId);
-
-      if (error) {
-        console.error('Error updating booking status:', error);
-        toast({
-          title: "Error",
-          description: `Failed to ${newStatus === 'confirmed' ? 'confirm' : 'cancel'} booking. Please try again.`,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Success
-      toast({
-        title: `Booking ${newStatus}`,
-        description: `Booking has been successfully ${newStatus}.`,
-      });
-
-      // Refresh bookings list
-      fetchBookings();
-    } catch (error) {
-      console.error('Error:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setUpdatingBookings(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(bookingId);
-        return newSet;
-      });
-    }
-  };
-
-  const handleCellEdit = (bookingId: string, field: 'requested_window_start' | 'requested_window_end', currentValue: string | null) => {
-    setEditingCell({ bookingId, field });
-    // Convert datetime to input format
-    const formattedValue = currentValue ? new Date(currentValue).toISOString().slice(0, 16) : '';
-    setTempValue(formattedValue);
-  };
-
-  const handleCellUpdate = async () => {
-    if (!editingCell || !tempValue) {
-      setEditingCell(null);
-      setTempValue("");
-      return;
-    }
-
-    const { bookingId, field } = editingCell;
-    
-    try {
-      const { error } = await (supabase as any)
-        .from('app_bookings')
-        .update({ [field]: tempValue })
-        .eq('id', bookingId);
-
-      if (error) {
-        console.error('Error updating booking time:', error);
-        toast({
-          title: "Error",
-          description: "Failed to update booking time. Please try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      toast({
-        title: "Time updated",
-        description: "Booking time has been successfully updated.",
-      });
-
-      // Refresh just this booking
-      fetchBookings();
-    } catch (error) {
-      console.error('Error:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setEditingCell(null);
-      setTempValue("");
-    }
-  };
-
-  const handleCellCancel = () => {
-    setEditingCell(null);
-    setTempValue("");
-  };
-
-  const formatDateTime = (dateTimeString: string | null) => {
-    if (!dateTimeString) return '-';
-    return new Date(dateTimeString).toLocaleString('en-AU', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    });
-  };
-
   const filteredBookings = bookings.filter(booking => {
-    const matchesSearch = (booking.lot_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          booking.agent_ref?.toLowerCase().includes(searchTerm.toLowerCase())) ?? false;
+    const matchesSearch = booking.species?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false;
     const matchesStatus = statusFilter === "all" || booking.status === statusFilter;
     
     return matchesSearch && matchesStatus;
@@ -262,7 +146,7 @@ export default function BookingBoard() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                placeholder="Search by lot ID or agent ref..."
+                placeholder="Search by species..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -299,140 +183,43 @@ export default function BookingBoard() {
                   <tr className="table-header">
                     <th className="text-left py-3 px-3 text-sm font-medium">Booking ID</th>
                     <th className="text-left py-3 px-3 text-sm font-medium">Species</th>
-                    <th className="text-left py-3 px-3 text-sm font-medium">Agent Ref</th>
-                    <th className="text-left py-3 px-3 text-sm font-medium">Lot ID</th>
-                    <th className="text-right py-3 px-2 text-sm font-medium">Head Count</th>
+                    <th className="text-right py-3 px-3 text-sm font-medium">Head Count</th>
                     <th className="text-left py-3 px-3 text-sm font-medium">Kill Date</th>
-                    <th className="text-left py-3 px-3 text-sm font-medium">Window Start</th>
-                    <th className="text-left py-3 px-3 text-sm font-medium">Window End</th>
+                    <th className="text-right py-3 px-3 text-sm font-medium">Fill Rate</th>
                     <th className="text-left py-3 px-3 text-sm font-medium">Status</th>
-                    <th className="text-left py-3 px-3 text-sm font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={10} className="py-8 text-center text-muted-foreground">
+                      <td colSpan={6} className="py-8 text-center text-muted-foreground">
                         Loading bookings...
                       </td>
                     </tr>
                   ) : filteredBookings.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="py-8 text-center text-muted-foreground">
+                      <td colSpan={6} className="py-8 text-center text-muted-foreground">
                         No bookings found
                       </td>
                     </tr>
                   ) : (
-                    filteredBookings.map((booking, index) => (
-                      <tr key={booking.id} className={`table-row-hover table-row-zebra border-b border-border transition-colors`}>
-                        <td className="py-3 px-3 text-sm font-medium">{booking.id?.slice(-8)}</td>
+                    filteredBookings.map((booking) => (
+                      <tr key={booking.id} className="table-row-hover table-row-zebra border-b border-border transition-colors">
+                        <td className="py-3 px-3 text-sm font-medium font-mono">{booking.id.slice(-8)}</td>
                         <td className="py-3 px-3">
                           <Badge variant={getSpeciesVariant(booking.species || '')} className="capitalize">
-                            {booking.species}
+                            {booking.species || '-'}
                           </Badge>
                         </td>
-                        <td className="py-3 px-3 text-sm">{booking.agent_ref || '-'}</td>
-                        <td className="py-3 px-3 text-sm font-mono">{booking.lot_id || '-'}</td>
-                        <td className="py-3 px-2 text-sm table-cell-numeric">{booking.head_count || '-'}</td>
+                        <td className="py-3 px-3 text-sm text-right table-cell-numeric">{booking.head_count || '-'}</td>
                         <td className="py-3 px-3 text-sm">
                           {booking.requested_kill_date ? new Date(booking.requested_kill_date).toLocaleDateString('en-AU') : '-'}
                         </td>
-                        <td className="py-3 px-3 text-sm">
-                          {editingCell?.bookingId === booking.id && editingCell.field === 'requested_window_start' ? (
-                            <div className="flex items-center gap-2">
-                              <Input
-                                type="datetime-local"
-                                value={tempValue}
-                                onChange={(e) => setTempValue(e.target.value)}
-                                className="w-40 h-8 text-xs"
-                                onBlur={handleCellUpdate}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') handleCellUpdate();
-                                  if (e.key === 'Escape') handleCellCancel();
-                                }}
-                                autoFocus
-                              />
-                            </div>
-                          ) : (
-                            <div 
-                              className="cursor-pointer hover:bg-muted/50 p-1 rounded"
-                              onClick={() => handleCellEdit(booking.id, 'requested_window_start', booking.requested_window_start)}
-                            >
-                              {formatDateTime(booking.requested_window_start)}
-                            </div>
-                          )}
-                        </td>
-                        <td className="py-3 px-3 text-sm">
-                          {editingCell?.bookingId === booking.id && editingCell.field === 'requested_window_end' ? (
-                            <div className="flex items-center gap-2">
-                              <Input
-                                type="datetime-local"
-                                value={tempValue}
-                                onChange={(e) => setTempValue(e.target.value)}
-                                className="w-40 h-8 text-xs"
-                                onBlur={handleCellUpdate}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') handleCellUpdate();
-                                  if (e.key === 'Escape') handleCellCancel();
-                                }}
-                                autoFocus
-                              />
-                            </div>
-                          ) : (
-                            <div 
-                              className="cursor-pointer hover:bg-muted/50 p-1 rounded"
-                              onClick={() => handleCellEdit(booking.id, 'requested_window_end', booking.requested_window_end)}
-                            >
-                              {formatDateTime(booking.requested_window_end)}
-                            </div>
-                          )}
-                        </td>
+                        <td className="py-3 px-3 text-sm text-right table-cell-numeric">{formatFillRate(booking.fill_rate)}</td>
                         <td className="py-3 px-3">
                           <Badge variant={getStatusVariant(booking.status || 'unknown')}>
                             {booking.status || 'unknown'}
                           </Badge>
-                        </td>
-                        <td className="py-3 px-3">
-                          <div className="flex gap-1">
-                            {booking.status === 'requested' && (
-                              <>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => handleStatusUpdate(booking.id, 'confirmed')}
-                                  disabled={updatingBookings.has(booking.id)}
-                                  className="text-success hover:text-success/80 hover:bg-success/10"
-                                >
-                                  {updatingBookings.has(booking.id) ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                  ) : (
-                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                  )}
-                                  Confirm
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => handleStatusUpdate(booking.id, 'cancelled')}
-                                  disabled={updatingBookings.has(booking.id)}
-                                  className="text-destructive hover:text-destructive/80 hover:bg-destructive/10"
-                                >
-                                  {updatingBookings.has(booking.id) ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                  ) : (
-                                    <X className="h-3 w-3 mr-1" />
-                                  )}
-                                  Cancel
-                                </Button>
-                              </>
-                            )}
-                            {booking.status !== 'requested' && (
-                              <>
-                                <Button variant="ghost" size="sm">Edit</Button>
-                                <Button variant="ghost" size="sm">View</Button>
-                              </>
-                            )}
-                          </div>
                         </td>
                       </tr>
                     ))
