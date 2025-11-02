@@ -17,6 +17,7 @@ interface ComplianceCheck {
   nvd_status: string | null;
   pic_status: string | null;
   checked_at: string | null;
+  checked_by: string | null;
   notes: string | null;
 }
 
@@ -141,6 +142,7 @@ export default function ComplianceChecks() {
                         <ArrowUpDown className="h-4 w-4" />
                       </Button>
                     </TableHead>
+                    <TableHead>Checked By</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -171,6 +173,7 @@ export default function ComplianceChecks() {
                           ? format(new Date(check.checked_at), 'MMM d, yyyy HH:mm')
                           : "—"}
                       </TableCell>
+                      <TableCell>{check.checked_by || "—"}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
