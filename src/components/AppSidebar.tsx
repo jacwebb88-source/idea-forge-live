@@ -30,7 +30,7 @@ const mainItems = [
   { title: "Dashboard", url: "/", icon: Home },
   { title: "Booking Board", url: "/bookings", icon: Calendar },
   { title: "Transport Slotting", url: "/transport", icon: Truck },
-  { title: "Grid Specs", url: "/grid-specs", icon: ClipboardList },
+  { title: "Kill Grid Specifications", url: "/grid-specs", icon: ClipboardList },
   { title: "KPI Dashboard", url: "/kpis", icon: BarChart3 },
   { title: "Compliance Checks", url: "/compliance", icon: ShieldCheck },
   { title: "Pilot Projects", url: "/pilots", icon: Lightbulb },
