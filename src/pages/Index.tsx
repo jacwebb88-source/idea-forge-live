@@ -133,7 +133,7 @@ const Index = () => {
           />
           <MetricCard
             title="Lead Time Variance"
-            value="4.2hr"
+            value="0.25hr"
             change="-1.6hr from last week"
             changeType="positive"
             icon={Calendar}
