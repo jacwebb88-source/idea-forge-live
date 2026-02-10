@@ -187,7 +187,7 @@ export function BookingCalendar() {
               <div key={booking.id} className="p-3 border rounded-lg space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${getSpeciesColor(booking.species)}`}></div>
+                    <div className={`w-3 h-3 rounded-full bg-red-500`}></div>
                     <span className="font-medium text-sm">{booking.lot_id || booking.agent_ref}</span>
                   </div>
                   <Badge 
@@ -201,7 +201,7 @@ export function BookingCalendar() {
                 <div className="space-y-1 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Beef className="h-3 w-3" />
-                    <span className="capitalize">{booking.species}</span>
+                    <span className="capitalize">Beef</span>
                     <span>•</span>
                     <Users className="h-3 w-3" />
                     <span>{booking.head_count} head</span>
