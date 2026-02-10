@@ -18,9 +18,11 @@ export type Database = {
         Row: {
           agent_ref: string | null
           created_at: string | null
+          created_by: string | null
           est_avg_hscw: number | null
           est_avg_live_wt: number | null
           fill_rate: number | null
+          grid_fit_score: number | null
           head_count: number | null
           id: string
           lot_id: string | null
@@ -28,17 +30,23 @@ export type Database = {
           requested_kill_date: string | null
           requested_window_end: string | null
           requested_window_start: string | null
+          slot_time: string | null
           species: string
+          species_type: string | null
           status: string | null
           supplier_id: string | null
           target_grid_id: string | null
+          transport_status: string | null
+          variance_hours: number | null
         }
         Insert: {
           agent_ref?: string | null
           created_at?: string | null
+          created_by?: string | null
           est_avg_hscw?: number | null
           est_avg_live_wt?: number | null
           fill_rate?: number | null
+          grid_fit_score?: number | null
           head_count?: number | null
           id?: string
           lot_id?: string | null
@@ -46,17 +54,23 @@ export type Database = {
           requested_kill_date?: string | null
           requested_window_end?: string | null
           requested_window_start?: string | null
+          slot_time?: string | null
           species: string
+          species_type?: string | null
           status?: string | null
           supplier_id?: string | null
           target_grid_id?: string | null
+          transport_status?: string | null
+          variance_hours?: number | null
         }
         Update: {
           agent_ref?: string | null
           created_at?: string | null
+          created_by?: string | null
           est_avg_hscw?: number | null
           est_avg_live_wt?: number | null
           fill_rate?: number | null
+          grid_fit_score?: number | null
           head_count?: number | null
           id?: string
           lot_id?: string | null
@@ -64,10 +78,14 @@ export type Database = {
           requested_kill_date?: string | null
           requested_window_end?: string | null
           requested_window_start?: string | null
+          slot_time?: string | null
           species?: string
+          species_type?: string | null
           status?: string | null
           supplier_id?: string | null
           target_grid_id?: string | null
+          transport_status?: string | null
+          variance_hours?: number | null
         }
         Relationships: [
           {
@@ -96,6 +114,51 @@ export type Database = {
             columns: ["target_grid_id"]
             isOneToOne: false
             referencedRelation: "gridspecs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compliance_checks: {
+        Row: {
+          booking_id: string | null
+          checked_at: string | null
+          checked_by: string | null
+          id: string
+          nlis_status: string | null
+          nvd_status: string | null
+          pic_status: string | null
+        }
+        Insert: {
+          booking_id?: string | null
+          checked_at?: string | null
+          checked_by?: string | null
+          id?: string
+          nlis_status?: string | null
+          nvd_status?: string | null
+          pic_status?: string | null
+        }
+        Update: {
+          booking_id?: string | null
+          checked_at?: string | null
+          checked_by?: string | null
+          id?: string
+          nlis_status?: string | null
+          nvd_status?: string | null
+          pic_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_checks_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "app_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_checks_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
         ]
