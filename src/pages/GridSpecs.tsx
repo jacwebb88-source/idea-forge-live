@@ -108,10 +108,7 @@ export default function GridSpecs() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Plants</SelectItem>
-                  <SelectItem value="JBS - Dinmore (test)">JBS - Dinmore</SelectItem>
-                  <SelectItem value="Teys - Beenleigh (test)">Teys - Beenleigh</SelectItem>
-                  <SelectItem value="NH Foods - Oakey (test)">NH Foods - Oakey</SelectItem>
-                  <SelectItem value="Greenham - Smithton (test)">Greenham - Smithton</SelectItem>
+                  <SelectItem value="pilot-processor">Pilot Processor</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={speciesFilter} onValueChange={setSpeciesFilter}>
