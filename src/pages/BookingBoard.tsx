@@ -290,8 +290,8 @@ export default function BookingBoard() {
                       <tr key={booking.id} className="table-row-hover table-row-zebra border-b border-border transition-colors">
                         <td className="py-3 px-3 text-sm font-medium font-mono">{booking.id.slice(-8)}</td>
                         <td className="py-3 px-3">
-                          <Badge variant={getSpeciesVariant(booking.species || '')} className="capitalize">
-                            {booking.species || '-'}
+                          <Badge variant="beef" className="capitalize">
+                            Beef
                           </Badge>
                         </td>
                         <td className="py-3 px-3 text-sm text-right table-cell-numeric">{booking.head_count || '-'}</td>
