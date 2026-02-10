@@ -159,7 +159,7 @@ export default function BuyerSupplierRequest() {
       <div className="space-y-6 max-w-2xl">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Buyer/Supplier Booking Request</h1>
+            <h1 className="text-3xl font-bold text-foreground">Booking Intake Form</h1>
             <p className="text-muted-foreground">Submit a new livestock processing booking request</p>
           </div>
         </div>
@@ -169,7 +169,7 @@ export default function BuyerSupplierRequest() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Booking Request Form
+              Booking Intake Form
             </CardTitle>
           </CardHeader>
           <CardContent>
