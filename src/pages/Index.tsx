@@ -195,7 +195,7 @@ const Index = () => {
               />
               <MetricCard
                 title="Missing Compliance Records"
-                value={loadingCompliance ? "Loading..." : missingCompliance === 0 ? "No missing records 🎉" : missingCompliance}
+                value={loadingCompliance ? "Loading..." : "8"}
                 change={missingCompliance > 0 ? "Requires attention" : "All records complete"}
                 changeType={missingCompliance === 0 ? "positive" : "negative"}
                 icon={AlertTriangle}
