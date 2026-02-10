@@ -64,7 +64,7 @@ export function AppSidebar() {
         <div className="p-4 border-b border-sidebar-border">
           {!collapsed && (
             <h2 className="text-lg font-semibold text-sidebar-foreground">
-              Muster IT
+              Muster
             </h2>
           )}
         </div>
