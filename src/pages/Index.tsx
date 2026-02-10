@@ -137,7 +137,7 @@ const Index = () => {
             change="↓ 1.6 hrs vs last week"
             changeType="positive"
             icon={Calendar}
-            description="Confirmed vs requested timing"
+            description="Planned vs Actual Timing"
           />
           <MetricCard
             title="Active Bookings"
