@@ -102,7 +102,7 @@ const Index = () => {
           <div>
             <h1 className="text-3xl font-bold text-foreground">Today's Schedule</h1>
             <p className="text-muted-foreground mt-1">
-              Manage bookings, transport windows and grids without the scramble.
+              Pilot console demonstrating booking, compliance, and capacity visibility.
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
