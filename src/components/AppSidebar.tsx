@@ -34,7 +34,7 @@ const mainItems = [
   { title: "KPI Dashboard", url: "/kpis", icon: BarChart3 },
   { title: "Compliance Checks", url: "/compliance", icon: ShieldCheck },
   { title: "Pilot Projects", url: "/pilots", icon: Lightbulb },
-  { title: "Buyer/Supplier Request", url: "/buyer-request", icon: UserCheck },
+  { title: "Booking Intake Form – Supplier Request", url: "/buyer-request", icon: UserCheck },
 ];
 
 const dataItems = [
