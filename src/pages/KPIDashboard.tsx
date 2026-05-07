@@ -7,7 +7,17 @@ import { BarChart3, TrendingUp, TrendingDown, Calendar, Download, FileText, Targ
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { format, startOfWeek, endOfWeek, subWeeks } from "date-fns";
+import { format, startOfWeek, endOfWeek, subWeeks, addDays, addWeeks } from "date-fns";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 interface KPIData {
   fillRate: number;
@@ -45,6 +55,8 @@ export default function KPIDashboard() {
   const [plants, setPlants] = useState<any[]>([]);
   const [processors, setProcessors] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dailyChartData, setDailyChartData] = useState<any[]>([]);
+  const [weeklyTrendData, setWeeklyTrendData] = useState<any[]>([]);
 
   // Calculate week dates
   const currentWeekStart = startOfWeek(new Date());
@@ -367,6 +379,56 @@ export default function KPIDashboard() {
         setPlantBreakdown([]);
       }
       
+      // --- Daily chart: head count by day for current week ---
+      const dailyStart = format(currentWeekStart, "yyyy-MM-dd");
+      const dailyEnd = format(currentWeekEnd, "yyyy-MM-dd");
+      const { data: dailyBookings } = await supabase
+        .from("bookings")
+        .select("requested_kill_date, head_count, species")
+        .gte("requested_kill_date", dailyStart)
+        .lte("requested_kill_date", dailyEnd);
+
+      const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      const dailyMap: Record<string, { Cattle: number; Sheep: number; Lamb: number; Other: number }> = {};
+      dayLabels.forEach((d) => (dailyMap[d] = { Cattle: 0, Sheep: 0, Lamb: 0, Other: 0 }));
+
+      (dailyBookings || []).forEach((b: any) => {
+        if (!b.requested_kill_date) return;
+        const dayIndex = new Date(b.requested_kill_date).getDay(); // 0=Sun
+        const labelIndex = dayIndex === 0 ? 6 : dayIndex - 1; // Mon=0
+        const label = dayLabels[labelIndex];
+        const head = b.head_count || 0;
+        const sp = (b.species || "").toLowerCase();
+        if (sp === "cattle" || sp === "beef") dailyMap[label].Cattle += head;
+        else if (sp === "sheep") dailyMap[label].Sheep += head;
+        else if (sp === "lamb") dailyMap[label].Lamb += head;
+        else dailyMap[label].Other += head;
+      });
+
+      setDailyChartData(
+        dayLabels.map((d) => ({ day: d, ...dailyMap[d] }))
+      );
+
+      // --- Weekly trend: total head booked per week for last 8 weeks ---
+      const weeksData = await Promise.all(
+        Array.from({ length: 8 }, (_, i) => {
+          const wStart = startOfWeek(subWeeks(new Date(), 7 - i), { weekStartsOn: 1 });
+          const wEnd = endOfWeek(wStart, { weekStartsOn: 1 });
+          return supabase
+            .from("bookings")
+            .select("head_count, species")
+            .gte("requested_kill_date", format(wStart, "yyyy-MM-dd"))
+            .lte("requested_kill_date", format(wEnd, "yyyy-MM-dd"))
+            .then(({ data }) => ({
+              week: `${format(wStart, "d MMM")}`,
+              Cattle: (data || []).filter((b: any) => ["cattle","beef"].includes((b.species||"").toLowerCase())).reduce((s: number, b: any) => s + (b.head_count || 0), 0),
+              Sheep: (data || []).filter((b: any) => (b.species||"").toLowerCase() === "sheep").reduce((s: number, b: any) => s + (b.head_count || 0), 0),
+              Lamb: (data || []).filter((b: any) => (b.species||"").toLowerCase() === "lamb").reduce((s: number, b: any) => s + (b.head_count || 0), 0),
+            }));
+        })
+      );
+      setWeeklyTrendData(weeksData);
+
       setLoading(false);
     };
 
@@ -680,6 +742,58 @@ export default function KPIDashboard() {
             </CardContent>
           </Card>
         )}
+
+        {/* Daily head count chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Head Count by Day — This Week
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={dailyChartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="day" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+                <Tooltip
+                  formatter={(value: number, name: string) => [`${value.toLocaleString()} head`, name]}
+                />
+                <Legend />
+                <Bar dataKey="Cattle" stackId="a" fill="#2563eb" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="Sheep" stackId="a" fill="#16a34a" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="Lamb" stackId="a" fill="#d97706" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Weekly trend chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Weekly Booking Volume — Last 8 Weeks
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={weeklyTrendData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="week" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+                <Tooltip
+                  formatter={(value: number, name: string) => [`${value.toLocaleString()} head`, name]}
+                />
+                <Legend />
+                <Bar dataKey="Cattle" stackId="a" fill="#2563eb" />
+                <Bar dataKey="Sheep" stackId="a" fill="#16a34a" />
+                <Bar dataKey="Lamb" stackId="a" fill="#d97706" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
         {/* Demo Data Notice */}
         <Card className="border-dashed border-muted-foreground/30">
