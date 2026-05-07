@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, AlertTriangle, Info } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, AlertTriangle, Info, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   startOfWeek,
@@ -125,6 +125,8 @@ export default function KillPlan() {
   const [dayPlans, setDayPlans] = useState<DayPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [bookingChanges, setBookingChanges] = useState<any[]>([]);
+  const [loadingChanges, setLoadingChanges] = useState(false);
   const [showLegend, setShowLegend] = useState(false);
 
   const weekEnd = useMemo(() => endOfWeek(weekStart, { weekStartsOn: 1 }), [weekStart]);
@@ -177,6 +179,23 @@ export default function KillPlan() {
     };
     load();
   }, [weekStart, weekEnd]);
+
+  // ── Fetch change history when a booking is opened ─────────────────────────
+  useEffect(() => {
+    if (!selectedBooking) { setBookingChanges([]); return; }
+    const fetchChanges = async () => {
+      setLoadingChanges(true);
+      const { data } = await (supabase as any)
+        .from("booking_changes")
+        .select("*")
+        .eq("booking_id", selectedBooking.id)
+        .order("changed_at", { ascending: false })
+        .limit(20);
+      setBookingChanges(data || []);
+      setLoadingChanges(false);
+    };
+    fetchChanges();
+  }, [selectedBooking]);
 
   // ── Filtering helpers ──────────────────────────────────────────────────────
   const matchesSpecies = (s: string | null) => {
@@ -520,6 +539,43 @@ export default function KillPlan() {
                     ? `${selectedBooking.fill_rate.toFixed(1)}%`
                     : "—"}</p>
                 </div>
+              </div>
+
+              {/* ── Change audit trail ── */}
+              <div className="border-t pt-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <History className="h-3.5 w-3.5 text-muted-foreground" />
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Change history</p>
+                </div>
+                {loadingChanges ? (
+                  <p className="text-xs text-muted-foreground animate-pulse">Loading…</p>
+                ) : bookingChanges.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic">No changes recorded yet.</p>
+                ) : (
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {bookingChanges.map((c: any) => (
+                      <div key={c.id} className="text-xs border rounded-md px-2.5 py-1.5 bg-muted/40">
+                        <div className="flex justify-between items-start gap-2">
+                          <span className="font-semibold text-foreground capitalize">{c.field_name?.replace(/_/g, " ")}</span>
+                          <span className="text-muted-foreground shrink-0">
+                            {c.changed_at ? format(parseISO(c.changed_at), "d MMM HH:mm") : "—"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 mt-0.5 text-muted-foreground">
+                          <span className="line-through">{c.old_value || "—"}</span>
+                          <span>→</span>
+                          <span className="text-foreground font-medium">{c.new_value || "—"}</span>
+                        </div>
+                        {c.changed_by && (
+                          <p className="text-muted-foreground mt-0.5">by {c.changed_by}{c.changed_by_role ? ` (${c.changed_by_role})` : ""}</p>
+                        )}
+                        {c.change_note && (
+                          <p className="text-muted-foreground italic mt-0.5">"{c.change_note}"</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
