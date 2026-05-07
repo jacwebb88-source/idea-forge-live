@@ -10,7 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Calendar, Search, Plus, Filter, Download, CheckCircle, X, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
 
 // Type definition for booking data from public.bookings
 type BookingData = {
@@ -43,10 +42,26 @@ const formatFillRate = (fillRate: number | null) => {
 const getStatusVariant = (status: string): "confirmed" | "requested" | "changed" | "cancelled" | "secondary" => {
   switch (status) {
     case "confirmed": return "confirmed";
-    case "requested": return "requested";
-    case "changed": return "changed";
+    case "requested":
+    case "pending":
+    case "low":       return "requested";
+    case "changed":   return "changed";
     case "cancelled": return "cancelled";
-    default: return "secondary";
+    default:          return "secondary";
+  }
+};
+
+/** Left border colour on table rows — mirrors Kill Plan confidence colours */
+const confidenceRowStyle = (status: string | null): string => {
+  switch ((status || "").toLowerCase()) {
+    case "confirmed":   return "border-l-4 border-l-blue-500";
+    case "high":        return "border-l-4 border-l-emerald-500";
+    case "medium":      return "border-l-4 border-l-amber-500";
+    case "low":
+    case "pending":
+    case "requested":   return "border-l-4 border-l-yellow-400";
+    case "cancelled":   return "border-l-4 border-l-red-400 opacity-60";
+    default:            return "border-l-4 border-l-gray-300";
   }
 };
 
@@ -165,9 +180,17 @@ export default function BookingBoard() {
   const filteredBookings = bookings.filter(booking => {
     const matchesSearch = booking.species?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false;
     const matchesStatus = statusFilter === "all" || booking.status === statusFilter;
-    
     return matchesSearch && matchesStatus;
   });
+
+  // Confidence summary counts
+  const confidenceCounts = {
+    Confirmed:   bookings.filter(b => (b.status || "").toLowerCase() === "confirmed").length,
+    High:        bookings.filter(b => (b.status || "").toLowerCase() === "high").length,
+    Medium:      bookings.filter(b => (b.status || "").toLowerCase() === "medium").length,
+    Low:         bookings.filter(b => ["low","pending","requested"].includes((b.status||"").toLowerCase())).length,
+    Placeholder: bookings.filter(b => !b.status || (b.status||"").toLowerCase() === "placeholder").length,
+  };
 
   return (
     <DashboardLayout>
@@ -188,6 +211,25 @@ export default function BookingBoard() {
             </Button>
           </div>
         </div>
+
+        {/* Confidence summary strip */}
+        {!loading && bookings.length > 0 && (
+          <div className="flex flex-wrap gap-3">
+            {[
+              { label: "Confirmed",   count: confidenceCounts.Confirmed,   colour: "bg-blue-500",    text: "text-blue-700",    bg: "bg-blue-50   border-blue-200" },
+              { label: "High",        count: confidenceCounts.High,        colour: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" },
+              { label: "Medium",      count: confidenceCounts.Medium,      colour: "bg-amber-500",   text: "text-amber-700",   bg: "bg-amber-50  border-amber-200" },
+              { label: "Low",         count: confidenceCounts.Low,         colour: "bg-yellow-400",  text: "text-yellow-700",  bg: "bg-yellow-50 border-yellow-200" },
+              { label: "Placeholder", count: confidenceCounts.Placeholder, colour: "bg-gray-300",    text: "text-gray-600",    bg: "bg-gray-50   border-gray-200" },
+            ].map(({ label, count, colour, text, bg }) => (
+              <div key={label} className={`flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm ${bg}`}>
+                <div className={`w-2.5 h-2.5 rounded-full ${colour}`} />
+                <span className={`font-medium ${text}`}>{label}</span>
+                <span className={`font-bold ${text}`}>{count}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Filters */}
         <Card>
@@ -237,14 +279,17 @@ export default function BookingBoard() {
                 </div>
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Status" />
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Confidence" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover z-50">
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="requested">Requested</SelectItem>
+                  <SelectItem value="all">All statuses</SelectItem>
                   <SelectItem value="confirmed">Confirmed</SelectItem>
-                  <SelectItem value="changed">Changed</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="placeholder">Placeholder</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
@@ -287,11 +332,11 @@ export default function BookingBoard() {
                     </tr>
                   ) : (
                     filteredBookings.map((booking) => (
-                      <tr key={booking.id} className="table-row-hover table-row-zebra border-b border-border transition-colors">
-                        <td className="py-3 px-3 text-sm font-medium font-mono">{booking.id.slice(-8)}</td>
+                      <tr key={booking.id} className={`table-row-hover border-b border-border transition-colors ${confidenceRowStyle(booking.status)}`}>
+                        <td className="py-3 px-3 text-sm font-medium font-mono">{booking.id.slice(-8).toUpperCase()}</td>
                         <td className="py-3 px-3">
-                          <Badge variant="beef" className="capitalize">
-                            Beef
+                          <Badge variant={getSpeciesVariant(booking.species || "")} className="capitalize">
+                            {booking.species || "—"}
                           </Badge>
                         </td>
                         <td className="py-3 px-3 text-sm text-right table-cell-numeric">{booking.head_count || '-'}</td>
