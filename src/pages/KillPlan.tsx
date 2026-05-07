@@ -37,7 +37,14 @@ type Booking = {
   lot_id: string | null;
   agent_ref: string | null;
   slot_time: string | null;
+  arrival_slot: string | null;
   transport_status: string | null;
+  hgp_status: string | null;
+  kill_order_seq: number | null;
+  msa_enrolled: boolean | null;
+  pericardium_ok: boolean | null;
+  mulesing_status: string | null;
+  species_class: string | null;
 };
 
 type Supplier = { id: string; name: string };
@@ -146,7 +153,7 @@ export default function KillPlan() {
         supabase
           .from("bookings")
           .select(
-            "id, species, head_count, requested_kill_date, status, supplier_id, plant_id, fill_rate, lot_id, agent_ref, slot_time, transport_status"
+            "id, species, head_count, requested_kill_date, status, supplier_id, plant_id, fill_rate, lot_id, agent_ref, slot_time, arrival_slot, transport_status, hgp_status, kill_order_seq, msa_enrolled, pericardium_ok, mulesing_status, species_class"
           )
           .gte("requested_kill_date", startStr)
           .lte("requested_kill_date", endStr),
@@ -219,6 +226,17 @@ export default function KillPlan() {
     return dayPlans
       .filter((p) => p.date === dStr && matchesSpecies(p.species))
       .reduce((sum, p) => sum + (p.planned_head || 0), 0);
+  };
+
+  // ── HGP sequencing check: returns true if HGP-treated appears before HGP-free on a day ──
+  const hasHGPSequenceError = (dayBks: Booking[]): boolean => {
+    const sorted = [...dayBks].sort((a, b) => (a.kill_order_seq ?? 999) - (b.kill_order_seq ?? 999));
+    let seenTreated = false;
+    for (const b of sorted) {
+      if ((b.hgp_status || "").toLowerCase() === "hgp_treated") seenTreated = true;
+      if (seenTreated && (b.hgp_status || "").toLowerCase() === "hgp_free") return true;
+    }
+    return false;
   };
 
   // ── Week summary stats ─────────────────────────────────────────────────────
@@ -384,11 +402,12 @@ export default function KillPlan() {
             const pct     = hasPlan ? (booked / planned) * 100 : 0;
             const barWidth = hasPlan ? Math.min(pct, 100) : 0;
             const isOver  = hasPlan && booked > planned;
+            const hgpError = hasHGPSequenceError(dayBookings);
 
             return (
               <Card
                 key={day.toISOString()}
-                className={`flex flex-col ${isOver ? "ring-2 ring-destructive/70 border-destructive/50" : ""}`}
+                className={`flex flex-col ${isOver ? "ring-2 ring-destructive/70 border-destructive/50" : hgpError ? "ring-2 ring-orange-400/70 border-orange-300" : ""}`}
               >
                 <CardHeader className="pb-3">
                   {/* Day header */}
@@ -403,6 +422,12 @@ export default function KillPlan() {
                       <span className="flex items-center gap-1 text-xs font-semibold text-destructive bg-destructive/10 rounded px-1.5 py-0.5">
                         <AlertTriangle className="h-3 w-3" />
                         OVER
+                      </span>
+                    )}
+                    {hgpError && !isOver && (
+                      <span className="flex items-center gap-1 text-xs font-semibold text-orange-700 bg-orange-100 rounded px-1.5 py-0.5">
+                        <AlertTriangle className="h-3 w-3" />
+                        HGP
                       </span>
                     )}
                   </div>
@@ -455,9 +480,24 @@ export default function KillPlan() {
                           </span>
                           <span className="capitalize">{b.species || "—"}</span>
                         </div>
-                        {/* Confidence badge */}
-                        <div className="mt-1.5">
+                        {/* Confidence + HGP badges */}
+                        <div className="mt-1.5 flex flex-wrap gap-1">
                           <ConfidenceBadge status={b.status} />
+                          {b.hgp_status === "hgp_free" && (
+                            <span className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border-emerald-200">
+                              HGP-Free
+                            </span>
+                          )}
+                          {b.hgp_status === "hgp_treated" && (
+                            <span className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs font-semibold bg-orange-50 text-orange-700 border-orange-200">
+                              HGP
+                            </span>
+                          )}
+                          {b.arrival_slot && (
+                            <span className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs text-muted-foreground bg-background border-border">
+                              {b.arrival_slot}
+                            </span>
+                          )}
                         </div>
                       </button>
                     ))
@@ -505,7 +545,7 @@ export default function KillPlan() {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Species</p>
-                  <p className="capitalize">{selectedBooking.species || "—"}</p>
+                  <p className="capitalize">{selectedBooking.species || "—"}{selectedBooking.species_class ? ` · ${selectedBooking.species_class}` : ""}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Head count</p>
@@ -518,8 +558,8 @@ export default function KillPlan() {
                     : "—"}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Slot time</p>
-                  <p>{selectedBooking.slot_time || "—"}</p>
+                  <p className="text-xs text-muted-foreground">Arrival slot</p>
+                  <p>{selectedBooking.arrival_slot || selectedBooking.slot_time || "—"}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Transport</p>
@@ -533,11 +573,44 @@ export default function KillPlan() {
                   <p className="text-xs text-muted-foreground">Agent ref</p>
                   <p>{selectedBooking.agent_ref || "—"}</p>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Fill rate</p>
-                  <p>{selectedBooking.fill_rate != null
-                    ? `${selectedBooking.fill_rate.toFixed(1)}%`
-                    : "—"}</p>
+              </div>
+
+              {/* ── Compliance flags ── */}
+              <div className="border-t pt-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Compliance flags</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                  <div>
+                    <p className="text-xs text-muted-foreground">HGP status</p>
+                    {selectedBooking.hgp_status === "hgp_free" ? (
+                      <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border-emerald-200">✓ HGP-Free</span>
+                    ) : selectedBooking.hgp_status === "hgp_treated" ? (
+                      <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold bg-orange-50 text-orange-700 border-orange-200">HGP-Treated</span>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">Not set</span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Kill order</p>
+                    <p>{selectedBooking.kill_order_seq != null ? `#${selectedBooking.kill_order_seq}` : "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">MSA enrolled</p>
+                    <p>{selectedBooking.msa_enrolled === true ? "✓ Yes" : selectedBooking.msa_enrolled === false ? "No" : "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Pericardium</p>
+                    <p>{selectedBooking.pericardium_ok === true ? "✓ OK" : selectedBooking.pericardium_ok === false ? "⚠ Flag" : "—"}</p>
+                  </div>
+                  {["lamb","sheep","mutton"].includes((selectedBooking.species || "").toLowerCase()) && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Mulesing status</p>
+                      <p className="capitalize">{selectedBooking.mulesing_status?.replace(/_/g, " ") || "⚠ Not set"}</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-xs text-muted-foreground">Fill rate</p>
+                    <p>{selectedBooking.fill_rate != null ? `${selectedBooking.fill_rate.toFixed(1)}%` : "—"}</p>
+                  </div>
                 </div>
               </div>
 
