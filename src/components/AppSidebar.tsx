@@ -11,7 +11,8 @@ import {
   PieChart,
   UserCheck,
   Lightbulb,
-  ShieldCheck
+  ShieldCheck,
+  CalendarRange
 } from "lucide-react";
 
 import {
@@ -28,6 +29,7 @@ import {
 
 const mainItems = [
   { title: "Dashboard", url: "/", icon: Home },
+  { title: "Kill Plan", url: "/kill-plan", icon: CalendarRange },
   { title: "Booking Board", url: "/bookings", icon: Calendar },
   { title: "Transport Slotting", url: "/transport", icon: Truck },
   { title: "Kill Grid Specifications", url: "/grid-specs", icon: ClipboardList },

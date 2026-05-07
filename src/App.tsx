@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import BookingBoard from "./pages/BookingBoard";
+import KillPlan from "./pages/KillPlan";
 import TransportSlotting from "./pages/TransportSlotting";
 import GridSpecs from "./pages/GridSpecs";
 import KPIDashboard from "./pages/KPIDashboard";
@@ -25,6 +26,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/kill-plan" element={<KillPlan />} />
           <Route path="/bookings" element={<BookingBoard />} />
           <Route path="/transport" element={<TransportSlotting />} />
           <Route path="/grid-specs" element={<GridSpecs />} />
