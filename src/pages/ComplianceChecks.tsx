@@ -6,8 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, AlertTriangle, CheckCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface ComplianceCheck {
@@ -31,6 +32,7 @@ export default function ComplianceChecks() {
   const [checks, setChecks] = useState<ComplianceCheck[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'missing' | 'pending' | 'ok'>('all');
   const [selectedCheck, setSelectedCheck] = useState<ComplianceCheck | null>(null);
   const [bookingDetails, setBookingDetails] = useState<BookingDetails | null>(null);
   const [loadingBooking, setLoadingBooking] = useState(false);
@@ -82,6 +84,31 @@ export default function ComplianceChecks() {
     setLoadingBooking(false);
   };
 
+  /** Returns true if any check field is 'missing' */
+  const hasMissing = (c: ComplianceCheck) =>
+    c.nlis_status === "missing" || c.nvd_status === "missing" || c.pic_status === "missing";
+
+  /** Returns true if any check field is 'pending' (and none missing) */
+  const hasPending = (c: ComplianceCheck) =>
+    !hasMissing(c) && (c.nlis_status === "pending" || c.nvd_status === "pending" || c.pic_status === "pending");
+
+  /** Returns true if all three are 'ok' or 'complete' */
+  const isAllOk = (c: ComplianceCheck) =>
+    ["ok","complete"].includes((c.nlis_status||"").toLowerCase()) &&
+    ["ok","complete"].includes((c.nvd_status||"").toLowerCase()) &&
+    ["ok","complete"].includes((c.pic_status||"").toLowerCase());
+
+  const filteredChecks = checks.filter((c) => {
+    if (statusFilter === "missing") return hasMissing(c);
+    if (statusFilter === "pending") return hasPending(c);
+    if (statusFilter === "ok")      return isAllOk(c);
+    return true;
+  });
+
+  const missingCount = checks.filter(hasMissing).length;
+  const pendingCount = checks.filter(hasPending).length;
+  const okCount      = checks.filter(isAllOk).length;
+
   const getStatusBadgeVariant = (status: string | null): "confirmed" | "cancelled" | "secondary" => {
     if (!status) return "secondary";
     switch (status.toLowerCase()) {
@@ -108,9 +135,49 @@ export default function ComplianceChecks() {
           </div>
         </div>
 
+        {/* Compliance summary strip */}
+        {!loading && (
+          <div className="flex flex-wrap gap-3">
+            <div
+              className={`flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm cursor-pointer transition-all ${statusFilter === "missing" ? "ring-2 ring-red-400" : ""} bg-red-50 border-red-200`}
+              onClick={() => setStatusFilter(s => s === "missing" ? "all" : "missing")}
+            >
+              <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
+              <span className="font-medium text-red-700">Missing</span>
+              <span className="font-bold text-red-700">{missingCount}</span>
+            </div>
+            <div
+              className={`flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm cursor-pointer transition-all ${statusFilter === "pending" ? "ring-2 ring-amber-400" : ""} bg-amber-50 border-amber-200`}
+              onClick={() => setStatusFilter(s => s === "pending" ? "all" : "pending")}
+            >
+              <Clock className="h-3.5 w-3.5 text-amber-500" />
+              <span className="font-medium text-amber-700">Pending</span>
+              <span className="font-bold text-amber-700">{pendingCount}</span>
+            </div>
+            <div
+              className={`flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm cursor-pointer transition-all ${statusFilter === "ok" ? "ring-2 ring-emerald-400" : ""} bg-emerald-50 border-emerald-200`}
+              onClick={() => setStatusFilter(s => s === "ok" ? "all" : "ok")}
+            >
+              <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
+              <span className="font-medium text-emerald-700">All clear</span>
+              <span className="font-bold text-emerald-700">{okCount}</span>
+            </div>
+            {statusFilter !== "all" && (
+              <button
+                className="text-xs text-muted-foreground underline self-center"
+                onClick={() => setStatusFilter("all")}
+              >
+                Clear filter
+              </button>
+            )}
+          </div>
+        )}
+
         <Card>
           <CardHeader>
-            <CardTitle>All Compliance Checks</CardTitle>
+            <CardTitle>
+              {loading ? "Loading…" : `Compliance Checks (${filteredChecks.length}${statusFilter !== "all" ? ` · filtered` : ""})`}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -128,9 +195,10 @@ export default function ComplianceChecks() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Booking ID</TableHead>
-                    <TableHead>NLIS Status</TableHead>
-                    <TableHead>NVD Status</TableHead>
-                    <TableHead>PIC Status</TableHead>
+                    <TableHead>NLIS</TableHead>
+                    <TableHead>NVD</TableHead>
+                    <TableHead>PIC</TableHead>
+                    <TableHead>Overall</TableHead>
                     <TableHead>
                       <Button
                         variant="ghost"
@@ -142,17 +210,16 @@ export default function ComplianceChecks() {
                         <ArrowUpDown className="h-4 w-4" />
                       </Button>
                     </TableHead>
-                    <TableHead>Checked By</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {checks.map((check) => (
-                    <TableRow 
-                      key={check.id} 
+                  {filteredChecks.map((check) => (
+                    <TableRow
+                      key={check.id}
                       onClick={() => handleRowClick(check)}
-                      className={check.booking_id ? "cursor-pointer" : ""}
+                      className={`${check.booking_id ? "cursor-pointer" : ""} ${hasMissing(check) ? "bg-red-50/60 dark:bg-red-950/20 border-l-4 border-l-red-400" : hasPending(check) ? "border-l-4 border-l-amber-400" : isAllOk(check) ? "border-l-4 border-l-emerald-400" : ""}`}
                     >
-                      <TableCell className="font-mono text-sm">{check.booking_id || "—"}</TableCell>
+                      <TableCell className="font-mono text-xs">{check.booking_id ? check.booking_id.slice(-8).toUpperCase() : "—"}</TableCell>
                       <TableCell>
                         <Badge variant={getStatusBadgeVariant(check.nlis_status)}>
                           {check.nlis_status || "Pending"}
@@ -168,12 +235,28 @@ export default function ComplianceChecks() {
                           {check.pic_status || "Pending"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {check.checked_at 
-                          ? format(new Date(check.checked_at), 'MMM d, yyyy HH:mm')
+                      <TableCell>
+                        {hasMissing(check) ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-700 bg-red-100 border border-red-200 rounded-full px-2 py-0.5">
+                            <AlertTriangle className="h-3 w-3" /> Missing
+                          </span>
+                        ) : hasPending(check) ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-100 border border-amber-200 rounded-full px-2 py-0.5">
+                            <Clock className="h-3 w-3" /> Pending
+                          </span>
+                        ) : isAllOk(check) ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-100 border border-emerald-200 rounded-full px-2 py-0.5">
+                            <CheckCircle className="h-3 w-3" /> Clear
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {check.checked_at
+                          ? format(new Date(check.checked_at), 'dd MMM yyyy HH:mm')
                           : "—"}
                       </TableCell>
-                      <TableCell>{check.checked_by || "—"}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
