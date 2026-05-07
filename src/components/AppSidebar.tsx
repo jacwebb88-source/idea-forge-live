@@ -1,10 +1,10 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { 
-  BarChart3, 
-  Calendar, 
-  Users, 
-  Truck, 
-  MessageSquare, 
+import {
+  BarChart3,
+  Calendar,
+  Users,
+  Truck,
+  MessageSquare,
   Settings,
   Home,
   ClipboardList,
@@ -12,7 +12,8 @@ import {
   UserCheck,
   Lightbulb,
   ShieldCheck,
-  CalendarRange
+  CalendarRange,
+  FileText,
 } from "lucide-react";
 
 import {
@@ -35,6 +36,7 @@ const mainItems = [
   { title: "Kill Grid Specifications", url: "/grid-specs", icon: ClipboardList },
   { title: "KPI Dashboard", url: "/kpis", icon: BarChart3 },
   { title: "Compliance Checks", url: "/compliance", icon: ShieldCheck },
+  { title: "Kill Reports", url: "/kill-reports", icon: FileText },
   { title: "Pilot Projects", url: "/pilots", icon: Lightbulb },
   { title: "Booking Intake Form – Supplier Request", url: "/buyer-request", icon: UserCheck },
 ];
