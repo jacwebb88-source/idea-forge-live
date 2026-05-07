@@ -8,17 +8,31 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
-import { 
-  Users, 
-  Calendar, 
-  Truck, 
+import { format, addDays, differenceInDays, parseISO } from "date-fns";
+import {
+  Users,
+  Calendar,
+  Truck,
   TrendingUp,
   AlertTriangle,
   CheckCircle,
   Activity,
   BarChart3,
-  Shield
+  Shield,
+  Bell,
+  Clock
 } from "lucide-react";
+
+type UnconfirmedBooking = {
+  id: string;
+  supplier_id: string | null;
+  head_count: number | null;
+  species: string | null;
+  requested_kill_date: string | null;
+  status: string | null;
+  supplierName?: string;
+  daysUntilKill: number;
+};
 
 const Index = () => {
   const { toast } = useToast();
@@ -26,6 +40,60 @@ const Index = () => {
   const [missingCompliance, setMissingCompliance] = useState<number>(0);
   const [pendingCompliance, setPendingCompliance] = useState<number>(0);
   const [loadingCompliance, setLoadingCompliance] = useState(true);
+  const [unconfirmedBookings, setUnconfirmedBookings] = useState<UnconfirmedBooking[]>([]);
+  const [loadingReminders, setLoadingReminders] = useState(true);
+
+  // Fetch unconfirmed bookings due in the next 14 days
+  useEffect(() => {
+    const fetchReminders = async () => {
+      setLoadingReminders(true);
+      const today = new Date();
+      const cutoff = addDays(today, 14);
+      const todayStr  = format(today,  "yyyy-MM-dd");
+      const cutoffStr = format(cutoff, "yyyy-MM-dd");
+
+      const { data: bks } = await supabase
+        .from("bookings")
+        .select("id, supplier_id, head_count, species, requested_kill_date, status")
+        .gte("requested_kill_date", todayStr)
+        .lte("requested_kill_date", cutoffStr)
+        .in("status", ["placeholder", "pending", "requested", "low"]);
+
+      if (!bks || bks.length === 0) {
+        setUnconfirmedBookings([]);
+        setLoadingReminders(false);
+        return;
+      }
+
+      // Enrich with supplier names
+      const supplierIds = Array.from(
+        new Set((bks as any[]).map((b) => b.supplier_id).filter(Boolean))
+      ) as string[];
+
+      let supplierMap: Record<string, string> = {};
+      if (supplierIds.length) {
+        const { data: sups } = await supabase
+          .from("suppliers")
+          .select("id, name")
+          .in("id", supplierIds);
+        (sups as any[] | null)?.forEach((s) => (supplierMap[s.id] = s.name));
+      }
+
+      const enriched: UnconfirmedBooking[] = (bks as any[]).map((b) => ({
+        ...b,
+        supplierName: supplierMap[b.supplier_id] || "Unknown supplier",
+        daysUntilKill: b.requested_kill_date
+          ? differenceInDays(parseISO(b.requested_kill_date), today)
+          : 99,
+      }));
+
+      // Sort by most urgent first
+      enriched.sort((a, b) => a.daysUntilKill - b.daysUntilKill);
+      setUnconfirmedBookings(enriched);
+      setLoadingReminders(false);
+    };
+    fetchReminders();
+  }, []);
 
   useEffect(() => {
     const fetchComplianceData = async () => {
@@ -212,6 +280,78 @@ const Index = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* ── Exit Date Reminders panel ── */}
+        {(loadingReminders || unconfirmedBookings.length > 0) && (
+          <Card className={unconfirmedBookings.some(b => b.daysUntilKill <= 2) ? "border-destructive/60" : ""}>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Bell className="h-4 w-4 text-amber-500" />
+                Exit Date Reminders
+                {!loadingReminders && unconfirmedBookings.length > 0 && (
+                  <span className="ml-auto text-xs font-normal text-muted-foreground">
+                    {unconfirmedBookings.length} booking{unconfirmedBookings.length !== 1 ? "s" : ""} need confirmation
+                  </span>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingReminders ? (
+                <p className="text-sm text-muted-foreground animate-pulse">Loading reminders…</p>
+              ) : unconfirmedBookings.length === 0 ? (
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-emerald-500" />
+                  All upcoming bookings confirmed — nothing to action.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {unconfirmedBookings.map((b) => {
+                    const urgency = b.daysUntilKill <= 1
+                      ? "bg-red-50 border-red-200 dark:bg-red-950/20"
+                      : b.daysUntilKill <= 3
+                      ? "bg-amber-50 border-amber-200 dark:bg-amber-950/20"
+                      : "bg-yellow-50 border-yellow-100 dark:bg-yellow-950/10";
+                    const urgencyText = b.daysUntilKill <= 1
+                      ? "text-red-700 bg-red-100 border-red-200"
+                      : b.daysUntilKill <= 3
+                      ? "text-amber-700 bg-amber-100 border-amber-200"
+                      : "text-yellow-700 bg-yellow-100 border-yellow-200";
+                    const daysLabel = b.daysUntilKill === 0
+                      ? "TODAY"
+                      : b.daysUntilKill === 1
+                      ? "Tomorrow"
+                      : `${b.daysUntilKill} days`;
+
+                    return (
+                      <div
+                        key={b.id}
+                        className={`flex items-center gap-3 rounded-md border px-3 py-2.5 ${urgency}`}
+                      >
+                        <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{b.supplierName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {(b.head_count ?? 0).toLocaleString()} head
+                            {b.species ? ` · ${b.species}` : ""}
+                            {b.requested_kill_date
+                              ? ` · Kill ${format(parseISO(b.requested_kill_date), "d MMM yyyy")}`
+                              : ""}
+                          </p>
+                        </div>
+                        <span className={`shrink-0 text-xs font-semibold rounded-full border px-2 py-0.5 ${urgencyText}`}>
+                          {daysLabel}
+                        </span>
+                        <span className="shrink-0 text-xs text-muted-foreground capitalize border rounded px-1.5 py-0.5 bg-background">
+                          {b.status || "placeholder"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
