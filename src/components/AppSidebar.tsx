@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   CalendarRange,
   FileText,
+  History,
 } from "lucide-react";
 
 import {
@@ -37,6 +38,7 @@ const mainItems = [
   { title: "KPI Dashboard", url: "/kpis", icon: BarChart3 },
   { title: "Compliance Checks", url: "/compliance", icon: ShieldCheck },
   { title: "Kill Reports", url: "/kill-reports", icon: FileText },
+  { title: "Change History", url: "/change-history", icon: History },
   { title: "Pilot Projects", url: "/pilots", icon: Lightbulb },
   { title: "Booking Intake Form – Supplier Request", url: "/buyer-request", icon: UserCheck },
 ];

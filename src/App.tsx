@@ -15,6 +15,7 @@ import BuyerSupplierRequest from "./pages/BuyerSupplierRequest";
 import PilotProjects from "./pages/PilotProjects";
 import ComplianceChecks from "./pages/ComplianceChecks";
 import KillReports from "./pages/KillReports";
+import ChangeHistory from "./pages/ChangeHistory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
           <Route path="/pilots" element={<PilotProjects />} />
           <Route path="/compliance" element={<ComplianceChecks />} />
           <Route path="/kill-reports" element={<KillReports />} />
+          <Route path="/change-history" element={<ChangeHistory />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
