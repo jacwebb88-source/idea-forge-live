@@ -58,11 +58,11 @@ export default function KPIDashboard() {
   const [dailyChartData, setDailyChartData] = useState<any[]>([]);
   const [weeklyTrendData, setWeeklyTrendData] = useState<any[]>([]);
 
-  // Calculate week dates
-  const currentWeekStart = startOfWeek(new Date());
-  const currentWeekEnd = endOfWeek(new Date());
-  const previousWeekStart = startOfWeek(subWeeks(new Date(), 1));
-  const previousWeekEnd = endOfWeek(subWeeks(new Date(), 1));
+  // Calculate week dates — memoised so they don't recreate on every render
+  const currentWeekStart = useMemo(() => startOfWeek(new Date(), { weekStartsOn: 1 }), []);
+  const currentWeekEnd = useMemo(() => endOfWeek(new Date(), { weekStartsOn: 1 }), []);
+  const previousWeekStart = useMemo(() => startOfWeek(subWeeks(new Date(), 1), { weekStartsOn: 1 }), []);
+  const previousWeekEnd = useMemo(() => endOfWeek(subWeeks(new Date(), 1), { weekStartsOn: 1 }), []);
 
   // Fetch plants and processors
   useEffect(() => {
