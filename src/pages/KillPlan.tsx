@@ -60,7 +60,8 @@ const statusVariant = (status: string | null) => {
   }
 };
 
-const capacityColor = (pct: number) => {
+const capacityColor = (pct: number, hasPlan: boolean) => {
+  if (!hasPlan) return "bg-muted";
   if (pct > 95) return "bg-destructive";
   if (pct >= 80) return "bg-amber-500";
   return "bg-emerald-500";
@@ -268,8 +269,9 @@ export default function KillPlan() {
               (sum, b) => sum + (b.head_count || 0),
               0
             );
-            const pct = planned > 0 ? (booked / planned) * 100 : booked > 0 ? 101 : 0;
-            const barWidth = Math.min(pct, 100);
+            const hasPlan = planned > 0;
+            const pct = hasPlan ? (booked / planned) * 100 : 0;
+            const barWidth = hasPlan ? Math.min(pct, 100) : 0;
 
             return (
               <Card key={day.toISOString()} className="flex flex-col">
@@ -283,13 +285,13 @@ export default function KillPlan() {
                   <div className="mt-2">
                     <div className="flex justify-between text-xs text-muted-foreground mb-1">
                       <span>
-                        {booked} / {planned || "—"}
+                        {booked} / {hasPlan ? planned : "—"}
                       </span>
-                      <span>{planned > 0 ? `${pct.toFixed(0)}%` : ""}</span>
+                      <span>{hasPlan ? `${pct.toFixed(0)}%` : "—"}</span>
                     </div>
                     <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
                       <div
-                        className={`h-full ${capacityColor(pct)} transition-all`}
+                        className={`h-full ${capacityColor(pct, hasPlan)} transition-all`}
                         style={{ width: `${barWidth}%` }}
                       />
                     </div>
