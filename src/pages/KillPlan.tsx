@@ -710,9 +710,38 @@ export default function KillPlan() {
                           </span>
                           <span className="capitalize">{b.species || "—"}</span>
                         </div>
-                        {/* Confidence + HGP badges */}
+                        {/* Confidence + HGP + compliance + exit follow-up badges */}
                         <div className="mt-1.5 flex flex-wrap gap-1">
                           <ConfidenceBadge status={b.status} />
+                          {(() => {
+                            const cs = complianceState(compliance[b.id]);
+                            if (cs === "fail") return (
+                              <span className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs font-semibold bg-red-50 text-red-700 border-red-200" title="Compliance failed">
+                                ⚠ Compliance
+                              </span>
+                            );
+                            if (cs === "pending") return (
+                              <span className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs font-semibold bg-yellow-50 text-yellow-800 border-yellow-200" title="Compliance pending">
+                                Compl. pending
+                              </span>
+                            );
+                            if (cs === "ok") return (
+                              <span className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border-emerald-200" title="Compliance verified">
+                                ✓ Compl.
+                              </span>
+                            );
+                            return null;
+                          })()}
+                          {(b.exit_followup_status || "").toLowerCase() === "overdue" && (
+                            <span className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs font-semibold bg-red-50 text-red-700 border-red-200" title="Exit follow-up overdue">
+                              Exit f/u overdue
+                            </span>
+                          )}
+                          {(b.exit_followup_status || "").toLowerCase() === "pending" && (
+                            <span className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs font-semibold bg-amber-50 text-amber-700 border-amber-200" title="Exit follow-up pending">
+                              Exit f/u
+                            </span>
+                          )}
                           {b.hgp_status === "hgp_free" && (
                             <span className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border-emerald-200">
                               HGP-Free
