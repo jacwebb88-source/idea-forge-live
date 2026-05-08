@@ -7,7 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Upload, FileText, CheckCircle, AlertTriangle, Download, Loader2 } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface ImportRow {
   [key: string]: string;
@@ -36,6 +38,7 @@ const REQUIRED_FIELDS = {
 const VALID_SPECIES = ["beef", "lamb", "mutton", "goat"];
 
 export default function ImportData() {
+  const { toast } = useToast();
   const [step, setStep] = useState<'upload' | 'mapping' | 'validation' | 'complete'>("upload");
   const [csvData, setCsvData] = useState<ImportRow[]>([]);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
@@ -43,7 +46,19 @@ export default function ImportData() {
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [validRows, setValidRows] = useState<ImportRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importedCount, setImportedCount] = useState(0);
+  const [plants, setPlants] = useState<{ id: string; plant_name: string }[]>([]);
+  const [selectedPlantId, setSelectedPlantId] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    supabase.from("plants").select("id, plant_name").order("plant_name").then(({ data }) => {
+      const list = (data as any[]) || [];
+      setPlants(list);
+      if (list.length > 0) setSelectedPlantId(list[0].id);
+    });
+  }, []);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -245,9 +260,35 @@ export default function ImportData() {
     }
   };
 
-  const proceedToImport = () => {
-    // Here you would typically save the valid data to the database
-    console.log("Importing valid rows:", validRows);
+  const proceedToImport = async () => {
+    if (!selectedPlantId) {
+      toast({ title: "Select a plant first", variant: "destructive" });
+      return;
+    }
+    setImporting(true);
+
+    // validRows already have target field keys (date, species, head_count) merged in validateData
+    const records = validRows.map(row => ({
+      date:         row.date || null,
+      species:      (row.species || "").toLowerCase(),
+      planned_head: parseInt(row.head_count || "0") || 0,
+      plant_id:     selectedPlantId,
+    })).filter(r => r.date && r.species && r.planned_head > 0);
+
+    const { error } = await supabase.from("day_plans").insert(records);
+
+    setImporting(false);
+
+    if (error) {
+      toast({ title: "Import failed", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    setImportedCount(records.length);
+    toast({
+      title: `Imported ${records.length} capacity row${records.length !== 1 ? "s" : ""} ✅`,
+      description: "Day plans updated — visible in Forward Volume Plan.",
+    });
     setStep("complete");
   };
 
@@ -493,50 +534,99 @@ export default function ImportData() {
               </Card>
             )}
 
-            {/* Action Buttons */}
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex justify-between items-center">
-                  <div className="text-sm text-muted-foreground">
-                    {validationErrors.length > 0 
-                      ? "Fix errors in your CSV and re-upload, or proceed with valid rows only."
-                      : "All rows passed validation. Ready to import."
-                    }
+            {/* Plant selector + Action Buttons */}
+            {validRows.length > 0 && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <Label className="shrink-0 font-medium text-sm">Import to plant</Label>
+                      {plants.length === 0 ? (
+                        <span className="text-xs text-muted-foreground italic">No plants found in database</span>
+                      ) : (
+                        <Select value={selectedPlantId} onValueChange={setSelectedPlantId}>
+                          <SelectTrigger className="w-64">
+                            <SelectValue placeholder="Select plant…" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover z-50">
+                            {plants.map(p => (
+                              <SelectItem key={p.id} value={p.id}>{p.plant_name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t border-border">
+                      <div className="text-sm text-muted-foreground">
+                        {validationErrors.length > 0
+                          ? `${validRows.length} valid rows ready — ${validationErrors.length} skipped due to errors.`
+                          : "All rows passed validation. Ready to import."}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" onClick={resetImport} disabled={importing}>
+                          Start Over
+                        </Button>
+                        <Button
+                          onClick={proceedToImport}
+                          disabled={importing || !selectedPlantId}
+                        >
+                          {importing ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Importing…
+                            </>
+                          ) : (
+                            `Import ${validRows.length} row${validRows.length !== 1 ? "s" : ""}`
+                          )}
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
+                </CardContent>
+              </Card>
+            )}
+
+            {validRows.length === 0 && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex justify-between items-center">
+                    <div className="text-sm text-muted-foreground">
+                      No valid rows to import. Fix errors in your CSV and re-upload.
+                    </div>
                     <Button variant="outline" onClick={resetImport}>
                       Start Over
                     </Button>
-                    {validRows.length > 0 && (
-                      <Button onClick={proceedToImport}>
-                        Import {validRows.length} Valid Rows
-                      </Button>
-                    )}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 
         {/* Step 4: Complete */}
         {step === "complete" && (
           <Card>
-            <CardContent className="pt-6">
-              <div className="text-center space-y-4">
-                <CheckCircle className="h-16 w-16 text-green-600 mx-auto" />
+            <CardContent className="pt-8 pb-8">
+              <div className="text-center space-y-4 max-w-sm mx-auto">
+                <CheckCircle className="h-16 w-16 text-emerald-500 mx-auto" />
                 <div>
-                  <h3 className="text-xl font-bold text-green-600">Import Completed Successfully!</h3>
-                  <p className="text-muted-foreground">
-                    {validRows.length} rows have been imported successfully.
+                  <h3 className="text-xl font-bold text-foreground">Import complete</h3>
+                  <p className="text-muted-foreground mt-1">
+                    <span className="font-semibold text-foreground">{importedCount}</span> day plan row{importedCount !== 1 ? "s" : ""} imported to{" "}
+                    <span className="font-semibold text-foreground">
+                      {plants.find(p => p.id === selectedPlantId)?.plant_name || "plant"}
+                    </span>.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Capacity data is now visible in the Forward Volume Plan.
                   </p>
                 </div>
-                <div className="flex justify-center gap-2">
-                  <Button onClick={resetImport}>
-                    Import More Data
+                <div className="flex justify-center gap-2 pt-2">
+                  <Button onClick={resetImport} variant="outline">
+                    Import another file
                   </Button>
-                  <Button variant="outline" onClick={() => window.location.href = '/bookings'}>
-                    View Bookings
+                  <Button onClick={() => window.location.href = "/forward-plan"}>
+                    View Forward Plan
                   </Button>
                 </div>
               </div>
