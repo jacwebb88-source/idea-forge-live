@@ -336,7 +336,9 @@ export default function TransportSlotting() {
                                 <SelectItem value="pending">Pending</SelectItem>
                                 <SelectItem value="arranged">Arranged</SelectItem>
                                 <SelectItem value="confirmed">Confirmed</SelectItem>
+                                <SelectItem value="in_transit">In Transit</SelectItem>
                                 <SelectItem value="arrived">Arrived</SelectItem>
+                                <SelectItem value="not_required">Not Required</SelectItem>
                               </SelectContent>
                             </Select>
                           </td>
