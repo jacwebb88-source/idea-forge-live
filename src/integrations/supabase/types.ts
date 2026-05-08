@@ -14,24 +14,68 @@ export type Database = {
   }
   public: {
     Tables: {
+      booking_changes: {
+        Row: {
+          booking_id: string | null
+          change_note: string | null
+          changed_at: string
+          changed_by: string | null
+          changed_by_role: string | null
+          field_name: string
+          id: string
+          new_value: string | null
+          old_value: string | null
+        }
+        Insert: {
+          booking_id?: string | null
+          change_note?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          changed_by_role?: string | null
+          field_name: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Update: {
+          booking_id?: string | null
+          change_note?: string | null
+          changed_at?: string
+          changed_by?: string | null
+          changed_by_role?: string | null
+          field_name?: string
+          id?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           agent_ref: string | null
+          arrival_slot: string | null
           created_at: string | null
           created_by: string | null
           est_avg_hscw: number | null
           est_avg_live_wt: number | null
+          exit_followup_status: string | null
           fill_rate: number | null
           grid_fit_score: number | null
           head_count: number | null
+          hgp_status: string | null
           id: string
+          kill_order_seq: number | null
           lot_id: string | null
+          msa_enrolled: boolean | null
+          mulesing_status: string | null
+          pericardium_ok: boolean | null
           plant_id: string | null
           requested_kill_date: string | null
           requested_window_end: string | null
           requested_window_start: string | null
           slot_time: string | null
           species: string
+          species_class: string | null
           species_type: string | null
           status: string | null
           supplier_id: string | null
@@ -41,21 +85,29 @@ export type Database = {
         }
         Insert: {
           agent_ref?: string | null
+          arrival_slot?: string | null
           created_at?: string | null
           created_by?: string | null
           est_avg_hscw?: number | null
           est_avg_live_wt?: number | null
+          exit_followup_status?: string | null
           fill_rate?: number | null
           grid_fit_score?: number | null
           head_count?: number | null
+          hgp_status?: string | null
           id?: string
+          kill_order_seq?: number | null
           lot_id?: string | null
+          msa_enrolled?: boolean | null
+          mulesing_status?: string | null
+          pericardium_ok?: boolean | null
           plant_id?: string | null
           requested_kill_date?: string | null
           requested_window_end?: string | null
           requested_window_start?: string | null
           slot_time?: string | null
           species: string
+          species_class?: string | null
           species_type?: string | null
           status?: string | null
           supplier_id?: string | null
@@ -65,21 +117,29 @@ export type Database = {
         }
         Update: {
           agent_ref?: string | null
+          arrival_slot?: string | null
           created_at?: string | null
           created_by?: string | null
           est_avg_hscw?: number | null
           est_avg_live_wt?: number | null
+          exit_followup_status?: string | null
           fill_rate?: number | null
           grid_fit_score?: number | null
           head_count?: number | null
+          hgp_status?: string | null
           id?: string
+          kill_order_seq?: number | null
           lot_id?: string | null
+          msa_enrolled?: boolean | null
+          mulesing_status?: string | null
+          pericardium_ok?: boolean | null
           plant_id?: string | null
           requested_kill_date?: string | null
           requested_window_end?: string | null
           requested_window_start?: string | null
           slot_time?: string | null
           species?: string
+          species_class?: string | null
           species_type?: string | null
           status?: string | null
           supplier_id?: string | null

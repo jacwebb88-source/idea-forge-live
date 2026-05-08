@@ -174,7 +174,7 @@ export default function Plants() {
                         <CardTitle className="text-base leading-tight truncate flex items-center gap-1.5">
                           {plant.plant_name}
                           {plant.is_default && (
-                            <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400 flex-shrink-0" title="Default plant" />
+                            <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400 flex-shrink-0" aria-label="Default plant" />
                           )}
                         </CardTitle>
                         {plant.company_name && (

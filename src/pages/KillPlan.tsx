@@ -49,6 +49,22 @@ type Booking = {
   pericardium_ok: boolean | null;
   mulesing_status: string | null;
   species_class: string | null;
+  exit_followup_status: string | null;
+};
+
+type ComplianceCheck = {
+  booking_id: string | null;
+  nlis_status: string | null;
+  nvd_status: string | null;
+  pic_status: string | null;
+};
+
+const complianceState = (c?: ComplianceCheck): "ok" | "pending" | "fail" | "none" => {
+  if (!c) return "none";
+  const vals = [c.nlis_status, c.nvd_status, c.pic_status].map(v => (v || "").toLowerCase());
+  if (vals.some(v => v === "fail" || v === "failed" || v === "rejected")) return "fail";
+  if (vals.every(v => v === "ok" || v === "pass" || v === "verified" || v === "approved")) return "ok";
+  return "pending";
 };
 
 type Supplier = { id: string; name: string };
@@ -171,6 +187,8 @@ export default function KillPlan() {
   });
   const [saving, setSaving] = useState(false);
 
+  const [compliance, setCompliance] = useState<Record<string, ComplianceCheck>>({});
+
   const weekEnd = useMemo(() => endOfWeek(weekStart, { weekStartsOn: 1 }), [weekStart]);
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
@@ -188,7 +206,7 @@ export default function KillPlan() {
         supabase
           .from("bookings")
           .select(
-            "id, species, head_count, requested_kill_date, status, supplier_id, plant_id, fill_rate, lot_id, agent_ref, slot_time, arrival_slot, transport_status, hgp_status, kill_order_seq, msa_enrolled, pericardium_ok, mulesing_status, species_class"
+            "id, species, head_count, requested_kill_date, status, supplier_id, plant_id, fill_rate, lot_id, agent_ref, slot_time, arrival_slot, transport_status, hgp_status, kill_order_seq, msa_enrolled, pericardium_ok, mulesing_status, species_class, exit_followup_status"
           )
           .gte("requested_kill_date", startStr)
           .lte("requested_kill_date", endStr),
@@ -199,7 +217,7 @@ export default function KillPlan() {
           .lte("date", endStr),
       ]);
 
-      const bookingList = (bks as Booking[]) || [];
+      const bookingList = (bks as unknown as Booking[]) || [];
       setBookings(bookingList);
       setDayPlans((dps as DayPlan[]) || []);
 
@@ -217,6 +235,23 @@ export default function KillPlan() {
       } else {
         setSuppliers({});
       }
+
+      // Compliance status per booking
+      const bookingIds = bookingList.map(b => b.id);
+      if (bookingIds.length) {
+        const { data: cc } = await supabase
+          .from("compliance_checks")
+          .select("booking_id, nlis_status, nvd_status, pic_status")
+          .in("booking_id", bookingIds);
+        const cMap: Record<string, ComplianceCheck> = {};
+        (cc as ComplianceCheck[] | null)?.forEach(r => {
+          if (r.booking_id) cMap[r.booking_id] = r;
+        });
+        setCompliance(cMap);
+      } else {
+        setCompliance({});
+      }
+
       setLoading(false);
     };
     load();
@@ -408,6 +443,21 @@ export default function KillPlan() {
     const booked  = bookingsForDay(d).reduce((sum, b) => sum + (b.head_count || 0), 0);
     return planned > 0 && booked > planned;
   }).length;
+  const shortfallDays = days.filter((d) => {
+    const planned = plannedForDay(d);
+    const booked  = bookingsForDay(d).reduce((sum, b) => sum + (b.head_count || 0), 0);
+    // Weekday with capacity but booked < 80% = shortfall risk
+    const dow = d.getDay();
+    const isWeekday = dow >= 1 && dow <= 5;
+    return isWeekday && planned > 0 && booked < planned * 0.8;
+  }).length;
+  const complianceFailCount = filteredBookings.filter(
+    (b) => complianceState(compliance[b.id]) === "fail"
+  ).length;
+  const exitFollowupCount = filteredBookings.filter(
+    (b) => (b.exit_followup_status || "").toLowerCase() === "pending"
+      || (b.exit_followup_status || "").toLowerCase() === "overdue"
+  ).length;
 
   // ── Confidence legend data ─────────────────────────────────────────────────
   const legendItems = [
@@ -425,9 +475,9 @@ export default function KillPlan() {
         {/* ── Header ── */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Kill Plan</h1>
+            <h1 className="text-3xl font-bold text-foreground">Weekly Kill Board</h1>
             <p className="text-muted-foreground">
-              Weekly scheduling view — capacity, confidence &amp; overschedule alerts
+              Primary scheduling view — capacity, confidence, compliance &amp; follow-up alerts
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -529,20 +579,30 @@ export default function KillPlan() {
               </div>
             </CardContent>
           </Card>
-          <Card className={overCapacityDays > 0 ? "border-destructive/50 bg-destructive/5" : ""}>
+          <Card className={overCapacityDays > 0 ? "border-destructive/50 bg-destructive/5" : shortfallDays > 0 ? "border-amber-400/50 bg-amber-50/40 dark:bg-amber-950/10" : ""}>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-muted-foreground font-medium flex items-center gap-1">
-                {overCapacityDays > 0 && <AlertTriangle className="h-3.5 w-3.5 text-destructive" />}
-                Over capacity
+                {(overCapacityDays > 0 || shortfallDays > 0) && (
+                  <AlertTriangle className={`h-3.5 w-3.5 ${overCapacityDays > 0 ? "text-destructive" : "text-amber-600"}`} />
+                )}
+                Capacity alerts
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${overCapacityDays > 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                {overCapacityDays} {overCapacityDays === 1 ? "day" : "days"}
+              <div className="space-y-0.5">
+                <div className={`text-sm font-semibold ${overCapacityDays > 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                  {overCapacityDays} over-capacity
+                </div>
+                <div className={`text-sm font-semibold ${shortfallDays > 0 ? "text-amber-700" : "text-muted-foreground"}`}>
+                  {shortfallDays} shortfall
+                </div>
+                <div className="text-xs text-muted-foreground pt-0.5">
+                  {placeholderCount > 0 && <>{placeholderCount} placeholder{placeholderCount !== 1 ? "s" : ""} · </>}
+                  {complianceFailCount > 0 && <span className="text-destructive font-medium">{complianceFailCount} compliance · </span>}
+                  {exitFollowupCount > 0 && <span className="text-amber-700 font-medium">{exitFollowupCount} exit f/u</span>}
+                  {placeholderCount === 0 && complianceFailCount === 0 && exitFollowupCount === 0 && "All clear"}
+                </div>
               </div>
-              {placeholderCount > 0 && (
-                <p className="text-xs text-muted-foreground mt-1">{placeholderCount} placeholder{placeholderCount !== 1 ? "s" : ""} to confirm</p>
-              )}
             </CardContent>
           </Card>
         </div>
@@ -557,13 +617,16 @@ export default function KillPlan() {
             const pct     = hasPlan ? (booked / planned) * 100 : 0;
             const barWidth = hasPlan ? Math.min(pct, 100) : 0;
             const isOver  = hasPlan && booked > planned;
+            const dow = day.getDay();
+            const isWeekday = dow >= 1 && dow <= 5;
+            const isShortfall = isWeekday && hasPlan && !isOver && booked < planned * 0.8;
             const hgpError = hasHGPSequenceError(dayBookings);
             const isToday = isSameDay(day, new Date());
 
             return (
               <Card
                 key={day.toISOString()}
-                className={`flex flex-col ${isOver ? "ring-2 ring-destructive/70 border-destructive/50" : hgpError ? "ring-2 ring-orange-400/70 border-orange-300" : isToday ? "ring-2 ring-primary/60 border-primary/40" : ""}`}
+                className={`flex flex-col ${isOver ? "ring-2 ring-destructive/70 border-destructive/50" : isShortfall ? "ring-2 ring-amber-400/70 border-amber-300" : hgpError ? "ring-2 ring-orange-400/70 border-orange-300" : isToday ? "ring-2 ring-primary/60 border-primary/40" : ""}`}
               >
                 <CardHeader className="pb-3">
                   {/* Day header */}
@@ -580,7 +643,13 @@ export default function KillPlan() {
                         OVER
                       </span>
                     )}
-                    {hgpError && !isOver && (
+                    {isShortfall && (
+                      <span className="flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-100 rounded px-1.5 py-0.5">
+                        <AlertTriangle className="h-3 w-3" />
+                        SHORT
+                      </span>
+                    )}
+                    {hgpError && !isOver && !isShortfall && (
                       <span className="flex items-center gap-1 text-xs font-semibold text-orange-700 bg-orange-100 rounded px-1.5 py-0.5">
                         <AlertTriangle className="h-3 w-3" />
                         HGP
@@ -610,6 +679,11 @@ export default function KillPlan() {
                         +{(booked - planned).toLocaleString()} over capacity
                       </div>
                     )}
+                    {isShortfall && (
+                      <div className="mt-1 text-xs text-amber-700 font-medium">
+                        {(planned - booked).toLocaleString()} head shortfall
+                      </div>
+                    )}
                   </div>
                 </CardHeader>
 
@@ -636,9 +710,38 @@ export default function KillPlan() {
                           </span>
                           <span className="capitalize">{b.species || "—"}</span>
                         </div>
-                        {/* Confidence + HGP badges */}
+                        {/* Confidence + HGP + compliance + exit follow-up badges */}
                         <div className="mt-1.5 flex flex-wrap gap-1">
                           <ConfidenceBadge status={b.status} />
+                          {(() => {
+                            const cs = complianceState(compliance[b.id]);
+                            if (cs === "fail") return (
+                              <span className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs font-semibold bg-red-50 text-red-700 border-red-200" title="Compliance failed">
+                                ⚠ Compliance
+                              </span>
+                            );
+                            if (cs === "pending") return (
+                              <span className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs font-semibold bg-yellow-50 text-yellow-800 border-yellow-200" title="Compliance pending">
+                                Compl. pending
+                              </span>
+                            );
+                            if (cs === "ok") return (
+                              <span className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border-emerald-200" title="Compliance verified">
+                                ✓ Compl.
+                              </span>
+                            );
+                            return null;
+                          })()}
+                          {(b.exit_followup_status || "").toLowerCase() === "overdue" && (
+                            <span className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs font-semibold bg-red-50 text-red-700 border-red-200" title="Exit follow-up overdue">
+                              Exit f/u overdue
+                            </span>
+                          )}
+                          {(b.exit_followup_status || "").toLowerCase() === "pending" && (
+                            <span className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs font-semibold bg-amber-50 text-amber-700 border-amber-200" title="Exit follow-up pending">
+                              Exit f/u
+                            </span>
+                          )}
                           {b.hgp_status === "hgp_free" && (
                             <span className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border-emerald-200">
                               HGP-Free
