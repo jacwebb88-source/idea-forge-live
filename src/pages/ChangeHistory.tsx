@@ -111,9 +111,9 @@ export default function ChangeHistory() {
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Change History</h1>
+            <h1 className="text-3xl font-bold text-foreground">Change History &amp; Accountability</h1>
             <p className="text-muted-foreground">
-              Full audit trail — who changed what, when, and why
+              Operational audit trail — every booking change, who made it, when, and the reason given. Use to settle disputes, brief shift changeovers and follow up missed comms.
             </p>
           </div>
           <div className="flex gap-2 items-center">
