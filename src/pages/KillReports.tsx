@@ -24,12 +24,17 @@ type KillBooking = {
   id: string;
   supplier_id: string | null;
   species: string | null;
+  species_class: string | null;
   head_count: number | null;
   slot_time: string | null;
+  arrival_slot: string | null;
   status: string | null;
   lot_id: string | null;
   agent_ref: string | null;
   transport_status: string | null;
+  hgp_status: string | null;
+  msa_enrolled: boolean | null;
+  kill_order_seq: number | null;
   requested_kill_date: string | null;
 };
 
@@ -78,10 +83,11 @@ export default function KillReports() {
       const { data: bks } = await supabase
         .from("bookings")
         .select(
-          "id, supplier_id, species, head_count, slot_time, status, lot_id, agent_ref, transport_status, requested_kill_date"
+          "id, supplier_id, species, species_class, head_count, slot_time, arrival_slot, status, lot_id, agent_ref, transport_status, hgp_status, msa_enrolled, kill_order_seq, requested_kill_date"
         )
         .eq("requested_kill_date", selectedDate)
-        .neq("status", "cancelled");
+        .neq("status", "cancelled")
+        .order("kill_order_seq", { ascending: true });
 
       const bookingList = (bks as KillBooking[]) || [];
       setBookings(bookingList);
@@ -138,6 +144,58 @@ export default function KillReports() {
     return acc;
   }, {});
 
+  // ── Download kill sheet CSV ───────────────────────────────────────────────
+  const handleDownloadKillSheet = () => {
+    if (bookings.length === 0) return;
+
+    // Sort: HGP-free first (within same kill_order_seq), then by kill_order_seq, then arrival_slot
+    const sorted = [...bookings].sort((a, b) => {
+      const seqA = a.kill_order_seq ?? 999;
+      const seqB = b.kill_order_seq ?? 999;
+      if (seqA !== seqB) return seqA - seqB;
+      // HGP-free before HGP-treated
+      const hgpOrder = (h: string | null) => (h === "hgp_free" ? 0 : h === "hgp_treated" ? 2 : 1);
+      if (hgpOrder(a.hgp_status) !== hgpOrder(b.hgp_status)) return hgpOrder(a.hgp_status) - hgpOrder(b.hgp_status);
+      return (a.arrival_slot || "").localeCompare(b.arrival_slot || "");
+    });
+
+    const headers = [
+      "Kill Order", "Supplier", "Species", "Class", "Head",
+      "Arrival Slot", "HGP Status", "MSA", "Transport Status",
+      "Lot ID", "Agent Ref", "Status", "Booking Ref"
+    ];
+
+    const rows = sorted.map((b, idx) => [
+      b.kill_order_seq ?? idx + 1,
+      suppliers[b.supplier_id || ""] || "Unknown",
+      b.species || "",
+      b.species_class || "",
+      b.head_count ?? "",
+      b.arrival_slot || b.slot_time || "",
+      b.hgp_status === "hgp_free" ? "HGP Free" : b.hgp_status === "hgp_treated" ? "HGP Treated" : "Unknown",
+      b.msa_enrolled ? "Yes" : "No",
+      b.transport_status || "",
+      b.lot_id || "",
+      b.agent_ref || "",
+      b.status || "",
+      b.id.slice(-8).toUpperCase(),
+    ]);
+
+    const csv = [headers, ...rows]
+      .map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `kill-sheet-${selectedDate}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   // ── Toggle recipient selection ─────────────────────────────────────────────
   const toggleRecipient = (id: string) => {
     setSelectedRecipients((prev) => {
@@ -192,9 +250,13 @@ export default function KillReports() {
                 className="border rounded-md px-3 py-1.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
-            <Button variant="outline">
+            <Button
+              variant="outline"
+              onClick={handleDownloadKillSheet}
+              disabled={bookings.length === 0}
+            >
               <Download className="h-4 w-4 mr-2" />
-              Export PDF
+              Kill Sheet CSV
             </Button>
           </div>
         </div>
@@ -305,26 +367,45 @@ export default function KillReports() {
                       <CardContent className="pt-0">
                         <div className="border-t pt-3 space-y-2">
                           {group.bookings.map((b) => (
-                            <div key={b.id} className="flex items-center justify-between text-sm py-1.5 border-b border-border last:border-0">
-                              <div>
-                                <span className="font-mono text-xs text-muted-foreground mr-2">
-                                  {b.id.slice(-8).toUpperCase()}
-                                </span>
-                                <span className="capitalize">{b.species || "—"}</span>
-                                {b.lot_id && <span className="text-muted-foreground ml-2">· Lot {b.lot_id}</span>}
-                              </div>
-                              <div className="flex items-center gap-3">
-                                {b.slot_time && (
-                                  <span className="text-xs text-muted-foreground">{b.slot_time}</span>
-                                )}
-                                <span className="font-semibold">{(b.head_count || 0).toLocaleString()} hd</span>
-                                <span className={`text-xs capitalize rounded px-1.5 py-0.5 border ${
-                                  (b.transport_status || "").toLowerCase() === "confirmed"
-                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                                    : "bg-gray-50 border-gray-200 text-gray-500"
-                                }`}>
-                                  {b.transport_status || "transport ?"}
-                                </span>
+                            <div key={b.id} className="py-2 border-b border-border last:border-0">
+                              <div className="flex items-center justify-between text-sm gap-3 flex-wrap">
+                                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                  {b.kill_order_seq != null && (
+                                    <span className="text-xs font-bold text-muted-foreground bg-muted rounded px-1.5 py-0.5">
+                                      #{b.kill_order_seq}
+                                    </span>
+                                  )}
+                                  <span className="font-mono text-xs text-muted-foreground">
+                                    {b.id.slice(-8).toUpperCase()}
+                                  </span>
+                                  <span className="capitalize font-medium">{b.species || "—"}</span>
+                                  {b.species_class && <span className="text-xs text-muted-foreground capitalize">{b.species_class}</span>}
+                                  {b.lot_id && <span className="text-muted-foreground text-xs">· Lot {b.lot_id}</span>}
+                                </div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {(b.arrival_slot || b.slot_time) && (
+                                    <span className="text-xs text-muted-foreground border rounded px-1.5 py-0.5">
+                                      {b.arrival_slot || b.slot_time}
+                                    </span>
+                                  )}
+                                  {b.hgp_status === "hgp_free" && (
+                                    <span className="text-xs font-semibold bg-emerald-50 border border-emerald-200 text-emerald-700 rounded px-1.5 py-0.5">HGP Free</span>
+                                  )}
+                                  {b.hgp_status === "hgp_treated" && (
+                                    <span className="text-xs font-semibold bg-orange-50 border border-orange-200 text-orange-700 rounded px-1.5 py-0.5">HGP ⚠</span>
+                                  )}
+                                  {b.msa_enrolled && (
+                                    <span className="text-xs bg-blue-50 border border-blue-200 text-blue-700 rounded px-1.5 py-0.5">MSA</span>
+                                  )}
+                                  <span className="font-semibold text-sm">{(b.head_count || 0).toLocaleString()} hd</span>
+                                  <span className={`text-xs capitalize rounded px-1.5 py-0.5 border ${
+                                    (b.transport_status || "").toLowerCase() === "confirmed"
+                                      ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                                      : "bg-gray-50 border-gray-200 text-gray-500"
+                                  }`}>
+                                    {b.transport_status || "transport ?"}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           ))}
