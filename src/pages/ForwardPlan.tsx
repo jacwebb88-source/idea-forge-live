@@ -13,8 +13,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  Cell,
-  ReferenceLine,
+  Customized,
 } from "recharts";
 import { TrendingUp, Calendar, AlertTriangle, CheckCircle } from "lucide-react";
 
@@ -58,6 +57,43 @@ const statusToBucket = (status: string | null): keyof Omit<WeekBucket, "weekLabe
     case "requested":   return "low";
     default:            return "placeholder";
   }
+};
+
+// Overlay that draws a dashed red capacity line for each week bar
+// Uses Recharts' Customized component so it gets the actual pixel scales
+const CapacityOverlay = ({ xAxisMap, yAxisMap, data }: any) => {
+  const xAxis = xAxisMap?.[0];
+  const yAxis = yAxisMap?.[0];
+  if (!xAxis?.scale || !yAxis?.scale || !data) return null;
+
+  return (
+    <g>
+      {(data as WeekBucket[]).map((entry, i) => {
+        if (!entry.capacity || entry.capacity === 0) return null;
+        const bandSize = xAxis.bandSize ?? 0;
+        const x = xAxis.scale(entry.weekLabel) ?? 0;
+        const y = yAxis.scale(entry.capacity);
+        const pad = 6;
+        return (
+          <g key={i}>
+            <line
+              x1={x + pad}
+              x2={x + bandSize - pad}
+              y1={y}
+              y2={y}
+              stroke="#ef4444"
+              strokeWidth={2}
+              strokeDasharray="6 3"
+              strokeLinecap="round"
+            />
+            {/* end ticks */}
+            <line x1={x + pad} x2={x + pad} y1={y - 4} y2={y + 4} stroke="#ef4444" strokeWidth={1.5} />
+            <line x1={x + bandSize - pad} x2={x + bandSize - pad} y1={y - 4} y2={y + 4} stroke="#ef4444" strokeWidth={1.5} />
+          </g>
+        );
+      })}
+    </g>
+  );
 };
 
 // Custom tooltip for the stacked bar chart
@@ -301,6 +337,13 @@ export default function ForwardPlan() {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {/* Capacity legend note */}
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
+              <svg width="24" height="10" className="shrink-0">
+                <line x1="0" y1="5" x2="24" y2="5" stroke="#ef4444" strokeWidth="2" strokeDasharray="5 3" />
+              </svg>
+              <span>Dashed red line = planned capacity limit for that week</span>
+            </div>
             {loading ? (
               <div className="h-64 flex items-center justify-center text-muted-foreground text-sm animate-pulse">
                 Loading volume data…
@@ -328,12 +371,13 @@ export default function ForwardPlan() {
                     wrapperStyle={{ fontSize: 12, paddingTop: 12 }}
                     formatter={(val) => val.charAt(0).toUpperCase() + val.slice(1)}
                   />
-                  {/* Capacity reference lines per week — using a hack via invisible bar */}
                   <Bar dataKey="confirmed"   stackId="a" fill="#3b82f6" name="confirmed"   radius={[0,0,0,0]} />
                   <Bar dataKey="high"        stackId="a" fill="#10b981" name="high"        />
                   <Bar dataKey="medium"      stackId="a" fill="#f59e0b" name="medium"      />
                   <Bar dataKey="low"         stackId="a" fill="#facc15" name="low"         />
                   <Bar dataKey="placeholder" stackId="a" fill="#d1d5db" name="placeholder" radius={[4,4,0,0]} />
+                  {/* Dashed red capacity line drawn per-bar using pixel-accurate scales */}
+                  <Customized component={CapacityOverlay} />
                 </BarChart>
               </ResponsiveContainer>
             )}
