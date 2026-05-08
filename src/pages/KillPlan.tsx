@@ -555,7 +555,7 @@ export default function KillPlan() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground font-medium">Total head booked</CardTitle>
+              <CardTitle className="text-sm text-muted-foreground font-medium">Head booked this week</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{totalBooked.toLocaleString()}</div>
@@ -563,7 +563,7 @@ export default function KillPlan() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground font-medium">Total capacity</CardTitle>
+              <CardTitle className="text-sm text-muted-foreground font-medium">Planned kill capacity</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{totalPlanned.toLocaleString()}</div>
