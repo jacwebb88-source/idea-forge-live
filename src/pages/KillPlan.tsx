@@ -585,7 +585,7 @@ export default function KillPlan() {
                 {(overCapacityDays > 0 || shortfallDays > 0) && (
                   <AlertTriangle className={`h-3.5 w-3.5 ${overCapacityDays > 0 ? "text-destructive" : "text-amber-600"}`} />
                 )}
-                Capacity alerts
+                Overschedule &amp; shortfall
               </CardTitle>
             </CardHeader>
             <CardContent>
