@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO, subDays } from "date-fns";
-import { History, Search, ArrowRight, User, Calendar, Filter } from "lucide-react";
+import { History, Search, ArrowRight, User, Calendar, Filter, Download } from "lucide-react";
 
 type ChangeRecord = {
   id: string;
@@ -131,16 +131,49 @@ export default function ChangeHistory() {
               Full audit trail — who changed what, when, and why
             </p>
           </div>
-          <Select value={dateRange} onValueChange={setDateRange}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-popover z-50">
-              <SelectItem value="7">Last 7 days</SelectItem>
-              <SelectItem value="30">Last 30 days</SelectItem>
-              <SelectItem value="90">Last 90 days</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2 items-center">
+            <Select value={dateRange} onValueChange={setDateRange}>
+              <SelectTrigger className="w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-popover z-50">
+                <SelectItem value="7">Last 7 days</SelectItem>
+                <SelectItem value="30">Last 30 days</SelectItem>
+                <SelectItem value="90">Last 90 days</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={filtered.length === 0}
+              onClick={() => {
+                const headers = ["Date/Time", "Booking ID", "Field", "Old Value", "New Value", "Changed By", "Role", "Note"];
+                const rows = filtered.map(c => [
+                  c.changed_at ? format(parseISO(c.changed_at), "yyyy-MM-dd HH:mm") : "",
+                  c.booking_id,
+                  fieldLabel(c.field_name),
+                  c.old_value ?? "",
+                  c.new_value ?? "",
+                  c.changed_by ?? "",
+                  c.changed_by_role ?? "",
+                  c.change_note ?? "",
+                ]);
+                const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+                const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `muster-change-history-${new Date().toISOString().slice(0, 10)}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+              }}
+            >
+              <Download className="h-4 w-4 mr-1.5" />
+              Export CSV
+            </Button>
+          </div>
         </div>
 
         {/* Summary strip */}
@@ -286,11 +319,10 @@ export default function ChangeHistory() {
           </CardContent>
         </Card>
 
-        {/* Note about auto-logging */}
         <Card className="border-dashed border-muted-foreground/30">
           <CardContent className="pt-4 pb-3">
             <p className="text-xs text-muted-foreground text-center">
-              <span className="font-medium">Auto-logging ready.</span> Once booking edit is wired up, every change will be recorded here automatically — who changed it, what it was before, what it became, and any reason given. No hard deletes, ever.
+              <span className="font-medium">Immutable audit trail.</span> Every booking change from Kill Plan and Booking Board is recorded here automatically — who changed it, what it was before, what it became, and any reason given. No hard deletes, ever.
             </p>
           </CardContent>
         </Card>

@@ -795,15 +795,6 @@ export default function KPIDashboard() {
           </CardContent>
         </Card>
 
-        {/* Demo Data Notice */}
-        <Card className="border-dashed border-muted-foreground/30">
-          <CardContent className="pt-6">
-            <div className="text-center text-sm text-muted-foreground">
-              <p className="font-medium">📊 Demo Data</p>
-              <p>This is sample KPI data for demonstration purposes. Fill Rate now reads from day_plans table with actual calculations.</p>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </DashboardLayout>
   );

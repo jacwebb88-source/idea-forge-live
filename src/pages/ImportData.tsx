@@ -544,13 +544,11 @@ export default function ImportData() {
           </Card>
         )}
 
-        {/* Demo Data Notice */}
         <Card className="border-dashed border-muted-foreground/30">
-          <CardContent className="pt-6">
-            <div className="text-center text-sm text-muted-foreground">
-              <p className="font-medium">📤 CSV Import & Validation</p>
-              <p>This demonstrates data validation with preview functionality and error blocking. Upload a CSV to see validation in action with downloadable error reports.</p>
-            </div>
+          <CardContent className="pt-4 pb-3">
+            <p className="text-xs text-muted-foreground text-center">
+              <span className="font-medium">CSV import.</span> Upload a booking CSV to map columns, validate rows, and import into the booking system. Required fields: date, species, head_count, window_start, window_end.
+            </p>
           </CardContent>
         </Card>
       </div>
