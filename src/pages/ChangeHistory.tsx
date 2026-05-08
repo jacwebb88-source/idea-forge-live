@@ -6,7 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO, subDays } from "date-fns";
-import { History, Search, ArrowRight, User, Calendar, Filter, Download } from "lucide-react";
+import { History, Search, ArrowRight, User, Calendar, Filter, Download, MessageSquareText } from "lucide-react";
+import {
+  fieldLabel,
+  describeChange,
+  changeSeverity,
+  severityChip,
+  severityLabel,
+  severityDot,
+} from "@/lib/changeFormat";
 
 type ChangeRecord = {
   id: string;
@@ -26,32 +34,9 @@ type ChangeRecord = {
   supplier_id?: string | null;
 };
 
-// Friendly field name labels
-const fieldLabel = (field: string): string => {
-  const map: Record<string, string> = {
-    status:               "Booking status",
-    head_count:           "Head count",
-    requested_kill_date:  "Kill date",
-    slot_time:            "Slot time",
-    arrival_slot:         "Arrival slot",
-    supplier_id:          "Supplier",
-    plant_id:             "Plant",
-    transport_status:     "Transport status",
-    hgp_status:           "HGP status",
-    kill_order_seq:       "Kill order",
-    msa_enrolled:         "MSA enrolment",
-    pericardium_ok:       "Pericardium",
-    species_class:        "Species class",
-    agent_ref:            "Agent ref",
-    lot_id:               "Lot ID",
-    fill_rate:            "Fill rate",
-  };
-  return map[field] || field.replace(/_/g, " ");
-};
-
-// Which changes are "high importance" (scheduling-critical)
+// Schedule-critical fields (used for the summary stat)
 const isHighImportance = (field: string): boolean =>
-  ["status", "head_count", "requested_kill_date", "hgp_status", "kill_order_seq"].includes(field);
+  ["status", "head_count", "requested_kill_date", "hgp_status", "kill_order_seq", "nvd_status", "nlis_status", "pic_status"].includes(field);
 
 export default function ChangeHistory() {
   const [changes, setChanges] = useState<ChangeRecord[]>([]);
@@ -126,9 +111,9 @@ export default function ChangeHistory() {
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Change History</h1>
+            <h1 className="text-3xl font-bold text-foreground">Change History &amp; Accountability</h1>
             <p className="text-muted-foreground">
-              Full audit trail — who changed what, when, and why
+              Operational audit trail — every booking change, who made it, when, and the reason given. Use to settle disputes, brief shift changeovers and follow up missed comms.
             </p>
           </div>
           <div className="flex gap-2 items-center">
@@ -249,29 +234,28 @@ export default function ChangeHistory() {
             ) : (
               <div className="space-y-2">
                 {filtered.map((c) => {
-                  const isHigh = isHighImportance(c.field_name);
+                  const sev = changeSeverity(c);
+                  const sentence = describeChange(c);
                   return (
                     <div
                       key={c.id}
-                      className={`rounded-md border px-4 py-3 text-sm ${isHigh ? "border-amber-200 bg-amber-50/40 dark:bg-amber-950/10" : "border-border bg-muted/20"}`}
+                      className={`rounded-md border-l-4 border border-border bg-muted/20 px-4 py-3 text-sm ${
+                        sev === "critical" ? "border-l-red-500 bg-red-50/40 dark:bg-red-950/10" :
+                        sev === "warning"  ? "border-l-amber-500 bg-amber-50/40 dark:bg-amber-950/10" :
+                        sev === "positive" ? "border-l-emerald-500" :
+                        "border-l-blue-400"
+                      }`}
                     >
                       <div className="flex items-start justify-between gap-4 flex-wrap">
                         <div className="flex-1 min-w-0">
-                          {/* Field change */}
+                          {/* Operational sentence + severity */}
                           <div className="flex items-center gap-2 flex-wrap">
-                            {isHigh && (
-                              <span className="text-xs font-bold text-amber-700 bg-amber-100 border border-amber-200 rounded px-1.5 py-0.5 shrink-0">
-                                Critical
-                              </span>
-                            )}
-                            <span className="font-semibold text-foreground">
-                              {fieldLabel(c.field_name)}
+                            <span
+                              className={`text-[10px] font-bold uppercase tracking-wide rounded px-1.5 py-0.5 border shrink-0 ${severityChip[sev]}`}
+                            >
+                              {severityLabel[sev]}
                             </span>
-                            <span className="flex items-center gap-1 text-muted-foreground">
-                              <span className="line-through">{c.old_value || "—"}</span>
-                              <ArrowRight className="h-3 w-3 shrink-0" />
-                              <span className="font-medium text-foreground">{c.new_value || "—"}</span>
-                            </span>
+                            <span className="font-semibold text-foreground">{sentence}</span>
                           </div>
 
                           {/* Booking context */}
@@ -281,14 +265,17 @@ export default function ChangeHistory() {
                               <> · Kill {format(parseISO(c.requested_kill_date), "d MMM yyyy")}</>
                             )}
                             {c.species && <> · <span className="capitalize">{c.species}</span></>}
-                            {c.head_count && <> · {c.head_count.toLocaleString()} head</>}
+                            {c.head_count != null && <> · {c.head_count.toLocaleString()} head</>}
                           </p>
 
-                          {/* Change note */}
-                          {c.change_note && (
-                            <p className="text-xs text-muted-foreground italic mt-1">
+                          {/* Reason / comment */}
+                          {c.change_note ? (
+                            <p className="text-xs text-foreground/80 italic mt-1.5 flex items-start gap-1 bg-background/60 rounded px-2 py-1 border border-border/60">
+                              <MessageSquareText className="h-3 w-3 mt-0.5 shrink-0 text-muted-foreground" />
                               "{c.change_note}"
                             </p>
+                          ) : (
+                            <p className="text-[11px] text-muted-foreground/70 italic mt-1">No reason recorded</p>
                           )}
                         </div>
 
@@ -296,10 +283,10 @@ export default function ChangeHistory() {
                         <div className="text-right shrink-0 text-xs text-muted-foreground">
                           <div className="flex items-center gap-1 justify-end">
                             <User className="h-3 w-3" />
-                            <span>{c.changed_by || "System"}</span>
+                            <span className="font-medium text-foreground">{c.changed_by || "System"}</span>
                           </div>
                           {c.changed_by_role && (
-                            <div className="text-xs mt-0.5">{c.changed_by_role}</div>
+                            <div className="text-xs mt-0.5 capitalize">{c.changed_by_role}</div>
                           )}
                           <div className="flex items-center gap-1 justify-end mt-1">
                             <Calendar className="h-3 w-3" />

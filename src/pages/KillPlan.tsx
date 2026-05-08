@@ -15,6 +15,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, AlertTriangle, Info, History, Edit2, Save, X } from "lucide-react";
+import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -775,6 +776,9 @@ export default function KillPlan() {
           })}
         </div>
       </div>
+
+      {/* ── Recent Changes feed alongside scheduling workflow ── */}
+      <RecentActivity limit={8} title="Recent Changes — this kill board" />
 
       {/* ── Booking detail / edit dialog ── */}
       <Dialog
