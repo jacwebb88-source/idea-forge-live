@@ -6,7 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO, subDays } from "date-fns";
-import { History, Search, ArrowRight, User, Calendar, Filter, Download } from "lucide-react";
+import { History, Search, ArrowRight, User, Calendar, Filter, Download, MessageSquareText } from "lucide-react";
+import {
+  fieldLabel,
+  describeChange,
+  changeSeverity,
+  severityChip,
+  severityLabel,
+  severityDot,
+} from "@/lib/changeFormat";
 
 type ChangeRecord = {
   id: string;
@@ -26,32 +34,9 @@ type ChangeRecord = {
   supplier_id?: string | null;
 };
 
-// Friendly field name labels
-const fieldLabel = (field: string): string => {
-  const map: Record<string, string> = {
-    status:               "Booking status",
-    head_count:           "Head count",
-    requested_kill_date:  "Kill date",
-    slot_time:            "Slot time",
-    arrival_slot:         "Arrival slot",
-    supplier_id:          "Supplier",
-    plant_id:             "Plant",
-    transport_status:     "Transport status",
-    hgp_status:           "HGP status",
-    kill_order_seq:       "Kill order",
-    msa_enrolled:         "MSA enrolment",
-    pericardium_ok:       "Pericardium",
-    species_class:        "Species class",
-    agent_ref:            "Agent ref",
-    lot_id:               "Lot ID",
-    fill_rate:            "Fill rate",
-  };
-  return map[field] || field.replace(/_/g, " ");
-};
-
-// Which changes are "high importance" (scheduling-critical)
+// Schedule-critical fields (used for the summary stat)
 const isHighImportance = (field: string): boolean =>
-  ["status", "head_count", "requested_kill_date", "hgp_status", "kill_order_seq"].includes(field);
+  ["status", "head_count", "requested_kill_date", "hgp_status", "kill_order_seq", "nvd_status", "nlis_status", "pic_status"].includes(field);
 
 export default function ChangeHistory() {
   const [changes, setChanges] = useState<ChangeRecord[]>([]);
