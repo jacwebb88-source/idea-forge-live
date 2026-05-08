@@ -187,7 +187,7 @@ export default function ChangeHistory() {
             <CardContent><div className="text-2xl font-bold">{loading ? "—" : todayChanges}</div></CardContent>
           </Card>
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground font-medium">By users</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground font-medium">Operators</CardTitle></CardHeader>
             <CardContent><div className="text-2xl font-bold">{loading ? "—" : uniqueUsers || "—"}</div></CardContent>
           </Card>
           <Card className={highPriority > 0 ? "border-amber-200" : ""}>
