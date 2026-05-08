@@ -676,7 +676,7 @@ export default function KillPlan() {
                     {/* Overflow indicator */}
                     {isOver && hasPlan && (
                       <div className="mt-1 text-xs text-destructive font-medium">
-                        +{(booked - planned).toLocaleString()} over capacity
+                        +{(booked - planned).toLocaleString()} overscheduled
                       </div>
                     )}
                     {isShortfall && (
