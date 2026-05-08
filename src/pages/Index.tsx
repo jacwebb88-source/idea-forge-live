@@ -571,7 +571,7 @@ const Index = () => {
           <CardContent className="pt-4 pb-3">
             <p className="text-xs text-muted-foreground text-center">
               <span className="font-medium">Live data.</span> Booking counts, head counts, and transport are pulled in real time from Supabase.
-              Fill rate and slot adherence come from KPI records — add entries via the KPI Dashboard.
+              Fill rate and slot adherence come from KPI records — add entries via Operational KPIs.
             </p>
           </CardContent>
         </Card>
