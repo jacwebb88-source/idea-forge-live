@@ -3,6 +3,9 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
@@ -11,8 +14,9 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, AlertTriangle, Info, History } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, AlertTriangle, Info, History, Edit2, Save, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import {
   startOfWeek,
   endOfWeek,
@@ -122,7 +126,32 @@ const capacityBarColor = (pct: number, hasPlan: boolean): string => {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+// ── Arrival slot options (30-min windows 06:00–22:00) ─────────────────────────
+const ARRIVAL_SLOTS = Array.from({ length: 33 }, (_, i) => {
+  const h = Math.floor(i / 2) + 6;
+  const m = i % 2 === 0 ? "00" : "30";
+  const hNext = m === "30" ? h + 1 : h;
+  const mNext = m === "30" ? "00" : "30";
+  return `${String(h).padStart(2,"0")}:${m}–${String(hNext).padStart(2,"0")}:${mNext}`;
+}).filter(s => {
+  const [start] = s.split("–");
+  const [h] = start.split(":").map(Number);
+  return h < 22;
+});
+
+// Fields that can be edited inline in the Kill Plan dialog
+type EditableFields = {
+  status: string;
+  head_count: string;
+  arrival_slot: string;
+  kill_order_seq: string;
+  transport_status: string;
+  hgp_status: string;
+  change_note: string;
+};
+
 export default function KillPlan() {
+  const { toast } = useToast();
   const [weekStart, setWeekStart] = useState<Date>(
     startOfWeek(new Date(), { weekStartsOn: 1 })
   );
@@ -135,6 +164,12 @@ export default function KillPlan() {
   const [bookingChanges, setBookingChanges] = useState<any[]>([]);
   const [loadingChanges, setLoadingChanges] = useState(false);
   const [showLegend, setShowLegend] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editFields, setEditFields] = useState<EditableFields>({
+    status: "", head_count: "", arrival_slot: "",
+    kill_order_seq: "", transport_status: "", hgp_status: "", change_note: "",
+  });
+  const [saving, setSaving] = useState(false);
 
   const weekEnd = useMemo(() => endOfWeek(weekStart, { weekStartsOn: 1 }), [weekStart]);
   const days = useMemo(
@@ -203,6 +238,126 @@ export default function KillPlan() {
     };
     fetchChanges();
   }, [selectedBooking]);
+
+  // ── Open edit mode with current booking values ────────────────────────────
+  const openEditMode = () => {
+    if (!selectedBooking) return;
+    setEditFields({
+      status:          selectedBooking.status          || "",
+      head_count:      String(selectedBooking.head_count ?? ""),
+      arrival_slot:    selectedBooking.arrival_slot    || selectedBooking.slot_time || "",
+      kill_order_seq:  String(selectedBooking.kill_order_seq ?? ""),
+      transport_status: selectedBooking.transport_status || "",
+      hgp_status:      selectedBooking.hgp_status      || "",
+      change_note:     "",
+    });
+    setEditMode(true);
+  };
+
+  // ── Save edits: diff fields → write booking_changes + update booking ──────
+  const saveEdit = async () => {
+    if (!selectedBooking) return;
+    setSaving(true);
+
+    // Fields to diff (old value source → new value)
+    const diffable: Array<{ key: keyof EditableFields; dbKey: string; oldVal: string }> = [
+      { key: "status",           dbKey: "status",           oldVal: selectedBooking.status           || "" },
+      { key: "head_count",       dbKey: "head_count",       oldVal: String(selectedBooking.head_count ?? "") },
+      { key: "arrival_slot",     dbKey: "arrival_slot",     oldVal: selectedBooking.arrival_slot || selectedBooking.slot_time || "" },
+      { key: "kill_order_seq",   dbKey: "kill_order_seq",   oldVal: String(selectedBooking.kill_order_seq ?? "") },
+      { key: "transport_status", dbKey: "transport_status", oldVal: selectedBooking.transport_status || "" },
+      { key: "hgp_status",       dbKey: "hgp_status",       oldVal: selectedBooking.hgp_status       || "" },
+    ];
+
+    const changed = diffable.filter(f => {
+      const oldNorm = f.oldVal.trim();
+      const newNorm = editFields[f.key].trim();
+      return oldNorm !== newNorm;
+    });
+
+    if (changed.length === 0) {
+      toast({ title: "No changes", description: "Nothing was modified." });
+      setEditMode(false);
+      setSaving(false);
+      return;
+    }
+
+    // Write one row per changed field to booking_changes
+    const changeRows = changed.map(f => ({
+      booking_id:      selectedBooking.id,
+      field_name:      f.dbKey,
+      old_value:       f.oldVal || null,
+      new_value:       editFields[f.key] || null,
+      changed_by:      "Kill Plan",
+      changed_by_role: "Processor",
+      change_note:     editFields.change_note || null,
+    }));
+
+    const { error: insertError } = await (supabase as any)
+      .from("booking_changes")
+      .insert(changeRows);
+
+    if (insertError) {
+      toast({ title: "Error saving", description: insertError.message, variant: "destructive" });
+      setSaving(false);
+      return;
+    }
+
+    // Build the update payload
+    const updatePayload: Record<string, any> = {};
+    for (const f of changed) {
+      if (f.key === "head_count") {
+        updatePayload[f.dbKey] = parseInt(editFields[f.key]) || null;
+      } else if (f.key === "kill_order_seq") {
+        updatePayload[f.dbKey] = parseInt(editFields[f.key]) || null;
+      } else if (f.key === "arrival_slot") {
+        updatePayload["arrival_slot"] = editFields[f.key] || null;
+      } else {
+        updatePayload[f.dbKey] = editFields[f.key] || null;
+      }
+    }
+
+    const { error: updateError } = await supabase
+      .from("bookings")
+      .update(updatePayload)
+      .eq("id", selectedBooking.id);
+
+    if (updateError) {
+      toast({ title: "Error updating booking", description: updateError.message, variant: "destructive" });
+      setSaving(false);
+      return;
+    }
+
+    // Update local state
+    const updatedBooking: Booking = {
+      ...selectedBooking,
+      status:           "status"           in updatePayload ? updatePayload.status           : selectedBooking.status,
+      head_count:       "head_count"       in updatePayload ? updatePayload.head_count       : selectedBooking.head_count,
+      arrival_slot:     "arrival_slot"     in updatePayload ? updatePayload.arrival_slot     : selectedBooking.arrival_slot,
+      kill_order_seq:   "kill_order_seq"   in updatePayload ? updatePayload.kill_order_seq   : selectedBooking.kill_order_seq,
+      transport_status: "transport_status" in updatePayload ? updatePayload.transport_status : selectedBooking.transport_status,
+      hgp_status:       "hgp_status"       in updatePayload ? updatePayload.hgp_status       : selectedBooking.hgp_status,
+    };
+
+    setBookings(prev => prev.map(b => b.id === selectedBooking.id ? updatedBooking : b));
+    setSelectedBooking(updatedBooking);
+
+    // Refresh change history
+    const { data: newChanges } = await (supabase as any)
+      .from("booking_changes")
+      .select("*")
+      .eq("booking_id", selectedBooking.id)
+      .order("changed_at", { ascending: false })
+      .limit(20);
+    setBookingChanges(newChanges || []);
+
+    toast({
+      title: `${changed.length} change${changed.length !== 1 ? "s" : ""} saved`,
+      description: "Booking updated and change log recorded.",
+    });
+    setEditMode(false);
+    setSaving(false);
+  };
 
   // ── Filtering helpers ──────────────────────────────────────────────────────
   const matchesSpecies = (s: string | null) => {
@@ -517,20 +672,36 @@ export default function KillPlan() {
         </div>
       </div>
 
-      {/* ── Booking detail dialog ── */}
+      {/* ── Booking detail / edit dialog ── */}
       <Dialog
         open={!!selectedBooking}
-        onOpenChange={(open) => !open && setSelectedBooking(null)}
+        onOpenChange={(open) => { if (!open) { setSelectedBooking(null); setEditMode(false); } }}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Booking details</DialogTitle>
-            <DialogDescription>
-              Ref: {selectedBooking?.id.slice(-8).toUpperCase()}
-            </DialogDescription>
+            <div className="flex items-center justify-between pr-6">
+              <div>
+                <DialogTitle>{editMode ? "Edit booking" : "Booking details"}</DialogTitle>
+                <DialogDescription>
+                  Ref: {selectedBooking?.id.slice(-8).toUpperCase()}
+                  {" · "}{suppliers[selectedBooking?.supplier_id || ""] || "Unknown supplier"}
+                </DialogDescription>
+              </div>
+              {!editMode ? (
+                <Button variant="outline" size="sm" onClick={openEditMode} className="shrink-0">
+                  <Edit2 className="h-3.5 w-3.5 mr-1.5" />
+                  Edit
+                </Button>
+              ) : (
+                <Button variant="ghost" size="sm" onClick={() => setEditMode(false)} className="shrink-0">
+                  <X className="h-3.5 w-3.5 mr-1" />
+                  Cancel
+                </Button>
+              )}
+            </div>
           </DialogHeader>
 
-          {selectedBooking && (
+          {selectedBooking && !editMode && (
             <div className="space-y-3 text-sm">
               {/* Confidence banner */}
               <div className={`rounded-md px-3 py-2 flex items-center justify-between ${confidenceCardStyle(selectedBooking.status)}`}>
@@ -623,7 +794,7 @@ export default function KillPlan() {
                 {loadingChanges ? (
                   <p className="text-xs text-muted-foreground animate-pulse">Loading…</p>
                 ) : bookingChanges.length === 0 ? (
-                  <p className="text-xs text-muted-foreground italic">No changes recorded yet.</p>
+                  <p className="text-xs text-muted-foreground italic">No changes recorded yet. Use Edit to make the first change.</p>
                 ) : (
                   <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                     {bookingChanges.map((c: any) => (
@@ -649,6 +820,135 @@ export default function KillPlan() {
                     ))}
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* ── Edit mode ── */}
+          {selectedBooking && editMode && (
+            <div className="space-y-4 text-sm">
+              <p className="text-xs text-muted-foreground">
+                Only changed fields will be saved. Each change is recorded in the audit log automatically.
+              </p>
+
+              <div className="grid grid-cols-2 gap-3">
+                {/* Status */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-status" className="text-xs">Confidence / Status</Label>
+                  <Select value={editFields.status} onValueChange={v => setEditFields(p => ({ ...p, status: v }))}>
+                    <SelectTrigger id="edit-status" className="h-8 text-xs">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover z-[200]">
+                      <SelectItem value="placeholder">Placeholder</SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="confirmed">Confirmed</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Head count */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-head" className="text-xs">Head count</Label>
+                  <Input
+                    id="edit-head"
+                    type="number"
+                    min={1}
+                    className="h-8 text-xs"
+                    value={editFields.head_count}
+                    onChange={e => setEditFields(p => ({ ...p, head_count: e.target.value }))}
+                  />
+                </div>
+
+                {/* Arrival slot */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-slot" className="text-xs">Arrival slot</Label>
+                  <Select value={editFields.arrival_slot} onValueChange={v => setEditFields(p => ({ ...p, arrival_slot: v }))}>
+                    <SelectTrigger id="edit-slot" className="h-8 text-xs">
+                      <SelectValue placeholder="Select slot" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover z-[200] max-h-48 overflow-y-auto">
+                      <SelectItem value="">No slot</SelectItem>
+                      {ARRIVAL_SLOTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Kill order */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-killorder" className="text-xs">Kill order seq #</Label>
+                  <Input
+                    id="edit-killorder"
+                    type="number"
+                    min={1}
+                    className="h-8 text-xs"
+                    placeholder="e.g. 3"
+                    value={editFields.kill_order_seq}
+                    onChange={e => setEditFields(p => ({ ...p, kill_order_seq: e.target.value }))}
+                  />
+                </div>
+
+                {/* Transport status */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-transport" className="text-xs">Transport status</Label>
+                  <Select value={editFields.transport_status} onValueChange={v => setEditFields(p => ({ ...p, transport_status: v }))}>
+                    <SelectTrigger id="edit-transport" className="h-8 text-xs">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover z-[200]">
+                      <SelectItem value="">Not set</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="arranged">Arranged</SelectItem>
+                      <SelectItem value="confirmed">Confirmed</SelectItem>
+                      <SelectItem value="arrived">Arrived</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* HGP status */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-hgp" className="text-xs">HGP status</Label>
+                  <Select value={editFields.hgp_status} onValueChange={v => setEditFields(p => ({ ...p, hgp_status: v }))}>
+                    <SelectTrigger id="edit-hgp" className="h-8 text-xs">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover z-[200]">
+                      <SelectItem value="">Unknown</SelectItem>
+                      <SelectItem value="hgp_free">HGP-Free</SelectItem>
+                      <SelectItem value="hgp_treated">HGP-Treated</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Change note */}
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-note" className="text-xs">Reason for change (optional)</Label>
+                <Textarea
+                  id="edit-note"
+                  className="text-xs min-h-[60px] resize-none"
+                  placeholder="e.g. Supplier called to reduce numbers, transport delayed…"
+                  value={editFields.change_note}
+                  onChange={e => setEditFields(p => ({ ...p, change_note: e.target.value }))}
+                />
+              </div>
+
+              {/* Save button */}
+              <div className="flex justify-end gap-2 pt-1">
+                <Button variant="outline" size="sm" onClick={() => setEditMode(false)}>Cancel</Button>
+                <Button size="sm" onClick={saveEdit} disabled={saving}>
+                  {saving ? (
+                    <span className="animate-pulse">Saving…</span>
+                  ) : (
+                    <>
+                      <Save className="h-3.5 w-3.5 mr-1.5" />
+                      Save changes
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
           )}
