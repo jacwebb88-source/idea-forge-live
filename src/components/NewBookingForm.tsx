@@ -134,6 +134,7 @@ export function NewBookingForm({ open, onOpenChange, onBookingCreated }: NewBook
         mulesing_status:       form.mulesing_status || null,
         est_avg_live_wt:       form.est_avg_live_wt ? parseFloat(form.est_avg_live_wt) : null,
         days_on_feed:          form.days_on_feed ? parseInt(form.days_on_feed) : null,
+        trucking_advice:       form.notes || null,
         // Store PIC numbers + eNVD in agent_ref if no dedicated column yet
         // TODO: add pic_numbers, envd_ref columns in next migration
       };
@@ -479,11 +480,11 @@ export function NewBookingForm({ open, onOpenChange, onBookingCreated }: NewBook
               </div>
 
               <div className="col-span-2 space-y-1.5">
-                <Label>Notes</Label>
+                <Label>Trucking / scheduling notes</Label>
                 <Textarea
                   value={form.notes}
                   onChange={(e) => set("notes", e.target.value)}
-                  placeholder="Any additional scheduling notes…"
+                  placeholder="e.g. deliver via back gate, call ahead, allow extra time…"
                   rows={2}
                 />
               </div>

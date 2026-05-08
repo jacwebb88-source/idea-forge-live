@@ -53,6 +53,10 @@ type DashboardMetrics = {
   slotAdherence: number | null;
   pendingTransport: number;
   hgpConflicts: number;
+  todayHead: number;
+  todayBookings: number;
+  todayConfirmed: number;
+  todaySuppliers: number;
 };
 
 const Index = () => {
@@ -90,6 +94,7 @@ const Index = () => {
 
       const bks = (upcoming || []) as any[];
       const thisWeek = bks.filter(b => b.requested_kill_date && b.requested_kill_date <= weekEnd);
+      const todayBks = bks.filter(b => b.requested_kill_date === today);
 
       // HGP sequencing conflict: any day with both hgp_treated + hgp_free would need
       // deeper analysis — here we flag bookings where hgp_treated is set (proxy for attention)
@@ -105,6 +110,10 @@ const Index = () => {
         slotAdherence: kpiLatest?.[0]?.slot_adherence_pct ?? null,
         pendingTransport: bks.filter(b => !b.transport_status || b.transport_status === "pending").length,
         hgpConflicts,
+        todayHead:       todayBks.reduce((sum: number, b: any) => sum + (b.head_count || 0), 0),
+        todayBookings:   todayBks.length,
+        todayConfirmed:  todayBks.filter(b => b.status === "confirmed").length,
+        todaySuppliers:  new Set(todayBks.map((b: any) => b.supplier_id).filter(Boolean)).size,
       });
       setLoadingMetrics(false);
     };
@@ -310,6 +319,59 @@ const Index = () => {
             </NavLink>
           </div>
         </div>
+
+        {/* ── Today's Kill Banner ── */}
+        {!loadingMetrics && (
+          <Card className={`${(metrics?.todayBookings ?? 0) > 0 ? "border-primary/30 bg-primary/5" : "border-dashed border-muted-foreground/30"}`}>
+            <CardContent className="pt-4 pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className={`rounded-full p-2 ${(metrics?.todayBookings ?? 0) > 0 ? "bg-primary/10" : "bg-muted"}`}>
+                    <Calendar className={`h-4 w-4 ${(metrics?.todayBookings ?? 0) > 0 ? "text-primary" : "text-muted-foreground"}`} />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium">TODAY — {format(new Date(), "EEEE d MMMM yyyy")}</p>
+                    {(metrics?.todayBookings ?? 0) === 0 ? (
+                      <p className="text-sm text-muted-foreground italic">No kill scheduled for today</p>
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-3 mt-0.5">
+                        <span className="text-lg font-bold text-foreground">
+                          {(metrics?.todayHead ?? 0).toLocaleString()} head
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {metrics?.todayBookings} booking{metrics?.todayBookings !== 1 ? "s" : ""}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {metrics?.todaySuppliers} vendor{metrics?.todaySuppliers !== 1 ? "s" : ""}
+                        </span>
+                        {(metrics?.todayConfirmed ?? 0) < (metrics?.todayBookings ?? 0) && (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                            <AlertTriangle className="h-3 w-3" />
+                            {(metrics?.todayBookings ?? 0) - (metrics?.todayConfirmed ?? 0)} unconfirmed
+                          </span>
+                        )}
+                        {(metrics?.todayConfirmed ?? 0) === (metrics?.todayBookings ?? 0) && (metrics?.todayBookings ?? 0) > 0 && (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                            <CheckCircle className="h-3 w-3" />
+                            All confirmed
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {(metrics?.todayBookings ?? 0) > 0 && (
+                  <NavLink to="/kill-reports">
+                    <Button size="sm" className="shrink-0 whitespace-nowrap">
+                      <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
+                      Today's Kill Report
+                    </Button>
+                  </NavLink>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Metrics Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
