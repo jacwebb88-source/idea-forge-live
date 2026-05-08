@@ -47,13 +47,19 @@ type SupplierGroup = {
   allConfirmed: boolean;
 };
 
-// Mock recipient list — in production this would be fetched from a recipients config table
-const MOCK_RECIPIENTS = [
-  { id: "r1", name: "Dave Watts — ACC Operations",        email: "d.watts@acc.com.au",       type: "Processor" },
-  { id: "r2", name: "Sally Chen — Woolworths Greenstock", email: "s.chen@woolworths.com.au",  type: "Buyer" },
-  { id: "r3", name: "Tom Briggs — Rangers Valley",        email: "t.briggs@rangers.com.au",   type: "Supplier" },
-  { id: "r4", name: "BVF Feedlot Desk",                   email: "kills@brisbanevf.com.au",   type: "Supplier" },
-  { id: "r5", name: "ACC QA Manager",                     email: "qa@acc.com.au",             type: "Processor" },
+type Recipient = {
+  id: string;
+  name: string;
+  email: string;
+  type: "Processor" | "Buyer" | "Vendor";
+  isAuto: boolean; // true = derived from kill-day suppliers
+};
+
+// Fixed processor-side recipients always included
+const PROCESSOR_RECIPIENTS: Recipient[] = [
+  { id: "proc-1", name: "Operations — Kill Schedule", email: "operations@plant.com.au",  type: "Processor", isAuto: false },
+  { id: "proc-2", name: "QA Manager",                  email: "qa@plant.com.au",          type: "Processor", isAuto: false },
+  { id: "buyer-1", name: "Greenstock Procurement",     email: "procurement@buyer.com.au", type: "Buyer",     isAuto: false },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -65,13 +71,14 @@ export default function KillReports() {
     format(new Date(), "yyyy-MM-dd")
   );
   const [bookings, setBookings] = useState<KillBooking[]>([]);
-  const [suppliers, setSuppliers] = useState<Record<string, string>>({});
+  const [suppliers, setSuppliers] = useState<Record<string, { name: string; email: string | null; contact_name: string | null }>>({});
+  const [recipients, setRecipients] = useState<Recipient[]>(PROCESSOR_RECIPIENTS);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [sentCount, setSentCount] = useState<number | null>(null);
   const [expandedSupplier, setExpandedSupplier] = useState<string | null>(null);
   const [selectedRecipients, setSelectedRecipients] = useState<Set<string>>(
-    new Set(MOCK_RECIPIENTS.map((r) => r.id))
+    new Set(PROCESSOR_RECIPIENTS.map((r) => r.id))
   );
 
   // Quick-date nav: upcoming kill dates with head counts
@@ -124,20 +131,34 @@ export default function KillReports() {
       const bookingList = (bks as KillBooking[]) || [];
       setBookings(bookingList);
 
-      // Enrich supplier names
+      // Enrich supplier names, emails, contacts
       const supplierIds = Array.from(
         new Set(bookingList.map((b) => b.supplier_id).filter(Boolean) as string[])
       );
       if (supplierIds.length) {
         const { data: sups } = await supabase
           .from("suppliers")
-          .select("id, name")
+          .select("id, name, email, contact_name")
           .in("id", supplierIds);
-        const map: Record<string, string> = {};
-        (sups as any[] | null)?.forEach((s) => (map[s.id] = s.name));
+        const map: Record<string, { name: string; email: string | null; contact_name: string | null }> = {};
+        (sups as any[] | null)?.forEach((s) => (map[s.id] = { name: s.name, email: s.email, contact_name: s.contact_name }));
         setSuppliers(map);
+
+        // Build dynamic vendor recipients from this day's suppliers
+        const vendorRecs: Recipient[] = supplierIds.map((sid) => {
+          const sup = map[sid];
+          const name = sup?.contact_name ? `${sup.contact_name} — ${sup.name}` : (sup?.name || "Unknown");
+          const email = sup?.email || `${sup?.name?.toLowerCase().replace(/\s+/g, ".")}@supplier.com.au`;
+          return { id: `vendor-${sid}`, name, email, type: "Vendor", isAuto: true };
+        });
+
+        const allRecs = [...PROCESSOR_RECIPIENTS, ...vendorRecs];
+        setRecipients(allRecs);
+        setSelectedRecipients(new Set(allRecs.map((r) => r.id)));
       } else {
         setSuppliers({});
+        setRecipients(PROCESSOR_RECIPIENTS);
+        setSelectedRecipients(new Set(PROCESSOR_RECIPIENTS.map((r) => r.id)));
       }
 
       setLoading(false);
@@ -157,7 +178,7 @@ export default function KillReports() {
 
     return Object.entries(map).map(([sid, bks]) => ({
       supplier_id: sid,
-      supplierName: suppliers[sid] || "Unknown Supplier",
+      supplierName: suppliers[sid]?.name || "Unknown Supplier",
       bookings: bks,
       totalHead: bks.reduce((sum, b) => sum + (b.head_count || 0), 0),
       species: Array.from(new Set(bks.map((b) => b.species).filter(Boolean))) as string[],
@@ -199,7 +220,7 @@ export default function KillReports() {
 
     const rows = sorted.map((b, idx) => [
       b.kill_order_seq ?? idx + 1,
-      suppliers[b.supplier_id || ""] || "Unknown",
+      suppliers[b.supplier_id || ""]?.name || "Unknown",
       b.species || "",
       b.species_class || "",
       b.head_count ?? "",
@@ -266,7 +287,7 @@ export default function KillReports() {
           <div>
             <h1 className="text-3xl font-bold text-foreground">Kill Reports</h1>
             <p className="text-muted-foreground">
-              Generate and distribute kill day reports — replaces 50+ manual emails
+              Distribute kill reports to all vendors, buyers, and plant staff automatically — replaces 50+ weekly manual emails
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -483,11 +504,23 @@ export default function KillReports() {
 
           {/* ── Recipient list + send ── */}
           <div className="space-y-4">
-            <h2 className="text-base font-semibold">Report recipients</h2>
+            <div>
+              <h2 className="text-base font-semibold">Report recipients</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Vendors on today's kill are automatically added — no manual list maintenance
+              </p>
+            </div>
 
             <Card>
-              <CardContent className="pt-4 space-y-2">
-                {MOCK_RECIPIENTS.map((r) => {
+              <CardContent className="pt-4 space-y-1">
+                {/* Auto-section label if there are vendor recipients */}
+                {recipients.some(r => r.isAuto) && (
+                  <p className="text-xs font-semibold text-muted-foreground pb-1 flex items-center gap-1">
+                    <Mail className="h-3 w-3" />
+                    Auto-added from today's kill — {recipients.filter(r => r.isAuto).length} vendor{recipients.filter(r => r.isAuto).length !== 1 ? "s" : ""}
+                  </p>
+                )}
+                {recipients.map((r) => {
                   const checked = selectedRecipients.has(r.id);
                   return (
                     <label
@@ -501,13 +534,18 @@ export default function KillReports() {
                         className="mt-0.5 h-4 w-4 accent-primary"
                       />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{r.name}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-medium truncate">{r.name}</p>
+                          {r.isAuto && (
+                            <span className="text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 rounded px-1 py-0 shrink-0">auto</span>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground truncate">{r.email}</p>
                       </div>
                       <span className={`shrink-0 text-xs rounded-full px-1.5 py-0.5 border ${
                         r.type === "Processor" ? "bg-blue-50 border-blue-200 text-blue-700"
-                        : r.type === "Buyer"    ? "bg-purple-50 border-purple-200 text-purple-700"
-                        : "bg-gray-50 border-gray-200 text-gray-600"
+                        : r.type === "Buyer"   ? "bg-purple-50 border-purple-200 text-purple-700"
+                        : "bg-emerald-50 border-emerald-200 text-emerald-700"
                       }`}>
                         {r.type}
                       </span>
@@ -519,18 +557,18 @@ export default function KillReports() {
 
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-muted-foreground px-1">
-                <span>{selectedRecipients.size} of {MOCK_RECIPIENTS.length} selected</span>
+                <span>{selectedRecipients.size} of {recipients.length} selected</span>
                 <button
                   className="underline"
                   onClick={() =>
                     setSelectedRecipients(
-                      selectedRecipients.size === MOCK_RECIPIENTS.length
+                      selectedRecipients.size === recipients.length
                         ? new Set()
-                        : new Set(MOCK_RECIPIENTS.map((r) => r.id))
+                        : new Set(recipients.map((r) => r.id))
                     )
                   }
                 >
-                  {selectedRecipients.size === MOCK_RECIPIENTS.length ? "Deselect all" : "Select all"}
+                  {selectedRecipients.size === recipients.length ? "Deselect all" : "Select all"}
                 </button>
               </div>
 
