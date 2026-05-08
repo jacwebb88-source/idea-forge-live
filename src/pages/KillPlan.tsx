@@ -591,7 +591,7 @@ export default function KillPlan() {
             <CardContent>
               <div className="space-y-0.5">
                 <div className={`text-sm font-semibold ${overCapacityDays > 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                  {overCapacityDays} over-capacity
+                  {overCapacityDays} overschedule
                 </div>
                 <div className={`text-sm font-semibold ${shortfallDays > 0 ? "text-amber-700" : "text-muted-foreground"}`}>
                   {shortfallDays} shortfall
