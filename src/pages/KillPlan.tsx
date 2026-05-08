@@ -777,6 +777,9 @@ export default function KillPlan() {
         </div>
       </div>
 
+      {/* ── Recent Changes feed alongside scheduling workflow ── */}
+      <RecentActivity limit={8} title="Recent Changes — this kill board" />
+
       {/* ── Booking detail / edit dialog ── */}
       <Dialog
         open={!!selectedBooking}
