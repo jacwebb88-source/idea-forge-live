@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
+import { NavLink } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar } from "lucide-react";
+import { Calendar, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO, addDays } from "date-fns";
 
@@ -155,6 +156,17 @@ export function ScheduleOverview() {
                 </Badge>
               </div>
             ))}
+          </div>
+        )}
+        {!loading && bookings.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-border">
+            <NavLink
+              to="/kill-plan"
+              className="flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              View full week in Kill Plan
+              <ArrowRight className="h-3 w-3" />
+            </NavLink>
           </div>
         )}
       </CardContent>

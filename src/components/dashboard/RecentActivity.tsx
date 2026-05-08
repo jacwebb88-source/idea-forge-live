@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { NavLink } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Clock, MessageSquareText } from "lucide-react";
 import { NavLink } from "react-router-dom";
@@ -126,6 +127,17 @@ export function RecentActivity({
               className="text-xs text-primary hover:underline font-medium"
             >
               View full audit trail →
+            </NavLink>
+          </div>
+        )}
+        {!loading && changes.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-border">
+            <NavLink
+              to="/change-history"
+              className="flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              View full audit trail
+              <ArrowRight className="h-3 w-3" />
             </NavLink>
           </div>
         )}
