@@ -15,6 +15,7 @@ import {
   CalendarRange,
   FileText,
   History,
+  TrendingUp,
 } from "lucide-react";
 
 import {
@@ -32,6 +33,7 @@ import {
 const mainItems = [
   { title: "Dashboard", url: "/", icon: Home },
   { title: "Kill Plan", url: "/kill-plan", icon: CalendarRange },
+  { title: "Forward Volume Plan", url: "/forward-plan", icon: TrendingUp },
   { title: "Booking Board", url: "/bookings", icon: Calendar },
   { title: "Transport Slotting", url: "/transport", icon: Truck },
   { title: "Kill Grid Specifications", url: "/grid-specs", icon: ClipboardList },

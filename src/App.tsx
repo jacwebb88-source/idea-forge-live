@@ -19,6 +19,7 @@ import KillReports from "./pages/KillReports";
 import ChangeHistory from "./pages/ChangeHistory";
 import IntakeStatus from "./pages/IntakeStatus";
 import Settings from "./pages/Settings";
+import ForwardPlan from "./pages/ForwardPlan";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const App = () => (
           <Route path="/suppliers" element={<Suppliers />} />
           <Route path="/intake" element={<IntakeStatus />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/forward-plan" element={<ForwardPlan />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
