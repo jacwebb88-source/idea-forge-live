@@ -579,20 +579,30 @@ export default function KillPlan() {
               </div>
             </CardContent>
           </Card>
-          <Card className={overCapacityDays > 0 ? "border-destructive/50 bg-destructive/5" : ""}>
+          <Card className={overCapacityDays > 0 ? "border-destructive/50 bg-destructive/5" : shortfallDays > 0 ? "border-amber-400/50 bg-amber-50/40 dark:bg-amber-950/10" : ""}>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-muted-foreground font-medium flex items-center gap-1">
-                {overCapacityDays > 0 && <AlertTriangle className="h-3.5 w-3.5 text-destructive" />}
-                Over capacity
+                {(overCapacityDays > 0 || shortfallDays > 0) && (
+                  <AlertTriangle className={`h-3.5 w-3.5 ${overCapacityDays > 0 ? "text-destructive" : "text-amber-600"}`} />
+                )}
+                Capacity alerts
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${overCapacityDays > 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                {overCapacityDays} {overCapacityDays === 1 ? "day" : "days"}
+              <div className="space-y-0.5">
+                <div className={`text-sm font-semibold ${overCapacityDays > 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                  {overCapacityDays} over-capacity
+                </div>
+                <div className={`text-sm font-semibold ${shortfallDays > 0 ? "text-amber-700" : "text-muted-foreground"}`}>
+                  {shortfallDays} shortfall
+                </div>
+                <div className="text-xs text-muted-foreground pt-0.5">
+                  {placeholderCount > 0 && <>{placeholderCount} placeholder{placeholderCount !== 1 ? "s" : ""} · </>}
+                  {complianceFailCount > 0 && <span className="text-destructive font-medium">{complianceFailCount} compliance · </span>}
+                  {exitFollowupCount > 0 && <span className="text-amber-700 font-medium">{exitFollowupCount} exit f/u</span>}
+                  {placeholderCount === 0 && complianceFailCount === 0 && exitFollowupCount === 0 && "All clear"}
+                </div>
               </div>
-              {placeholderCount > 0 && (
-                <p className="text-xs text-muted-foreground mt-1">{placeholderCount} placeholder{placeholderCount !== 1 ? "s" : ""} to confirm</p>
-              )}
             </CardContent>
           </Card>
         </div>
