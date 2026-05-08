@@ -138,7 +138,7 @@ export function NewBookingForm({ open, onOpenChange, onBookingCreated }: NewBook
         // TODO: add pic_numbers, envd_ref columns in next migration
       };
 
-      const { error } = await supabase.from("bookings").insert(payload);
+      const { error } = await (supabase.from("bookings") as any).insert(payload);
 
       if (error) {
         console.error(error);
