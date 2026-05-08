@@ -284,9 +284,9 @@ const Index = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Operations Dashboard</h1>
+            <h1 className="text-3xl font-bold text-foreground">Operations Overview</h1>
             <p className="text-muted-foreground mt-1">
-              Live overview — active bookings, compliance status, and what needs action today
+              Kill floor live status — bookings on the board, compliance, and follow-ups due today
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
