@@ -322,7 +322,7 @@ export default function ChangeHistory() {
         <Card className="border-dashed border-muted-foreground/30">
           <CardContent className="pt-4 pb-3">
             <p className="text-xs text-muted-foreground text-center">
-              <span className="font-medium">Immutable audit trail.</span> Every booking change from Kill Plan and Booking Board is recorded here automatically — who changed it, what it was before, what it became, and any reason given. No hard deletes, ever.
+              <span className="font-medium">Immutable audit trail.</span> Every booking change from the Kill Board and Booking Board is recorded here — who changed it, prior value, new value, and any reason given. No hard deletes.
             </p>
           </CardContent>
         </Card>
