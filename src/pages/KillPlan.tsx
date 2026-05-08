@@ -18,6 +18,7 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, AlertTriangle, Inf
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { buildBookingChangeRows, resolveAuditActor } from "@/lib/bookingAudit";
 import {
   startOfWeek,
   endOfWeek,
@@ -318,16 +319,17 @@ export default function KillPlan() {
       return;
     }
 
+    const actor = await resolveAuditActor("Kill Board");
+
     // Write one row per changed field to booking_changes
-    const changeRows = changed.map(f => ({
-      booking_id:      selectedBooking.id,
-      field_name:      f.dbKey,
-      old_value:       f.oldVal || null,
-      new_value:       editFields[f.key] || null,
-      changed_by:      "Kill Plan",
-      changed_by_role: "Processor",
-      change_note:     editFields.change_note || null,
-    }));
+    const changeRows = buildBookingChangeRows(changed.map((f) => ({
+      bookingId: selectedBooking.id,
+      fieldName: f.dbKey,
+      oldValue: f.oldVal,
+      newValue: editFields[f.key] || "",
+      changeNote: editFields.change_note,
+      actor,
+    })));
 
     const { error: insertError } = await (supabase as any)
       .from("booking_changes")
