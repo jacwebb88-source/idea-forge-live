@@ -198,6 +198,37 @@ export default function BookingBoard() {
     fetchBookings(); // Refresh the bookings list
   };
 
+  const handleExportCSV = () => {
+    if (filteredBookings.length === 0) return;
+    const headers = [
+      "Booking ID", "Supplier", "Species", "Head Count",
+      "Kill Date", "Arrival Slot", "Status", "HGP Status", "Fill Rate %"
+    ];
+    const rows = filteredBookings.map(b => [
+      b.id.slice(-8).toUpperCase(),
+      b.supplierName || "",
+      b.species || "",
+      b.head_count ?? "",
+      b.requested_kill_date || "",
+      b.arrival_slot || "",
+      b.status || "",
+      b.hgp_status || "",
+      b.fill_rate != null ? b.fill_rate.toFixed(1) : "",
+    ]);
+    const csv = [headers, ...rows]
+      .map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `muster-bookings-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const filteredBookings = bookings.filter(booking => {
     const q = searchTerm.toLowerCase();
     const matchesSearch = !searchTerm ||
@@ -226,7 +257,7 @@ export default function BookingBoard() {
             <p className="text-muted-foreground">Manage kill slot bookings and scheduling</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">
+            <Button variant="outline" onClick={handleExportCSV} disabled={filteredBookings.length === 0}>
               <Download className="h-4 w-4 mr-2" />
               Export CSV
             </Button>
