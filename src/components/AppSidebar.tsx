@@ -32,7 +32,7 @@ import {
 
 const mainItems = [
   { title: "Kill Board", url: "/kill-plan", icon: CalendarRange },
-  { title: "Operations Overview", url: "/", icon: Home },
+  { title: "Dashboard", url: "/", icon: Home },
   { title: "Forward Volume Plan", url: "/forward-plan", icon: TrendingUp },
   { title: "Booking Board", url: "/bookings", icon: Calendar },
   { title: "Transport Slotting", url: "/transport", icon: Truck },
