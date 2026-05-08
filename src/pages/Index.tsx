@@ -327,7 +327,7 @@ const Index = () => {
             change={loadingMetrics ? undefined : "Next 7 days"}
             changeType="neutral"
             icon={Users}
-            description="Total head booked in the next 7 days"
+            description="Total head booked across the next 7 kill dates"
           />
           <MetricCard
             title="Pending Transport"
