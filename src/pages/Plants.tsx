@@ -1,14 +1,40 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Building2, Plus, Search, Edit, Trash2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Building2, Search, MapPin, ShieldCheck, Calendar, TrendingUp, Star } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { format, addDays } from "date-fns";
 import type { Tables } from "@/integrations/supabase/types";
 
-type Plant = Tables<'plants'>;
+type Plant = Tables<"plants"> & {
+  activeBookings?: number;
+  thisWeekHead?: number;
+  totalHead?: number;
+};
+
+const licenceColour = (licence: string | null) => {
+  switch ((licence || "").toLowerCase()) {
+    case "export":     return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    case "domestic":   return "bg-blue-50 text-blue-700 border-blue-200";
+    case "wholesale":  return "bg-purple-50 text-purple-700 border-purple-200";
+    default:           return "bg-gray-50 text-gray-600 border-gray-200";
+  }
+};
+
+const speciesColour = (sp: string) => {
+  switch (sp.toLowerCase()) {
+    case "beef":
+    case "cattle": return "bg-red-50 text-red-700 border-red-200";
+    case "lamb":   return "bg-blue-50 text-blue-700 border-blue-200";
+    case "mutton":
+    case "sheep":  return "bg-indigo-50 text-indigo-700 border-indigo-200";
+    case "goat":   return "bg-amber-50 text-amber-700 border-amber-200";
+    default:       return "bg-muted text-muted-foreground border-border";
+  }
+};
 
 export default function Plants() {
   const [plants, setPlants] = useState<Plant[]>([]);
@@ -16,143 +42,211 @@ export default function Plants() {
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    fetchPlants();
+    const fetchAll = async () => {
+      setLoading(true);
+
+      const { data: plantData } = await supabase
+        .from("plants")
+        .select("*")
+        .order("plant_name");
+
+      if (!plantData) { setLoading(false); return; }
+
+      // Fetch booking stats per plant
+      const today = format(new Date(), "yyyy-MM-dd");
+      const weekEnd = format(addDays(new Date(), 7), "yyyy-MM-dd");
+
+      const { data: bookingData } = await supabase
+        .from("bookings")
+        .select("plant_id, head_count, requested_kill_date, status")
+        .neq("status", "cancelled");
+
+      const bookingMap: Record<string, { active: number; thisWeekHead: number; totalHead: number }> = {};
+      (bookingData || []).forEach((b: any) => {
+        if (!b.plant_id) return;
+        if (!bookingMap[b.plant_id]) bookingMap[b.plant_id] = { active: 0, thisWeekHead: 0, totalHead: 0 };
+        bookingMap[b.plant_id].active += 1;
+        bookingMap[b.plant_id].totalHead += b.head_count || 0;
+        if (b.requested_kill_date && b.requested_kill_date >= today && b.requested_kill_date <= weekEnd) {
+          bookingMap[b.plant_id].thisWeekHead += b.head_count || 0;
+        }
+      });
+
+      setPlants(plantData.map((p: any) => ({
+        ...p,
+        activeBookings: bookingMap[p.id]?.active ?? 0,
+        thisWeekHead:   bookingMap[p.id]?.thisWeekHead ?? 0,
+        totalHead:      bookingMap[p.id]?.totalHead ?? 0,
+      })));
+
+      setLoading(false);
+    };
+    fetchAll();
   }, []);
 
-  const fetchPlants = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('plants')
-        .select('*')
-        .order('plant_name');
+  const filtered = useMemo(() => {
+    if (!searchTerm) return plants;
+    const q = searchTerm.toLowerCase();
+    return plants.filter(p =>
+      p.plant_name.toLowerCase().includes(q) ||
+      (p.company_name || "").toLowerCase().includes(q) ||
+      (p.state || "").toLowerCase().includes(q)
+    );
+  }, [plants, searchTerm]);
 
-      if (error) {
-        console.error('Error fetching plants:', error);
-        return;
-      }
-
-      setPlants(data || []);
-    } catch (error) {
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filteredPlants = plants.filter(plant =>
-    plant.plant_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    plant.company_name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const totalActiveBookings = plants.reduce((sum, p) => sum + (p.activeBookings || 0), 0);
+  const totalHead = plants.reduce((sum, p) => sum + (p.totalHead || 0), 0);
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Plants</h1>
-            <p className="text-muted-foreground">Manage processing plant information</p>
-          </div>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Plant
-          </Button>
+
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Processing Plants</h1>
+          <p className="text-muted-foreground">Registered abattoirs and processing facilities</p>
         </div>
 
+        {/* Summary strip */}
+        {!loading && plants.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="pt-5 pb-4">
+                <p className="text-xs font-medium text-muted-foreground mb-1">Plants</p>
+                <p className="text-2xl font-bold">{plants.length}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-5 pb-4">
+                <p className="text-xs font-medium text-muted-foreground mb-1">Active bookings</p>
+                <p className="text-2xl font-bold">{totalActiveBookings}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-5 pb-4">
+                <p className="text-xs font-medium text-muted-foreground mb-1">Total head on book</p>
+                <p className="text-2xl font-bold">{totalHead.toLocaleString()}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-5 pb-4">
+                <p className="text-xs font-medium text-muted-foreground mb-1">This week (next 7 days)</p>
+                <p className="text-2xl font-bold">
+                  {plants.reduce((sum, p) => sum + (p.thisWeekHead || 0), 0).toLocaleString()} hd
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Search */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search plants..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1"
-              />
-            </div>
-          </CardContent>
-        </Card>
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search plants, company, state…"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9"
+          />
+        </div>
 
-        {/* Plants Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {loading ? (
-            <div className="col-span-full text-center py-8 text-muted-foreground">
-              Loading plants...
-            </div>
-          ) : filteredPlants.length === 0 ? (
-            <div className="col-span-full text-center py-8 text-muted-foreground">
-              No plants found
-            </div>
-          ) : (
-            filteredPlants.map((plant) => (
+        {/* Plants grid */}
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map(i => <Skeleton key={i} className="h-56 w-full" />)}
+          </div>
+        ) : filtered.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-12">
+              <Building2 className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+              <p className="text-muted-foreground">No plants found.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filtered.map(plant => (
               <Card key={plant.id} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      <Building2 className="h-5 w-5 text-primary" />
-                      <CardTitle className="text-lg">{plant.plant_name}</CardTitle>
-                    </div>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="sm">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Company</p>
-                      <p className="text-sm">{plant.company_name || 'N/A'}</p>
-                    </div>
-                    
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Location</p>
-                      <p className="text-sm">{plant.state || 'N/A'}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">License Type</p>
-                      <p className="text-sm">{plant.licence_type || 'N/A'}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground mb-1">Species Supported</p>
-                      <div className="flex flex-wrap gap-1">
-                        {plant.species_supported && plant.species_supported.length > 0 ? (
-                          plant.species_supported.map((species, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {species}
-                            </Badge>
-                          ))
-                        ) : (
-                          <span className="text-xs text-muted-foreground">None specified</span>
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <Building2 className="h-5 w-5 text-primary flex-shrink-0" />
+                      <div className="min-w-0">
+                        <CardTitle className="text-base leading-tight truncate flex items-center gap-1.5">
+                          {plant.plant_name}
+                          {plant.is_default && (
+                            <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400 flex-shrink-0" title="Default plant" />
+                          )}
+                        </CardTitle>
+                        {plant.company_name && (
+                          <p className="text-xs text-muted-foreground truncate">{plant.company_name}</p>
                         )}
                       </div>
                     </div>
-
-                    {plant.is_default && (
-                      <Badge className="bg-primary/10 text-primary">Default Plant</Badge>
+                    {plant.licence_type && (
+                      <span className={`shrink-0 text-xs font-medium border rounded-full px-2 py-0.5 capitalize ${licenceColour(plant.licence_type)}`}>
+                        {plant.licence_type}
+                      </span>
                     )}
+                  </div>
+                </CardHeader>
+
+                <CardContent className="space-y-3 pt-0">
+                  {/* Location */}
+                  {plant.state && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <MapPin className="h-3.5 w-3.5 shrink-0" />
+                      <span>{plant.state}</span>
+                    </div>
+                  )}
+
+                  {/* Licence */}
+                  {plant.licence_type && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                      <span>{plant.licence_type} licence</span>
+                    </div>
+                  )}
+
+                  {/* Species supported */}
+                  {plant.species_supported && plant.species_supported.length > 0 && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1.5">Species supported</p>
+                      <div className="flex flex-wrap gap-1">
+                        {plant.species_supported.map((sp, i) => (
+                          <span key={i} className={`text-xs font-medium border rounded px-1.5 py-0.5 capitalize ${speciesColour(sp)}`}>
+                            {sp}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Booking stats */}
+                  <div className="pt-2 border-t border-border grid grid-cols-2 gap-3">
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Bookings</p>
+                        <p className="text-sm font-semibold">{plant.activeBookings ?? 0}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">This week</p>
+                        <p className="text-sm font-semibold">
+                          {(plant.thisWeekHead || 0) > 0
+                            ? `${(plant.thisWeekHead || 0).toLocaleString()} hd`
+                            : "—"}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
-            ))
-          )}
-        </div>
-
-        {/* Demo Data Notice */}
-        <Card className="border-dashed border-muted-foreground/30">
-          <CardContent className="pt-6">
-            <div className="text-center text-sm text-muted-foreground">
-              <p className="font-medium">Demo Data</p>
-              <p>This is sample plant data for demonstration purposes</p>
-            </div>
-          </CardContent>
-        </Card>
+            ))}
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
