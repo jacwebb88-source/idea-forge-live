@@ -3,12 +3,11 @@ import { MetricCard } from "@/components/dashboard/MetricCard";
 import { ScheduleOverview } from "@/components/dashboard/ScheduleOverview";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { format, addDays, differenceInDays, parseISO } from "date-fns";
+import { NavLink } from "react-router-dom";
 import {
   Users,
   Calendar,
@@ -22,6 +21,7 @@ import {
   Bell,
   Clock,
   XCircle,
+  ArrowRight,
 } from "lucide-react";
 
 type OperationalGap = {
@@ -56,7 +56,6 @@ type DashboardMetrics = {
 };
 
 const Index = () => {
-  const { toast } = useToast();
   const [complianceOk, setComplianceOk] = useState<number | null>(null);
   const [missingCompliance, setMissingCompliance] = useState<number>(0);
   const [pendingCompliance, setPendingCompliance] = useState<number>(0);
@@ -279,51 +278,36 @@ const Index = () => {
     fetchGaps();
   }, []);
 
-  const handleConfirmSlot = () => {
-    toast({
-      title: "Booking locked in",
-      description: "The booking slot has been confirmed and locked.",
-    });
-  };
-
-  const handleChangeRequest = () => {
-    toast({
-      title: "Window updated", 
-      description: "The booking window has been successfully updated.",
-    });
-  };
-
-  const handleSendGrid = () => {
-    toast({
-      title: "ETA received",
-      description: "Grid specifications sent and ETA confirmation received.",
-    });
-  };
-
   return (
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Today's Schedule</h1>
+            <h1 className="text-3xl font-bold text-foreground">Operations Dashboard</h1>
             <p className="text-muted-foreground mt-1">
-              Pilot console demonstrating booking, compliance, and capacity visibility.
+              Live overview — active bookings, compliance status, and what needs action today
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
-            <Button variant="outline" className="flex items-center gap-2" onClick={handleConfirmSlot}>
-              <CheckCircle className="h-4 w-4" />
-              Confirm Slot
-            </Button>
-            <Button variant="outline" className="flex items-center gap-2" onClick={handleChangeRequest}>
-              <Calendar className="h-4 w-4" />
-              Change Request
-            </Button>
-            <Button className="flex items-center gap-2" onClick={handleSendGrid}>
-              <BarChart3 className="h-4 w-4" />
-              Send Grid
-            </Button>
+            <NavLink to="/kill-plan">
+              <Button variant="outline" className="flex items-center gap-2 w-full sm:w-auto">
+                <Calendar className="h-4 w-4" />
+                Kill Plan
+              </Button>
+            </NavLink>
+            <NavLink to="/kill-reports">
+              <Button variant="outline" className="flex items-center gap-2 w-full sm:w-auto">
+                <BarChart3 className="h-4 w-4" />
+                Kill Reports
+              </Button>
+            </NavLink>
+            <NavLink to="/bookings">
+              <Button className="flex items-center gap-2 w-full sm:w-auto">
+                <ArrowRight className="h-4 w-4" />
+                All Bookings
+              </Button>
+            </NavLink>
           </div>
         </div>
 
