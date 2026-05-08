@@ -139,6 +139,9 @@ export default function BookingBoard() {
   });
   const [saving, setSaving] = useState(false);
 
+  // Track when plants have finished loading (even if empty)
+  const [plantsLoaded, setPlantsLoaded] = useState(false);
+
   // Fetch plants and processors
   useEffect(() => {
     const fetchPlants = async () => {
@@ -151,6 +154,7 @@ export default function BookingBoard() {
         const uniqueProcessors = [...new Set(data.map((p: any) => p.company_name).filter(Boolean))] as string[];
         setProcessors(uniqueProcessors);
       }
+      setPlantsLoaded(true); // always mark done, even if no plants
     };
     fetchPlants();
   }, []);
@@ -171,9 +175,10 @@ export default function BookingBoard() {
     return plants.map((p: any) => p.id);
   };
 
+  // Fetch bookings once plants are loaded (or immediately if no plant filter needed)
   useEffect(() => {
-    if (plants.length > 0) fetchBookings();
-  }, [selectedProcessor, selectedPlant, plants]);
+    if (plantsLoaded) fetchBookings();
+  }, [selectedProcessor, selectedPlant, plantsLoaded]);
 
   const fetchBookings = async () => {
     try {
@@ -187,9 +192,12 @@ export default function BookingBoard() {
                  lot_id, agent_ref, kill_order_seq, transport_status, msa_enrolled`)
         .order('requested_kill_date', { ascending: true });
 
-      if (plantIds.length > 0) {
-        if (plantIds.length === 1) query = query.eq('plant_id', plantIds[0]);
-        else query = query.in('plant_id', plantIds);
+      // Only apply plant filter if a specific plant or processor is selected
+      // (when "all" with no processor filter, don't restrict by plant — include unassigned bookings too)
+      if (selectedPlant !== "all") {
+        query = query.eq('plant_id', selectedPlant);
+      } else if (selectedProcessor !== "all" && plantIds.length > 0) {
+        query = query.in('plant_id', plantIds);
       }
 
       const { data, error } = await query;
