@@ -1,8 +1,16 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Clock, ArrowRight } from "lucide-react";
+import { Clock, MessageSquareText } from "lucide-react";
+import { NavLink } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow, parseISO } from "date-fns";
+import {
+  describeChange,
+  changeSeverity,
+  severityDot,
+  severityChip,
+  severityLabel,
+} from "@/lib/changeFormat";
 
 interface ChangeItem {
   id: string;
@@ -10,37 +18,26 @@ interface ChangeItem {
   field_name: string;
   old_value: string | null;
   new_value: string | null;
+  change_note: string | null;
   changed_by: string | null;
   changed_by_role: string | null;
   changed_at: string | null;
 }
 
-const fieldLabel = (field: string): string => {
-  const map: Record<string, string> = {
-    status:              "Status",
-    head_count:          "Head count",
-    requested_kill_date: "Kill date",
-    slot_time:           "Slot time",
-    arrival_slot:        "Arrival slot",
-    supplier_id:         "Supplier",
-    transport_status:    "Transport",
-    hgp_status:          "HGP status",
-    kill_order_seq:      "Kill order",
-    msa_enrolled:        "MSA enrolment",
-    pericardium_ok:      "Pericardium",
-  };
-  return map[field] || field.replace(/_/g, " ");
-};
+interface RecentActivityProps {
+  /** Max items to display. Default 12. */
+  limit?: number;
+  /** Compact card title (e.g. "Recent Changes" on Kill Board). */
+  title?: string;
+  /** Show "View full audit trail" footer link. */
+  showAuditLink?: boolean;
+}
 
-const dotColour = (field: string): string => {
-  if (["status", "head_count", "requested_kill_date"].includes(field))
-    return "bg-amber-500";
-  if (["hgp_status", "kill_order_seq"].includes(field))
-    return "bg-red-500";
-  return "bg-blue-400";
-};
-
-export function RecentActivity() {
+export function RecentActivity({
+  limit = 12,
+  title = "Recent Changes",
+  showAuditLink = true,
+}: RecentActivityProps) {
   const [changes, setChanges] = useState<ChangeItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -49,24 +46,25 @@ export function RecentActivity() {
       setLoading(true);
       const { data, error } = await (supabase as any)
         .from("booking_changes")
-        .select("id, booking_id, field_name, old_value, new_value, changed_by, changed_by_role, changed_at")
+        .select("id, booking_id, field_name, old_value, new_value, change_note, changed_by, changed_by_role, changed_at")
         .order("changed_at", { ascending: false })
-        .limit(12);
+        .limit(limit);
 
-      if (!error && data) {
-        setChanges(data as ChangeItem[]);
-      }
+      if (!error && data) setChanges(data as ChangeItem[]);
       setLoading(false);
     };
     fetch();
-  }, []);
+  }, [limit]);
 
   return (
     <Card className="col-span-1">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <Clock className="h-5 w-5 text-primary" />
-          Recent Changes
+          {title}
+          <span className="ml-auto text-xs font-normal text-muted-foreground">
+            Operator accountability feed
+          </span>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -80,35 +78,55 @@ export function RecentActivity() {
             <p className="text-xs mt-1">Changes appear here as bookings are edited.</p>
           </div>
         ) : (
-          <div className="space-y-2.5">
-            {changes.map((c) => (
-              <div key={c.id} className="flex items-start gap-3">
-                <div className="mt-1.5 shrink-0">
-                  <div className={`w-2 h-2 rounded-full ${dotColour(c.field_name)}`} />
+          <div className="space-y-3">
+            {changes.map((c) => {
+              const sev = changeSeverity(c);
+              return (
+                <div key={c.id} className="flex items-start gap-3">
+                  <div className="mt-1.5 shrink-0">
+                    <div className={`w-2 h-2 rounded-full ${severityDot[sev]}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start gap-2 flex-wrap">
+                      <span
+                        className={`text-[10px] font-bold uppercase tracking-wide rounded px-1.5 py-0.5 border shrink-0 ${severityChip[sev]}`}
+                      >
+                        {severityLabel[sev]}
+                      </span>
+                      <p className="text-sm text-foreground leading-snug flex-1">
+                        {describeChange(c)}
+                      </p>
+                    </div>
+                    {c.change_note && (
+                      <p className="text-xs text-muted-foreground italic mt-0.5 flex items-start gap-1">
+                        <MessageSquareText className="h-3 w-3 mt-0.5 shrink-0" />
+                        "{c.change_note}"
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Booking <span className="font-mono">{c.booking_id.slice(-6).toUpperCase()}</span>
+                      {c.changed_by && <> · {c.changed_by}</>}
+                      {c.changed_by_role && <> ({c.changed_by_role})</>}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-xs text-muted-foreground whitespace-nowrap">
+                    {c.changed_at
+                      ? formatDistanceToNow(parseISO(c.changed_at), { addSuffix: true })
+                      : "—"}
+                  </span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-foreground leading-snug">
-                    <span className="font-medium">{fieldLabel(c.field_name)}</span>
-                    {" "}
-                    <span className="text-muted-foreground text-xs line-through">{c.old_value || "—"}</span>
-                    {" "}
-                    <ArrowRight className="inline h-3 w-3 text-muted-foreground" />
-                    {" "}
-                    <span className="font-medium text-foreground text-xs">{c.new_value || "—"}</span>
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    <span className="font-mono">{c.booking_id.slice(-6).toUpperCase()}</span>
-                    {c.changed_by && <> · {c.changed_by}</>}
-                    {c.changed_by_role && <> ({c.changed_by_role})</>}
-                  </p>
-                </div>
-                <span className="shrink-0 text-xs text-muted-foreground whitespace-nowrap">
-                  {c.changed_at
-                    ? formatDistanceToNow(parseISO(c.changed_at), { addSuffix: true })
-                    : "—"}
-                </span>
-              </div>
-            ))}
+              );
+            })}
+          </div>
+        )}
+        {showAuditLink && (
+          <div className="mt-4 pt-3 border-t text-right">
+            <NavLink
+              to="/change-history"
+              className="text-xs text-primary hover:underline font-medium"
+            >
+              View full audit trail →
+            </NavLink>
           </div>
         )}
       </CardContent>
