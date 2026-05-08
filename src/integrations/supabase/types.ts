@@ -17,101 +17,74 @@ export type Database = {
       bookings: {
         Row: {
           agent_ref: string | null
-          arrival_slot: string | null
           created_at: string | null
           created_by: string | null
-          days_on_feed: number | null
           est_avg_hscw: number | null
           est_avg_live_wt: number | null
           fill_rate: number | null
           grid_fit_score: number | null
           head_count: number | null
-          hgp_status: string | null
           id: string
-          kill_order_seq: number | null
           lot_id: string | null
-          msa_enrolled: boolean | null
-          mulesing_status: string | null
-          pericardium_ok: boolean | null
           plant_id: string | null
           requested_kill_date: string | null
           requested_window_end: string | null
           requested_window_start: string | null
           slot_time: string | null
           species: string
-          species_class: string | null
           species_type: string | null
           status: string | null
           supplier_id: string | null
           target_grid_id: string | null
           transport_status: string | null
-          trucking_advice: string | null
           variance_hours: number | null
         }
         Insert: {
           agent_ref?: string | null
-          arrival_slot?: string | null
           created_at?: string | null
           created_by?: string | null
-          days_on_feed?: number | null
           est_avg_hscw?: number | null
           est_avg_live_wt?: number | null
           fill_rate?: number | null
           grid_fit_score?: number | null
           head_count?: number | null
-          hgp_status?: string | null
           id?: string
-          kill_order_seq?: number | null
           lot_id?: string | null
-          msa_enrolled?: boolean | null
-          mulesing_status?: string | null
-          pericardium_ok?: boolean | null
           plant_id?: string | null
           requested_kill_date?: string | null
           requested_window_end?: string | null
           requested_window_start?: string | null
           slot_time?: string | null
           species: string
-          species_class?: string | null
           species_type?: string | null
           status?: string | null
           supplier_id?: string | null
           target_grid_id?: string | null
           transport_status?: string | null
-          trucking_advice?: string | null
           variance_hours?: number | null
         }
         Update: {
           agent_ref?: string | null
-          arrival_slot?: string | null
           created_at?: string | null
           created_by?: string | null
-          days_on_feed?: number | null
           est_avg_hscw?: number | null
           est_avg_live_wt?: number | null
           fill_rate?: number | null
           grid_fit_score?: number | null
           head_count?: number | null
-          hgp_status?: string | null
           id?: string
-          kill_order_seq?: number | null
           lot_id?: string | null
-          msa_enrolled?: boolean | null
-          mulesing_status?: string | null
-          pericardium_ok?: boolean | null
           plant_id?: string | null
           requested_kill_date?: string | null
           requested_window_end?: string | null
           requested_window_start?: string | null
           slot_time?: string | null
           species?: string
-          species_class?: string | null
           species_type?: string | null
           status?: string | null
           supplier_id?: string | null
           target_grid_id?: string | null
           transport_status?: string | null
-          trucking_advice?: string | null
           variance_hours?: number | null
         }
         Relationships: [
