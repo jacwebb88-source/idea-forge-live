@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { format, parseISO, startOfDay } from "date-fns";
+import { format, parseISO, startOfDay, addDays } from "date-fns";
 import {
   FileText,
   Send,
@@ -73,6 +73,38 @@ export default function KillReports() {
   const [selectedRecipients, setSelectedRecipients] = useState<Set<string>>(
     new Set(MOCK_RECIPIENTS.map((r) => r.id))
   );
+
+  // Quick-date nav: upcoming kill dates with head counts
+  const [upcomingDates, setUpcomingDates] = useState<{ date: string; head: number; count: number }[]>([]);
+
+  useEffect(() => {
+    const fetchDates = async () => {
+      const today = format(new Date(), "yyyy-MM-dd");
+      const cutoff = format(addDays(parseISO(today), 28), "yyyy-MM-dd");
+      const { data } = await supabase
+        .from("bookings")
+        .select("requested_kill_date, head_count")
+        .gte("requested_kill_date", today)
+        .lte("requested_kill_date", cutoff)
+        .neq("status", "cancelled");
+      if (data) {
+        const grouped: Record<string, { head: number; count: number }> = {};
+        (data as any[]).forEach(b => {
+          const d = b.requested_kill_date as string;
+          if (!d) return;
+          if (!grouped[d]) grouped[d] = { head: 0, count: 0 };
+          grouped[d].head += b.head_count || 0;
+          grouped[d].count += 1;
+        });
+        setUpcomingDates(
+          Object.entries(grouped)
+            .map(([date, { head, count }]) => ({ date, head, count }))
+            .sort((a, b) => a.date.localeCompare(b.date))
+        );
+      }
+    };
+    fetchDates();
+  }, []);
 
   // ── Fetch bookings for selected date ──────────────────────────────────────
   useEffect(() => {
@@ -260,6 +292,37 @@ export default function KillReports() {
             </Button>
           </div>
         </div>
+
+        {/* ── Quick-date nav ── */}
+        {upcomingDates.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+            {upcomingDates.map(({ date, head, count }) => {
+              const isSelected = date === selectedDate;
+              const d = parseISO(date);
+              return (
+                <button
+                  key={date}
+                  onClick={() => { setSelectedDate(date); setSentCount(null); }}
+                  className={`flex-shrink-0 rounded-lg border px-3 py-2 text-left transition-all ${
+                    isSelected
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background hover:bg-muted"
+                  }`}
+                >
+                  <p className={`text-xs font-semibold ${isSelected ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+                    {format(d, "EEE d MMM")}
+                  </p>
+                  <p className={`text-sm font-bold ${isSelected ? "" : "text-foreground"}`}>
+                    {head.toLocaleString()} hd
+                  </p>
+                  <p className={`text-xs ${isSelected ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                    {count} booking{count !== 1 ? "s" : ""}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* ── Day summary ── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
