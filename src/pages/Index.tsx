@@ -20,8 +20,19 @@ import {
   BarChart3,
   Shield,
   Bell,
-  Clock
+  Clock,
+  XCircle,
 } from "lucide-react";
+
+type OperationalGap = {
+  id: string;
+  supplierName: string;
+  head_count: number | null;
+  species: string | null;
+  requested_kill_date: string | null;
+  daysUntilKill: number;
+  gapType: "transport" | "compliance";
+};
 
 type UnconfirmedBooking = {
   id: string;
@@ -54,6 +65,8 @@ const Index = () => {
   const [loadingReminders, setLoadingReminders] = useState(true);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loadingMetrics, setLoadingMetrics] = useState(true);
+  const [operationalGaps, setOperationalGaps] = useState<OperationalGap[]>([]);
+  const [loadingGaps, setLoadingGaps] = useState(true);
 
   // ── Live dashboard metrics from Supabase ──
   useEffect(() => {
@@ -195,6 +208,75 @@ const Index = () => {
     };
 
     fetchComplianceData();
+  }, []);
+
+  // ── Operational gaps: transport + compliance missing in next 7 days ──
+  useEffect(() => {
+    const fetchGaps = async () => {
+      setLoadingGaps(true);
+      const today = new Date();
+      const todayStr  = format(today, "yyyy-MM-dd");
+      const cutoffStr = format(addDays(today, 7), "yyyy-MM-dd");
+
+      const { data: bks } = await supabase
+        .from("bookings")
+        .select("id, supplier_id, head_count, species, requested_kill_date, transport_status")
+        .gte("requested_kill_date", todayStr)
+        .lte("requested_kill_date", cutoffStr)
+        .neq("status", "cancelled");
+
+      const bookingList = (bks as any[]) || [];
+      if (bookingList.length === 0) { setOperationalGaps([]); setLoadingGaps(false); return; }
+
+      // Supplier names
+      const sids = Array.from(new Set(bookingList.map((b: any) => b.supplier_id).filter(Boolean))) as string[];
+      let supplierMap: Record<string, string> = {};
+      if (sids.length) {
+        const { data: sups } = await supabase.from("suppliers").select("id, name").in("id", sids);
+        (sups as any[] || []).forEach((s: any) => (supplierMap[s.id] = s.name));
+      }
+
+      // Which bookings have a compliance check record?
+      const bookingIds = bookingList.map((b: any) => b.id);
+      const { data: checks } = await (supabase as any)
+        .from("compliance_checks")
+        .select("booking_id")
+        .in("booking_id", bookingIds);
+      const checkedIds = new Set((checks as any[] || []).map((c: any) => c.booking_id));
+
+      const gaps: OperationalGap[] = [];
+
+      for (const b of bookingList) {
+        const days = b.requested_kill_date
+          ? differenceInDays(parseISO(b.requested_kill_date), today)
+          : 99;
+        const base = {
+          id: b.id,
+          supplierName: supplierMap[b.supplier_id] || "Unknown supplier",
+          head_count: b.head_count,
+          species: b.species,
+          requested_kill_date: b.requested_kill_date,
+          daysUntilKill: days,
+        };
+
+        // Transport not arranged (null or still pending, NOT 'not_required' or 'confirmed')
+        const ts = (b.transport_status || "").toLowerCase();
+        if (!ts || ts === "pending" || ts === "tbc") {
+          gaps.push({ ...base, gapType: "transport" });
+        }
+
+        // Compliance check missing
+        if (!checkedIds.has(b.id)) {
+          gaps.push({ ...base, gapType: "compliance" });
+        }
+      }
+
+      // Sort: most urgent first
+      gaps.sort((a, b) => a.daysUntilKill - b.daysUntilKill);
+      setOperationalGaps(gaps);
+      setLoadingGaps(false);
+    };
+    fetchGaps();
   }, []);
 
   const handleConfirmSlot = () => {
@@ -409,6 +491,80 @@ const Index = () => {
                         </span>
                         <span className="shrink-0 text-xs text-muted-foreground capitalize border rounded px-1.5 py-0.5 bg-background">
                           {b.status || "placeholder"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── Operational Gaps panel ── */}
+        {(loadingGaps || operationalGaps.length > 0) && (
+          <Card className={operationalGaps.some(g => g.daysUntilKill <= 1) ? "border-destructive/60" : "border-amber-200/60"}>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <XCircle className="h-4 w-4 text-destructive" />
+                Operational Gaps — Next 7 Days
+                {!loadingGaps && operationalGaps.length > 0 && (
+                  <span className="ml-auto text-xs font-normal text-muted-foreground">
+                    {operationalGaps.length} item{operationalGaps.length !== 1 ? "s" : ""} need action
+                  </span>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingGaps ? (
+                <p className="text-sm text-muted-foreground animate-pulse">Checking for gaps…</p>
+              ) : operationalGaps.length === 0 ? (
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-emerald-500" />
+                  No transport or compliance gaps in the next 7 days.
+                </p>
+              ) : (
+                <div className="space-y-1.5">
+                  {operationalGaps.map((g, idx) => {
+                    const isTransport   = g.gapType === "transport";
+                    const urgencyClass  = g.daysUntilKill <= 1
+                      ? "bg-red-50 border-red-200 dark:bg-red-950/20"
+                      : g.daysUntilKill <= 3
+                      ? "bg-amber-50 border-amber-200 dark:bg-amber-950/20"
+                      : "border-border bg-muted/20";
+                    const tagClass      = isTransport
+                      ? "text-blue-700 bg-blue-50 border-blue-200"
+                      : "text-orange-700 bg-orange-50 border-orange-200";
+                    const daysLabel     = g.daysUntilKill === 0 ? "TODAY"
+                      : g.daysUntilKill === 1 ? "Tomorrow"
+                      : `${g.daysUntilKill}d`;
+
+                    return (
+                      <div key={`${g.id}-${g.gapType}-${idx}`}
+                        className={`flex items-center gap-3 rounded-md border px-3 py-2 text-xs ${urgencyClass}`}>
+                        {isTransport
+                          ? <Truck className="h-3.5 w-3.5 shrink-0 text-blue-500" />
+                          : <Shield className="h-3.5 w-3.5 shrink-0 text-orange-500" />
+                        }
+                        <span className={`shrink-0 font-semibold border rounded px-1.5 py-0.5 ${tagClass}`}>
+                          {isTransport ? "Transport" : "Compliance"}
+                        </span>
+                        <span className="flex-1 min-w-0 truncate text-foreground">
+                          {g.supplierName}
+                          {g.head_count ? ` · ${g.head_count.toLocaleString()} head` : ""}
+                          {g.species ? ` · ${g.species}` : ""}
+                        </span>
+                        {g.requested_kill_date && (
+                          <span className="shrink-0 text-muted-foreground">
+                            Kill {format(parseISO(g.requested_kill_date), "d MMM")}
+                          </span>
+                        )}
+                        <span className={`shrink-0 font-bold rounded px-1.5 py-0.5 ${
+                          g.daysUntilKill <= 1 ? "text-red-700 bg-red-100" :
+                          g.daysUntilKill <= 3 ? "text-amber-700 bg-amber-100" :
+                          "text-muted-foreground bg-muted"
+                        }`}>
+                          {daysLabel}
                         </span>
                       </div>
                     );
