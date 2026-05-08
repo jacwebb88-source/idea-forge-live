@@ -679,6 +679,11 @@ export default function KillPlan() {
                         +{(booked - planned).toLocaleString()} over capacity
                       </div>
                     )}
+                    {isShortfall && (
+                      <div className="mt-1 text-xs text-amber-700 font-medium">
+                        {(planned - booked).toLocaleString()} head shortfall
+                      </div>
+                    )}
                   </div>
                 </CardHeader>
 
