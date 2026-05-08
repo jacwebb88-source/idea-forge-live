@@ -558,19 +558,20 @@ export default function KillPlan() {
             const barWidth = hasPlan ? Math.min(pct, 100) : 0;
             const isOver  = hasPlan && booked > planned;
             const hgpError = hasHGPSequenceError(dayBookings);
+            const isToday = isSameDay(day, new Date());
 
             return (
               <Card
                 key={day.toISOString()}
-                className={`flex flex-col ${isOver ? "ring-2 ring-destructive/70 border-destructive/50" : hgpError ? "ring-2 ring-orange-400/70 border-orange-300" : ""}`}
+                className={`flex flex-col ${isOver ? "ring-2 ring-destructive/70 border-destructive/50" : hgpError ? "ring-2 ring-orange-400/70 border-orange-300" : isToday ? "ring-2 ring-primary/60 border-primary/40" : ""}`}
               >
                 <CardHeader className="pb-3">
                   {/* Day header */}
                   <div className="flex items-start justify-between">
                     <CardTitle className="text-sm font-semibold flex flex-col">
-                      <span>{format(day, "EEEE")}</span>
-                      <span className="text-xs text-muted-foreground font-normal">
-                        {format(day, "d MMM")}
+                      <span className={isToday ? "text-primary" : ""}>{format(day, "EEEE")}</span>
+                      <span className={`text-xs font-normal ${isToday ? "text-primary/80 font-semibold" : "text-muted-foreground"}`}>
+                        {format(day, "d MMM")}{isToday ? " · Today" : ""}
                       </span>
                     </CardTitle>
                     {isOver && (
