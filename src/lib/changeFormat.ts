@@ -164,3 +164,51 @@ export const severityLabel: Record<Severity, string> = {
   info:     "Update",
   positive: "Cleared",
 };
+
+// ---- Category classification (for quick filters & icons) ----
+
+export type ChangeCategory =
+  | "scheduling"
+  | "compliance"
+  | "transport"
+  | "supplier"
+  | "buyer"
+  | "other";
+
+export function changeCategory(field: string): ChangeCategory {
+  if (["requested_kill_date", "slot_time", "arrival_slot", "kill_order_seq", "status"].includes(field))
+    return "scheduling";
+  if (["nvd_status", "nlis_status", "pic_status", "hgp_status", "mulesing_status", "pericardium_ok", "msa_enrolled", "exit_followup_status"].includes(field))
+    return "compliance";
+  if (field === "transport_status") return "transport";
+  if (["supplier_id", "head_count", "lot_id", "species_class"].includes(field)) return "supplier";
+  if (field === "agent_ref") return "buyer";
+  return "other";
+}
+
+export const categoryLabel: Record<ChangeCategory, string> = {
+  scheduling: "Scheduling",
+  compliance: "Compliance",
+  transport:  "Transport",
+  supplier:   "Supplier",
+  buyer:      "Buyer",
+  other:      "Other",
+};
+
+export const categoryChip: Record<ChangeCategory, string> = {
+  scheduling: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  compliance: "bg-rose-50 text-rose-700 border-rose-200",
+  transport:  "bg-sky-50 text-sky-700 border-sky-200",
+  supplier:   "bg-amber-50 text-amber-800 border-amber-200",
+  buyer:      "bg-violet-50 text-violet-700 border-violet-200",
+  other:      "bg-slate-50 text-slate-700 border-slate-200",
+};
+
+export const categoryAccent: Record<ChangeCategory, string> = {
+  scheduling: "bg-indigo-500",
+  compliance: "bg-rose-500",
+  transport:  "bg-sky-500",
+  supplier:   "bg-amber-500",
+  buyer:      "bg-violet-500",
+  other:      "bg-slate-400",
+};
