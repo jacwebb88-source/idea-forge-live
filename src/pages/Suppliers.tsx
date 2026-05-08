@@ -4,9 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { Users, Plus, Search, Phone, Mail, CreditCard, Calendar, TrendingUp } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { format, parseISO } from "date-fns";
 
 type Supplier = {
   id: string;
@@ -19,6 +23,17 @@ type Supplier = {
   // enriched
   activeBookings?: number;
   totalHead?: number;
+};
+
+type SupplierBooking = {
+  id: string;
+  species: string | null;
+  head_count: number | null;
+  requested_kill_date: string | null;
+  status: string | null;
+  arrival_slot: string | null;
+  transport_status: string | null;
+  hgp_status: string | null;
 };
 
 const supplierTypeLabel = (t: string | null): string => {
@@ -46,6 +61,9 @@ export default function Suppliers() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
+  const [supplierBookings, setSupplierBookings] = useState<SupplierBooking[]>([]);
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
   useEffect(() => {
     const fetchSuppliers = async () => {
@@ -84,6 +102,22 @@ export default function Suppliers() {
     };
     fetchSuppliers();
   }, []);
+
+  const openSupplier = async (s: Supplier) => {
+    setSelectedSupplier(s);
+    setLoadingDetail(true);
+    const today = format(new Date(), "yyyy-MM-dd");
+    const { data } = await supabase
+      .from("bookings")
+      .select("id, species, head_count, requested_kill_date, status, arrival_slot, transport_status, hgp_status")
+      .eq("supplier_id", s.id)
+      .gte("requested_kill_date", today)
+      .neq("status", "cancelled")
+      .order("requested_kill_date", { ascending: true })
+      .limit(20);
+    setSupplierBookings((data as SupplierBooking[]) || []);
+    setLoadingDetail(false);
+  };
 
   const uniqueTypes = Array.from(new Set(suppliers.map(s => s.type).filter(Boolean))) as string[];
 
@@ -182,7 +216,7 @@ export default function Suppliers() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map(s => (
-              <Card key={s.id} className="hover:shadow-md transition-shadow">
+              <Card key={s.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => openSupplier(s)}>
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
@@ -248,6 +282,104 @@ export default function Suppliers() {
           </div>
         )}
       </div>
+
+      {/* ── Supplier detail dialog ── */}
+      <Dialog open={!!selectedSupplier} onOpenChange={(open) => { if (!open) setSelectedSupplier(null); }}>
+        <DialogContent className="max-w-xl max-h-[80vh] overflow-y-auto">
+          {selectedSupplier && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {selectedSupplier.name}
+                  <span className={`text-xs font-medium border rounded-full px-2 py-0.5 ml-2 ${typeColour(selectedSupplier.type)}`}>
+                    {supplierTypeLabel(selectedSupplier.type)}
+                  </span>
+                </DialogTitle>
+              </DialogHeader>
+
+              {/* Contact info */}
+              <div className="space-y-1.5 pt-1">
+                {selectedSupplier.contact_name && (
+                  <p className="text-sm text-muted-foreground">{selectedSupplier.contact_name}</p>
+                )}
+                {selectedSupplier.email && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Mail className="h-3.5 w-3.5" />
+                    <a href={`mailto:${selectedSupplier.email}`} className="hover:text-foreground">{selectedSupplier.email}</a>
+                  </div>
+                )}
+                {selectedSupplier.phone && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Phone className="h-3.5 w-3.5" />
+                    <a href={`tel:${selectedSupplier.phone}`} className="hover:text-foreground">{selectedSupplier.phone}</a>
+                  </div>
+                )}
+                {selectedSupplier.abn && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <CreditCard className="h-3.5 w-3.5" />
+                    <span>ABN {selectedSupplier.abn}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Upcoming bookings */}
+              <div className="pt-3">
+                <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-primary" />
+                  Upcoming bookings
+                  {!loadingDetail && (
+                    <span className="ml-auto text-xs font-normal text-muted-foreground">
+                      {supplierBookings.length} booking{supplierBookings.length !== 1 ? "s" : ""}
+                    </span>
+                  )}
+                </h3>
+
+                {loadingDetail ? (
+                  <p className="text-xs text-muted-foreground animate-pulse py-4 text-center">Loading bookings…</p>
+                ) : supplierBookings.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic py-4 text-center">No upcoming bookings</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {supplierBookings.map(b => {
+                      const statusCls =
+                        b.status === "confirmed" ? "border-blue-200 bg-blue-50/40"
+                        : b.status === "high"    ? "border-emerald-200 bg-emerald-50/40"
+                        : b.status === "medium"  ? "border-amber-200 bg-amber-50/40"
+                        : "border-border bg-muted/20";
+                      return (
+                        <div key={b.id} className={`rounded-md border px-3 py-2 text-xs ${statusCls}`}>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-semibold text-foreground">
+                              {b.requested_kill_date ? format(parseISO(b.requested_kill_date), "EEE d MMM yyyy") : "—"}
+                            </span>
+                            <span className="capitalize text-muted-foreground border rounded px-1.5 py-0.5 bg-background">
+                              {b.status || "placeholder"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3 mt-1 flex-wrap text-muted-foreground">
+                            <span className="font-semibold text-foreground capitalize">{b.species || "—"}</span>
+                            <span>{(b.head_count || 0).toLocaleString()} head</span>
+                            {b.arrival_slot && <span>{b.arrival_slot}</span>}
+                            {b.hgp_status === "hgp_free" && (
+                              <span className="text-emerald-700 font-medium">HGP-Free</span>
+                            )}
+                            {b.hgp_status === "hgp_treated" && (
+                              <span className="text-orange-700 font-medium">HGP ⚠</span>
+                            )}
+                            {b.transport_status && b.transport_status !== "pending" && (
+                              <span className="capitalize">Transport: {b.transport_status.replace(/_/g, " ")}</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
