@@ -809,7 +809,7 @@ export default function KillPlan() {
             <div className="space-y-3 text-sm">
               {/* Confidence banner */}
               <div className={`rounded-md px-3 py-2 flex items-center justify-between ${confidenceCardStyle(selectedBooking.status)}`}>
-                <span className="text-xs font-medium text-muted-foreground">Confidence level</span>
+                <span className="text-xs font-medium text-muted-foreground">Booking confidence</span>
                 <ConfidenceBadge status={selectedBooking.status} />
               </div>
 
