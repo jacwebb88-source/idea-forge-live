@@ -643,7 +643,13 @@ export default function KillPlan() {
                         OVER
                       </span>
                     )}
-                    {hgpError && !isOver && (
+                    {isShortfall && (
+                      <span className="flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-100 rounded px-1.5 py-0.5">
+                        <AlertTriangle className="h-3 w-3" />
+                        SHORT
+                      </span>
+                    )}
+                    {hgpError && !isOver && !isShortfall && (
                       <span className="flex items-center gap-1 text-xs font-semibold text-orange-700 bg-orange-100 rounded px-1.5 py-0.5">
                         <AlertTriangle className="h-3 w-3" />
                         HGP
