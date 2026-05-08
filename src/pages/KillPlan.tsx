@@ -475,9 +475,9 @@ export default function KillPlan() {
         {/* ── Header ── */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Kill Plan</h1>
+            <h1 className="text-3xl font-bold text-foreground">Weekly Kill Board</h1>
             <p className="text-muted-foreground">
-              Weekly scheduling view — capacity, confidence &amp; overschedule alerts
+              Primary scheduling view — capacity, confidence, compliance &amp; follow-up alerts
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
