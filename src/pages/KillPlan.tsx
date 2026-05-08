@@ -443,6 +443,21 @@ export default function KillPlan() {
     const booked  = bookingsForDay(d).reduce((sum, b) => sum + (b.head_count || 0), 0);
     return planned > 0 && booked > planned;
   }).length;
+  const shortfallDays = days.filter((d) => {
+    const planned = plannedForDay(d);
+    const booked  = bookingsForDay(d).reduce((sum, b) => sum + (b.head_count || 0), 0);
+    // Weekday with capacity but booked < 80% = shortfall risk
+    const dow = d.getDay();
+    const isWeekday = dow >= 1 && dow <= 5;
+    return isWeekday && planned > 0 && booked < planned * 0.8;
+  }).length;
+  const complianceFailCount = filteredBookings.filter(
+    (b) => complianceState(compliance[b.id]) === "fail"
+  ).length;
+  const exitFollowupCount = filteredBookings.filter(
+    (b) => (b.exit_followup_status || "").toLowerCase() === "pending"
+      || (b.exit_followup_status || "").toLowerCase() === "overdue"
+  ).length;
 
   // ── Confidence legend data ─────────────────────────────────────────────────
   const legendItems = [
