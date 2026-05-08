@@ -96,7 +96,7 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Data Management</SidebarGroupLabel>
+          <SidebarGroupLabel>Reference Data</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {dataItems.map((item) => (
