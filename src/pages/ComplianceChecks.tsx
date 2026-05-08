@@ -16,14 +16,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 interface ComplianceCheck {
-  id: number;
+  id: string;
   booking_id: string | null;
   nlis_status: string | null;
   nvd_status: string | null;
   pic_status: string | null;
   checked_at: string | null;
   checked_by: string | null;
-  notes: string | null;
 }
 
 interface BookingComplianceRow {
@@ -113,7 +112,7 @@ export default function ComplianceChecks() {
       setLoadingChecks(true);
       const { data, error } = await (supabase as any)
         .from("compliance_checks")
-        .select("id, booking_id, nlis_status, nvd_status, pic_status, checked_at, checked_by, notes")
+        .select("id, booking_id, nlis_status, nvd_status, pic_status, checked_at, checked_by")
         .order("checked_at", { ascending: sortOrder === "asc" });
 
       if (!error && data) setChecks(data);
@@ -617,9 +616,6 @@ export default function ComplianceChecks() {
                       Checked by <strong>{selectedCheck.checked_by}</strong>
                       {selectedCheck.checked_at && ` · ${format(new Date(selectedCheck.checked_at), "d MMM yyyy HH:mm")}`}
                     </p>
-                  )}
-                  {selectedCheck.notes && (
-                    <p className="text-xs text-muted-foreground border-t pt-2">{selectedCheck.notes}</p>
                   )}
                 </div>
               ) : (
