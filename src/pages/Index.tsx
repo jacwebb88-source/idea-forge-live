@@ -34,6 +34,16 @@ type UnconfirmedBooking = {
   daysUntilKill: number;
 };
 
+type DashboardMetrics = {
+  activeBookings: number;
+  thisWeekHead: number;
+  confirmedHead: number;
+  avgFillRate: number | null;
+  slotAdherence: number | null;
+  pendingTransport: number;
+  hgpConflicts: number;
+};
+
 const Index = () => {
   const { toast } = useToast();
   const [complianceOk, setComplianceOk] = useState<number | null>(null);
@@ -42,6 +52,52 @@ const Index = () => {
   const [loadingCompliance, setLoadingCompliance] = useState(true);
   const [unconfirmedBookings, setUnconfirmedBookings] = useState<UnconfirmedBooking[]>([]);
   const [loadingReminders, setLoadingReminders] = useState(true);
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [loadingMetrics, setLoadingMetrics] = useState(true);
+
+  // ── Live dashboard metrics from Supabase ──
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      setLoadingMetrics(true);
+      const today = format(new Date(), "yyyy-MM-dd");
+      const weekEnd = format(addDays(new Date(), 7), "yyyy-MM-dd");
+
+      // Parallel fetches
+      const [{ data: upcoming }, { data: kpiLatest }] = await Promise.all([
+        supabase
+          .from("bookings")
+          .select("id, head_count, status, transport_status, hgp_status, requested_kill_date")
+          .gte("requested_kill_date", today)
+          .neq("status", "cancelled"),
+        supabase
+          .from("kpi_records")
+          .select("fill_rate_pct, slot_adherence_pct")
+          .order("date", { ascending: false })
+          .limit(1),
+      ]);
+
+      const bks = (upcoming || []) as any[];
+      const thisWeek = bks.filter(b => b.requested_kill_date && b.requested_kill_date <= weekEnd);
+
+      // HGP sequencing conflict: any day with both hgp_treated + hgp_free would need
+      // deeper analysis — here we flag bookings where hgp_treated is set (proxy for attention)
+      const hgpConflicts = bks.filter(b => b.hgp_status === "hgp_treated").length;
+
+      setMetrics({
+        activeBookings: bks.length,
+        thisWeekHead: thisWeek.reduce((sum: number, b: any) => sum + (b.head_count || 0), 0),
+        confirmedHead: bks
+          .filter(b => b.status === "confirmed")
+          .reduce((sum: number, b: any) => sum + (b.head_count || 0), 0),
+        avgFillRate: kpiLatest?.[0]?.fill_rate_pct ?? null,
+        slotAdherence: kpiLatest?.[0]?.slot_adherence_pct ?? null,
+        pendingTransport: bks.filter(b => !b.transport_status || b.transport_status === "pending").length,
+        hgpConflicts,
+      });
+      setLoadingMetrics(false);
+    };
+    fetchMetrics();
+  }, []);
 
   // Fetch unconfirmed bookings due in the next 14 days
   useEffect(() => {
@@ -190,54 +246,64 @@ const Index = () => {
         </div>
 
         {/* Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <MetricCard
-            title="Fill Rate"
-            value="87.5%"
-            change="+4.3pp from last week"
-            changeType="positive"
-            icon={BarChart3}
-            description="Booking capacity utilization"
-          />
-          <MetricCard
-            title="Lead Time Variance"
-            value="0.25hr"
-            change="↓ 1.6 hrs vs last week"
-            changeType="positive"
-            icon={Calendar}
-            description="Planned vs Actual Timing"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <MetricCard
             title="Active Bookings"
-            value="156"
-            change="+8 from yesterday"
+            value={loadingMetrics ? "—" : metrics?.activeBookings ?? 0}
+            change={loadingMetrics ? undefined : `${metrics?.confirmedHead?.toLocaleString() ?? 0} confirmed head`}
             changeType="positive"
             icon={Calendar}
-            description="Confirmed processing slots"
+            description="Upcoming non-cancelled bookings"
           />
           <MetricCard
-            title="Transport Loads"
-            value="48"
-            change="3 pending"
+            title="This Week — Head Count"
+            value={loadingMetrics ? "—" : (metrics?.thisWeekHead ?? 0).toLocaleString()}
+            change={loadingMetrics ? undefined : "Next 7 days"}
             changeType="neutral"
+            icon={Users}
+            description="Total head booked in the next 7 days"
+          />
+          <MetricCard
+            title="Pending Transport"
+            value={loadingMetrics ? "—" : metrics?.pendingTransport ?? 0}
+            change={loadingMetrics ? undefined : metrics?.pendingTransport === 0 ? "All arranged" : "Awaiting arrangement"}
+            changeType={metrics?.pendingTransport === 0 ? "positive" : "neutral"}
             icon={Truck}
-            description="Scheduled transport today"
+            description="Bookings without confirmed transport"
+          />
+          <MetricCard
+            title="Fill Rate"
+            value={loadingMetrics ? "—" : metrics?.avgFillRate != null ? `${metrics.avgFillRate.toFixed(1)}%` : "No data"}
+            change={loadingMetrics ? undefined : "From latest KPI record"}
+            changeType="neutral"
+            icon={BarChart3}
+            description="Booking capacity utilisation"
+            thresholds={metrics?.avgFillRate != null ? {
+              value: metrics.avgFillRate,
+              greenAbove: 90,
+              amberAbove: 75
+            } : undefined}
           />
           <MetricCard
             title="Slot Adherence"
-            value="92.3%"
-            change="+3.6pp from last week"
-            changeType="positive"
+            value={loadingMetrics ? "—" : metrics?.slotAdherence != null ? `${metrics.slotAdherence.toFixed(1)}%` : "No data"}
+            change={loadingMetrics ? undefined : "From latest KPI record"}
+            changeType="neutral"
             icon={TrendingUp}
-            description="Kept vs assigned slots"
+            description="Kept vs assigned arrival slots"
+            thresholds={metrics?.slotAdherence != null ? {
+              value: metrics.slotAdherence,
+              greenAbove: 90,
+              amberAbove: 75
+            } : undefined}
           />
           <MetricCard
-            title="Conflicts"
-            value="3"
-            change="1 critical"
-            changeType="negative"
+            title="HGP Attention"
+            value={loadingMetrics ? "—" : metrics?.hgpConflicts ?? 0}
+            change={loadingMetrics ? undefined : metrics?.hgpConflicts === 0 ? "No HGP-treated bookings" : "HGP-treated bookings upcoming"}
+            changeType={metrics?.hgpConflicts === 0 ? "positive" : "negative"}
             icon={AlertTriangle}
-            description="Active scheduling conflicts"
+            description="Bookings flagged HGP-treated"
           />
         </div>
 
@@ -250,7 +316,7 @@ const Index = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <MetricCard
                 title="Compliance OK %"
-                value={loadingCompliance ? "Loading..." : "84%"}
+                value={loadingCompliance ? "—" : complianceOk !== null ? `${complianceOk.toFixed(0)}%` : "No records"}
                 change={complianceOk !== null ? "Fully compliant bookings" : undefined}
                 changeType="neutral"
                 icon={Shield}
@@ -263,7 +329,7 @@ const Index = () => {
               />
               <MetricCard
                 title="Missing Compliance Records"
-                value={loadingCompliance ? "Loading..." : "8"}
+                value={loadingCompliance ? "—" : missingCompliance}
                 change={missingCompliance > 0 ? "Requires attention" : "All records complete"}
                 changeType={missingCompliance === 0 ? "positive" : "negative"}
                 icon={AlertTriangle}
@@ -360,13 +426,13 @@ const Index = () => {
         </div>
 
 
-        {/* Demo Data Notice */}
+        {/* Live data note */}
         <Card className="border-dashed border-muted-foreground/30">
-          <CardContent className="pt-6">
-            <div className="text-center text-sm text-muted-foreground">
-              <p className="font-medium">🏭 Demo Data</p>
-              <p>This is sample dashboard data for demonstration. Production would show real processor metrics, live activity feeds, and actual plant performance.</p>
-            </div>
+          <CardContent className="pt-4 pb-3">
+            <p className="text-xs text-muted-foreground text-center">
+              <span className="font-medium">Live data.</span> Booking counts, head counts, and transport are pulled in real time from Supabase.
+              Fill rate and slot adherence come from KPI records — add entries via the KPI Dashboard.
+            </p>
           </CardContent>
         </Card>
       </div>

@@ -1,124 +1,112 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Clock, Calendar } from "lucide-react";
+import { Clock, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { formatDistanceToNow, parseISO } from "date-fns";
 
-interface ActivityItem {
+interface ChangeItem {
+  id: string;
   booking_id: string;
-  lot_id: string | null;
-  species: string | null;
-  event: string;
-  at_time: string;
-  type: 'booking' | 'intake';
+  field_name: string;
+  old_value: string | null;
+  new_value: string | null;
+  changed_by: string | null;
+  changed_by_role: string | null;
+  changed_at: string | null;
 }
 
+const fieldLabel = (field: string): string => {
+  const map: Record<string, string> = {
+    status:              "Status",
+    head_count:          "Head count",
+    requested_kill_date: "Kill date",
+    slot_time:           "Slot time",
+    arrival_slot:        "Arrival slot",
+    supplier_id:         "Supplier",
+    transport_status:    "Transport",
+    hgp_status:          "HGP status",
+    kill_order_seq:      "Kill order",
+    msa_enrolled:        "MSA enrolment",
+    pericardium_ok:      "Pericardium",
+  };
+  return map[field] || field.replace(/_/g, " ");
+};
+
+const dotColour = (field: string): string => {
+  if (["status", "head_count", "requested_kill_date"].includes(field))
+    return "bg-amber-500";
+  if (["hgp_status", "kill_order_seq"].includes(field))
+    return "bg-red-500";
+  return "bg-blue-400";
+};
+
 export function RecentActivity() {
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [changes, setChanges] = useState<ChangeItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchRecentActivity();
-  }, []);
-
-  const fetchRecentActivity = async () => {
-    try {
+    const fetch = async () => {
+      setLoading(true);
       const { data, error } = await (supabase as any)
-        .from('app_recent_activity')
-        .select('*')
-        .order('at_time', { ascending: false })
-        .limit(10);
+        .from("booking_changes")
+        .select("id, booking_id, field_name, old_value, new_value, changed_by, changed_by_role, changed_at")
+        .order("changed_at", { ascending: false })
+        .limit(12);
 
-      if (error) {
-        console.error('Error fetching recent activity:', error);
-        return;
+      if (!error && data) {
+        setChanges(data as ChangeItem[]);
       }
-
-      setActivities((data as unknown as ActivityItem[]) || []);
-    } catch (error) {
-      console.error('Error:', error);
-    } finally {
       setLoading(false);
-    }
-  };
-
-  const getActivityMessage = (activity: ActivityItem) => {
-    if (activity.type === 'intake') {
-      return `Intake ${activity.event} recorded`;
-    }
-    
-    // For booking events
-    return `Booking ${activity.event}`;
-  };
-
-  const getActivitySubtext = (activity: ActivityItem) => {
-    if (activity.type === 'intake') {
-      return null;
-    }
-    
-    // For booking events, show species and lot info
-    const parts = [];
-    if (activity.species) parts.push(activity.species);
-    if (activity.lot_id) parts.push(`lot ${activity.lot_id}`);
-    
-    return parts.length > 0 ? parts.join(' • ') : null;
-  };
-
-  const getTypeColor = (type: 'booking' | 'intake') => {
-    return type === 'booking' ? 'bg-blue-500' : 'bg-teal-500';
-  };
-
-  const getRelativeTime = (dateString: string) => {
-    const now = new Date();
-    const date = new Date(dateString);
-    const diffInMs = now.getTime() - date.getTime();
-    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-
-    if (diffInMinutes < 1) return 'Just now';
-    if (diffInMinutes < 60) return `${diffInMinutes} ${diffInMinutes === 1 ? 'minute' : 'minutes'} ago`;
-    if (diffInHours < 24) return `${diffInHours} ${diffInHours === 1 ? 'hour' : 'hours'} ago`;
-    return `${diffInDays} ${diffInDays === 1 ? 'day' : 'days'} ago`;
-  };
+    };
+    fetch();
+  }, []);
 
   return (
     <Card className="col-span-1">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base">
           <Clock className="h-5 w-5 text-primary" />
-          Recent Activity
+          Recent Changes
         </CardTitle>
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="text-center text-muted-foreground py-8">
-            Loading recent activity...
+          <div className="text-center text-muted-foreground py-8 text-sm animate-pulse">
+            Loading activity…
           </div>
-        ) : activities.length === 0 ? (
-          <div className="text-center text-muted-foreground py-8">
-            No recent activity
+        ) : changes.length === 0 ? (
+          <div className="text-center text-muted-foreground py-8 text-sm">
+            <p>No recent changes recorded.</p>
+            <p className="text-xs mt-1">Changes appear here as bookings are edited.</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {activities.map((activity, index) => (
-              <div key={`${activity.booking_id}-${index}`} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/30 transition-colors">
-                <div className="flex items-center gap-2 mt-1">
-                  <div className={`w-2 h-2 rounded-full ${getTypeColor(activity.type)}`}></div>
+          <div className="space-y-2.5">
+            {changes.map((c) => (
+              <div key={c.id} className="flex items-start gap-3">
+                <div className="mt-1.5 shrink-0">
+                  <div className={`w-2 h-2 rounded-full ${dotColour(c.field_name)}`} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-foreground font-medium">
-                    {getActivityMessage(activity)}
+                  <p className="text-sm text-foreground leading-snug">
+                    <span className="font-medium">{fieldLabel(c.field_name)}</span>
+                    {" "}
+                    <span className="text-muted-foreground text-xs line-through">{c.old_value || "—"}</span>
+                    {" "}
+                    <ArrowRight className="inline h-3 w-3 text-muted-foreground" />
+                    {" "}
+                    <span className="font-medium text-foreground text-xs">{c.new_value || "—"}</span>
                   </p>
-                  {getActivitySubtext(activity) && (
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {getActivitySubtext(activity)}
-                    </p>
-                  )}
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {getRelativeTime(activity.at_time)}
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    <span className="font-mono">{c.booking_id.slice(-6).toUpperCase()}</span>
+                    {c.changed_by && <> · {c.changed_by}</>}
+                    {c.changed_by_role && <> ({c.changed_by_role})</>}
                   </p>
                 </div>
+                <span className="shrink-0 text-xs text-muted-foreground whitespace-nowrap">
+                  {c.changed_at
+                    ? formatDistanceToNow(parseISO(c.changed_at), { addSuffix: true })
+                    : "—"}
+                </span>
               </div>
             ))}
           </div>

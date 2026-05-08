@@ -20,6 +20,11 @@ type BookingData = {
   status: string | null;
   fill_rate: number | null;
   plant_id: string | null;
+  supplier_id: string | null;
+  arrival_slot: string | null;
+  hgp_status: string | null;
+  // enriched
+  supplierName?: string;
 };
 
 const getSpeciesVariant = (species: string): "beef" | "lamb" | "mutton" | "goat" | "secondary" => {
@@ -139,10 +144,10 @@ export default function BookingBoard() {
     try {
       setLoading(true);
       const plantIds = getFilteredPlantIds();
-      
+
       let query = supabase
         .from('bookings')
-        .select('id, species, head_count, requested_kill_date, status, fill_rate, plant_id')
+        .select('id, species, head_count, requested_kill_date, status, fill_rate, plant_id, supplier_id, arrival_slot, hgp_status')
         .order('requested_kill_date', { ascending: true });
 
       if (plantIds.length > 0) {
@@ -165,7 +170,23 @@ export default function BookingBoard() {
         return;
       }
 
-      setBookings(data || []);
+      const raw = (data || []) as BookingData[];
+
+      // Enrich with supplier names
+      const supplierIds = Array.from(new Set(raw.map(b => b.supplier_id).filter(Boolean))) as string[];
+      let supplierMap: Record<string, string> = {};
+      if (supplierIds.length > 0) {
+        const { data: sups } = await supabase
+          .from('suppliers')
+          .select('id, name')
+          .in('id', supplierIds);
+        (sups || []).forEach((s: any) => (supplierMap[s.id] = s.name));
+      }
+
+      setBookings(raw.map(b => ({
+        ...b,
+        supplierName: b.supplier_id ? (supplierMap[b.supplier_id] || "Unknown supplier") : undefined,
+      })));
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -178,7 +199,11 @@ export default function BookingBoard() {
   };
 
   const filteredBookings = bookings.filter(booking => {
-    const matchesSearch = booking.species?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false;
+    const q = searchTerm.toLowerCase();
+    const matchesSearch = !searchTerm ||
+      (booking.species || "").toLowerCase().includes(q) ||
+      (booking.supplierName || "").toLowerCase().includes(q) ||
+      booking.id.toLowerCase().includes(q);
     const matchesStatus = statusFilter === "all" || booking.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -271,11 +296,11 @@ export default function BookingBoard() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                placeholder="Search by species..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+                  placeholder="Search by supplier, species, booking ID…"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
                 </div>
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -310,23 +335,26 @@ export default function BookingBoard() {
                 <thead>
                   <tr className="table-header">
                     <th className="text-left py-3 px-3 text-sm font-medium">Booking ID</th>
+                    <th className="text-left py-3 px-3 text-sm font-medium">Supplier</th>
                     <th className="text-left py-3 px-3 text-sm font-medium">Species</th>
-                    <th className="text-right py-3 px-3 text-sm font-medium">Head Count</th>
-                    <th className="text-left py-3 px-3 text-sm font-medium">Status</th>
+                    <th className="text-right py-3 px-3 text-sm font-medium">Head</th>
                     <th className="text-left py-3 px-3 text-sm font-medium">Kill Date</th>
+                    <th className="text-left py-3 px-3 text-sm font-medium">Slot</th>
+                    <th className="text-left py-3 px-3 text-sm font-medium">Status</th>
+                    <th className="text-left py-3 px-3 text-sm font-medium">HGP</th>
                     <th className="text-right py-3 px-3 text-sm font-medium">Fill Rate</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                      <td colSpan={9} className="py-8 text-center text-muted-foreground">
                         Loading bookings...
                       </td>
                     </tr>
                   ) : filteredBookings.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                      <td colSpan={9} className="py-8 text-center text-muted-foreground">
                         No bookings found
                       </td>
                     </tr>
@@ -334,22 +362,37 @@ export default function BookingBoard() {
                     filteredBookings.map((booking) => (
                       <tr key={booking.id} className={`table-row-hover border-b border-border transition-colors ${confidenceRowStyle(booking.status)}`}>
                         <td className="py-3 px-3 text-sm font-medium font-mono">{booking.id.slice(-8).toUpperCase()}</td>
+                        <td className="py-3 px-3 text-sm max-w-[160px] truncate" title={booking.supplierName}>
+                          {booking.supplierName || <span className="text-muted-foreground">—</span>}
+                        </td>
                         <td className="py-3 px-3">
                           <Badge variant={getSpeciesVariant(booking.species || "")} className="capitalize">
                             {booking.species || "—"}
                           </Badge>
                         </td>
-                        <td className="py-3 px-3 text-sm text-right table-cell-numeric">{booking.head_count || '-'}</td>
+                        <td className="py-3 px-3 text-sm text-right table-cell-numeric">{(booking.head_count || 0).toLocaleString() || '-'}</td>
+                        <td className="py-3 px-3 text-sm">
+                          {booking.requested_kill_date ? new Date(booking.requested_kill_date).toLocaleDateString('en-AU') : '—'}
+                        </td>
+                        <td className="py-3 px-3 text-sm text-muted-foreground">
+                          {booking.arrival_slot || '—'}
+                        </td>
                         <td className="py-3 px-3">
                           <Badge variant={getStatusVariant(booking.status || 'unknown')}>
                             {booking.status || 'unknown'}
                           </Badge>
                         </td>
                         <td className="py-3 px-3 text-sm">
-                          {booking.requested_kill_date ? new Date(booking.requested_kill_date).toLocaleDateString('en-AU') : '-'}
+                          {booking.hgp_status === 'hgp_free' ? (
+                            <span className="text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.5">HGP free</span>
+                          ) : booking.hgp_status === 'hgp_treated' ? (
+                            <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">HGP treated</span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
                         </td>
                         <td className="py-3 px-3 text-sm text-right table-cell-numeric">
-                          {booking.fill_rate != null ? `${booking.fill_rate.toFixed(1)}%` : '-'}
+                          {booking.fill_rate != null ? `${booking.fill_rate.toFixed(1)}%` : '—'}
                         </td>
                       </tr>
                     ))
