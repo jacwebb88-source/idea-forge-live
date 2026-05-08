@@ -31,18 +31,18 @@ import {
 } from "@/components/ui/sidebar";
 
 const mainItems = [
-  { title: "Weekly Kill Board", url: "/kill-plan", icon: CalendarRange },
-  { title: "Dashboard", url: "/", icon: Home },
+  { title: "Kill Board", url: "/kill-plan", icon: CalendarRange },
+  { title: "Operations Overview", url: "/", icon: Home },
   { title: "Forward Volume Plan", url: "/forward-plan", icon: TrendingUp },
   { title: "Booking Board", url: "/bookings", icon: Calendar },
   { title: "Transport Slotting", url: "/transport", icon: Truck },
   { title: "Kill Grid Specifications", url: "/grid-specs", icon: ClipboardList },
-  { title: "KPI Dashboard", url: "/kpis", icon: BarChart3 },
+  { title: "Operational KPIs", url: "/kpis", icon: BarChart3 },
   { title: "Compliance Checks", url: "/compliance", icon: ShieldCheck },
-  { title: "Kill Reports", url: "/kill-reports", icon: FileText },
+  { title: "Kill Reports & Despatch", url: "/kill-reports", icon: FileText },
   { title: "Change History", url: "/change-history", icon: History },
   { title: "Pilot Projects", url: "/pilots", icon: Lightbulb },
-  { title: "Supplier Intake Form", url: "/buyer-request", icon: UserCheck },
+  { title: "Vendor Intake Form", url: "/buyer-request", icon: UserCheck },
 ];
 
 const dataItems = [
@@ -78,7 +78,7 @@ export function AppSidebar() {
         </div>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Main</SidebarGroupLabel>
+          <SidebarGroupLabel>Kill Floor</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainItems.map((item) => (
@@ -96,7 +96,7 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Data Management</SidebarGroupLabel>
+          <SidebarGroupLabel>Reference Data</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {dataItems.map((item) => (

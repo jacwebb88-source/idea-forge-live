@@ -187,7 +187,7 @@ export default function ChangeHistory() {
             <CardContent><div className="text-2xl font-bold">{loading ? "—" : todayChanges}</div></CardContent>
           </Card>
           <Card>
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground font-medium">By users</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground font-medium">Operators</CardTitle></CardHeader>
             <CardContent><div className="text-2xl font-bold">{loading ? "—" : uniqueUsers || "—"}</div></CardContent>
           </Card>
           <Card className={highPriority > 0 ? "border-amber-200" : ""}>
@@ -204,7 +204,7 @@ export default function ChangeHistory() {
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by user, booking, note…"
+              placeholder="Search by operator, booking, note…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -322,7 +322,7 @@ export default function ChangeHistory() {
         <Card className="border-dashed border-muted-foreground/30">
           <CardContent className="pt-4 pb-3">
             <p className="text-xs text-muted-foreground text-center">
-              <span className="font-medium">Immutable audit trail.</span> Every booking change from Kill Plan and Booking Board is recorded here automatically — who changed it, what it was before, what it became, and any reason given. No hard deletes, ever.
+              <span className="font-medium">Immutable audit trail.</span> Every booking change from the Kill Board and Booking Board is recorded here — who changed it, prior value, new value, and any reason given. No hard deletes.
             </p>
           </CardContent>
         </Card>

@@ -522,7 +522,7 @@ export default function KPIDashboard() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">KPI Dashboard</h1>
+            <h1 className="text-3xl font-bold text-foreground">Operational KPIs</h1>
             <p className="text-muted-foreground">Performance metrics and pilot results</p>
           </div>
           <div className="flex gap-2">

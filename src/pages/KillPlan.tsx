@@ -475,9 +475,9 @@ export default function KillPlan() {
         {/* ── Header ── */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Weekly Kill Board</h1>
+            <h1 className="text-3xl font-bold text-foreground">Kill Board</h1>
             <p className="text-muted-foreground">
-              Primary scheduling view — capacity, confidence, compliance &amp; follow-up alerts
+              Weekly kill schedule — head count, booking confidence, compliance &amp; exit-date follow-up
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -555,7 +555,7 @@ export default function KillPlan() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground font-medium">Total head booked</CardTitle>
+              <CardTitle className="text-sm text-muted-foreground font-medium">Head booked this week</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{totalBooked.toLocaleString()}</div>
@@ -563,7 +563,7 @@ export default function KillPlan() {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-muted-foreground font-medium">Total capacity</CardTitle>
+              <CardTitle className="text-sm text-muted-foreground font-medium">Planned kill capacity</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{totalPlanned.toLocaleString()}</div>
@@ -585,13 +585,13 @@ export default function KillPlan() {
                 {(overCapacityDays > 0 || shortfallDays > 0) && (
                   <AlertTriangle className={`h-3.5 w-3.5 ${overCapacityDays > 0 ? "text-destructive" : "text-amber-600"}`} />
                 )}
-                Capacity alerts
+                Overschedule &amp; shortfall
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-0.5">
                 <div className={`text-sm font-semibold ${overCapacityDays > 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                  {overCapacityDays} over-capacity
+                  {overCapacityDays} overschedule
                 </div>
                 <div className={`text-sm font-semibold ${shortfallDays > 0 ? "text-amber-700" : "text-muted-foreground"}`}>
                   {shortfallDays} shortfall
@@ -676,7 +676,7 @@ export default function KillPlan() {
                     {/* Overflow indicator */}
                     {isOver && hasPlan && (
                       <div className="mt-1 text-xs text-destructive font-medium">
-                        +{(booked - planned).toLocaleString()} over capacity
+                        +{(booked - planned).toLocaleString()} overscheduled
                       </div>
                     )}
                     {isShortfall && (
@@ -809,7 +809,7 @@ export default function KillPlan() {
             <div className="space-y-3 text-sm">
               {/* Confidence banner */}
               <div className={`rounded-md px-3 py-2 flex items-center justify-between ${confidenceCardStyle(selectedBooking.status)}`}>
-                <span className="text-xs font-medium text-muted-foreground">Confidence level</span>
+                <span className="text-xs font-medium text-muted-foreground">Booking confidence</span>
                 <ConfidenceBadge status={selectedBooking.status} />
               </div>
 
@@ -845,7 +845,7 @@ export default function KillPlan() {
                   <p>{selectedBooking.lot_id || "—"}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Agent ref</p>
+                  <p className="text-xs text-muted-foreground">Buyer / agent allocation</p>
                   <p>{selectedBooking.agent_ref || "—"}</p>
                 </div>
               </div>
