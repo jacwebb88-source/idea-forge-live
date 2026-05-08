@@ -34,11 +34,13 @@ type SlotConflict = {
 
 const transportStatusColour = (s: string | null) => {
   switch ((s || "").toLowerCase()) {
-    case "confirmed": return "bg-emerald-50 text-emerald-700 border-emerald-200";
-    case "arranged":  return "bg-blue-50 text-blue-700 border-blue-200";
-    case "arrived":   return "bg-indigo-50 text-indigo-700 border-indigo-200";
-    case "pending":   return "bg-amber-50 text-amber-700 border-amber-200";
-    default:          return "bg-gray-50 text-gray-500 border-gray-200";
+    case "confirmed":    return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    case "arranged":     return "bg-blue-50 text-blue-700 border-blue-200";
+    case "arrived":      return "bg-indigo-50 text-indigo-700 border-indigo-200";
+    case "in_transit":   return "bg-cyan-50 text-cyan-700 border-cyan-200";
+    case "not_required": return "bg-gray-50 text-gray-600 border-gray-200";
+    case "pending":      return "bg-amber-50 text-amber-700 border-amber-200";
+    default:             return "bg-gray-50 text-gray-500 border-gray-200";
   }
 };
 
@@ -135,7 +137,7 @@ export default function TransportSlotting() {
   );
 
   // Summary counts
-  const needsArranging = bookings.filter(b => !b.transport_status || b.transport_status === "pending").length;
+  const needsArranging = bookings.filter(b => !b.transport_status || b.transport_status === "pending" || b.transport_status === "tbc").length;
   const arranged  = bookings.filter(b => b.transport_status === "arranged").length;
   const confirmed = bookings.filter(b => b.transport_status === "confirmed").length;
   const arrived   = bookings.filter(b => b.transport_status === "arrived").length;
@@ -288,7 +290,7 @@ export default function TransportSlotting() {
                   </thead>
                   <tbody>
                     {filteredBookings.map(b => {
-                      const isUrgent = !b.transport_status || b.transport_status === "pending";
+                      const isUrgent = !b.transport_status || b.transport_status === "pending" || b.transport_status === "tbc";
                       return (
                         <tr
                           key={b.id}
