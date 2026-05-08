@@ -617,13 +617,16 @@ export default function KillPlan() {
             const pct     = hasPlan ? (booked / planned) * 100 : 0;
             const barWidth = hasPlan ? Math.min(pct, 100) : 0;
             const isOver  = hasPlan && booked > planned;
+            const dow = day.getDay();
+            const isWeekday = dow >= 1 && dow <= 5;
+            const isShortfall = isWeekday && hasPlan && !isOver && booked < planned * 0.8;
             const hgpError = hasHGPSequenceError(dayBookings);
             const isToday = isSameDay(day, new Date());
 
             return (
               <Card
                 key={day.toISOString()}
-                className={`flex flex-col ${isOver ? "ring-2 ring-destructive/70 border-destructive/50" : hgpError ? "ring-2 ring-orange-400/70 border-orange-300" : isToday ? "ring-2 ring-primary/60 border-primary/40" : ""}`}
+                className={`flex flex-col ${isOver ? "ring-2 ring-destructive/70 border-destructive/50" : isShortfall ? "ring-2 ring-amber-400/70 border-amber-300" : hgpError ? "ring-2 ring-orange-400/70 border-orange-300" : isToday ? "ring-2 ring-primary/60 border-primary/40" : ""}`}
               >
                 <CardHeader className="pb-3">
                   {/* Day header */}
