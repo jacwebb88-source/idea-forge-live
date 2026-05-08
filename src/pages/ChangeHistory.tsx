@@ -71,7 +71,7 @@ export default function ChangeHistory() {
         .select(`
           id, booking_id, changed_at, changed_by, changed_by_role,
           field_name, old_value, new_value, change_note,
-          bookings!inner(requested_kill_date, species, head_count, status, supplier_id)
+          bookings(requested_kill_date, species, head_count, status, supplier_id)
         `)
         .gte("changed_at", since)
         .order("changed_at", { ascending: false })
