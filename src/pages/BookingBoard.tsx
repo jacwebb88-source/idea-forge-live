@@ -3,13 +3,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { NewBookingForm } from "@/components/NewBookingForm";
 import { BookingCalendar } from "@/components/BookingCalendar";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, Search, Plus, Filter, Download, CheckCircle, X, Loader2 } from "lucide-react";
+import { Search, Plus, Filter, Download, Edit2, Save, X, Loader2, History } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+
+// 30-minute arrival slots 06:00–22:00
+const ARRIVAL_SLOTS = Array.from({ length: 32 }, (_, i) => {
+  const h = Math.floor(i / 2) + 6;
+  const m = i % 2 === 0 ? "00" : "30";
+  const hNext = m === "30" ? h + 1 : h;
+  const mNext = m === "30" ? "00" : "30";
+  return `${String(h).padStart(2, "0")}:${m}–${String(hNext).padStart(2, "0")}:${mNext}`;
+}).filter(s => {
+  const [start] = s.split("–");
+  const [h] = start.split(":").map(Number);
+  return h < 22;
+});
 
 // Type definition for booking data from public.bookings
 type BookingData = {
@@ -23,8 +40,24 @@ type BookingData = {
   supplier_id: string | null;
   arrival_slot: string | null;
   hgp_status: string | null;
+  mulesing_status: string | null;
+  lot_id: string | null;
+  agent_ref: string | null;
+  kill_order_seq: number | null;
+  transport_status: string | null;
+  msa_enrolled: boolean | null;
   // enriched
   supplierName?: string;
+};
+
+type EditFields = {
+  status: string;
+  head_count: string;
+  arrival_slot: string;
+  hgp_status: string;
+  transport_status: string;
+  kill_order_seq: string;
+  change_note: string;
 };
 
 const getSpeciesVariant = (species: string): "beef" | "lamb" | "mutton" | "goat" | "secondary" => {
@@ -32,16 +65,11 @@ const getSpeciesVariant = (species: string): "beef" | "lamb" | "mutton" | "goat"
     case "beef":
     case "cattle": return "beef";
     case "lamb": return "lamb";
-    case "mutton": 
+    case "mutton":
     case "sheep": return "mutton";
     case "goat": return "goat";
     default: return "secondary";
   }
-};
-
-const formatFillRate = (fillRate: number | null) => {
-  if (fillRate === null || fillRate === undefined) return '-';
-  return `${fillRate.toFixed(1)}%`;
 };
 
 const getStatusVariant = (status: string): "confirmed" | "requested" | "changed" | "cancelled" | "secondary" => {
@@ -70,19 +98,22 @@ const confidenceRowStyle = (status: string | null): string => {
   }
 };
 
-const formatTimeWindow = (start?: string, end?: string) => {
-  if (!start || !end) return "TBD";
-  const startTime = new Date(start).toLocaleTimeString('en-AU', { 
-    hour: '2-digit', 
-    minute: '2-digit',
-    hour12: false 
-  });
-  const endTime = new Date(end).toLocaleTimeString('en-AU', { 
-    hour: '2-digit', 
-    minute: '2-digit',
-    hour12: false 
-  });
-  return `${startTime} - ${endTime}`;
+const hgpLabel = (hgp: string | null) => {
+  if (hgp === "hgp_free")    return { text: "HGP free",    cls: "text-emerald-700 bg-emerald-50 border-emerald-200" };
+  if (hgp === "hgp_treated") return { text: "HGP treated", cls: "text-amber-700 bg-amber-50 border-amber-200" };
+  return null;
+};
+
+const transportLabel = (ts: string | null) => {
+  switch (ts) {
+    case "confirmed":       return { text: "Confirmed",   cls: "text-blue-700 bg-blue-50 border-blue-200" };
+    case "arranged":        return { text: "Arranged",    cls: "text-emerald-700 bg-emerald-50 border-emerald-200" };
+    case "arrived":         return { text: "Arrived",     cls: "text-purple-700 bg-purple-50 border-purple-200" };
+    case "in_transit":      return { text: "In transit",  cls: "text-indigo-700 bg-indigo-50 border-indigo-200" };
+    case "pending":         return { text: "Pending",     cls: "text-amber-700 bg-amber-50 border-amber-200" };
+    case "not_required":    return { text: "Not req.",    cls: "text-gray-600 bg-gray-50 border-gray-200" };
+    default: return null;
+  }
 };
 
 export default function BookingBoard() {
@@ -97,6 +128,16 @@ export default function BookingBoard() {
   const [plants, setPlants] = useState<any[]>([]);
   const [processors, setProcessors] = useState<string[]>([]);
 
+  // Dialog state
+  const [selectedBooking, setSelectedBooking] = useState<BookingData | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editFields, setEditFields] = useState<EditFields>({
+    status: "", head_count: "", arrival_slot: "", hgp_status: "",
+    transport_status: "", kill_order_seq: "", change_note: "",
+  });
+  const [saving, setSaving] = useState(false);
+
   // Fetch plants and processors
   useEffect(() => {
     const fetchPlants = async () => {
@@ -106,7 +147,7 @@ export default function BookingBoard() {
         .order('plant_name');
       if (data) {
         setPlants(data);
-        const uniqueProcessors = [...new Set(data.map(p => p.company_name).filter(Boolean))] as string[];
+        const uniqueProcessors = [...new Set(data.map((p: any) => p.company_name).filter(Boolean))] as string[];
         setProcessors(uniqueProcessors);
       }
     };
@@ -119,25 +160,18 @@ export default function BookingBoard() {
   }, [selectedProcessor]);
 
   // Filter plants based on selected processor
-  const filteredPlants = selectedProcessor === "all" 
-    ? plants 
-    : plants.filter(p => p.company_name === selectedProcessor);
+  const filteredPlants = selectedProcessor === "all"
+    ? plants
+    : plants.filter((p: any) => p.company_name === selectedProcessor);
 
-  // Get plant IDs for the current filter
   const getFilteredPlantIds = () => {
-    if (selectedPlant !== "all") {
-      return [selectedPlant];
-    }
-    if (selectedProcessor !== "all") {
-      return filteredPlants.map(p => p.id);
-    }
-    return plants.map(p => p.id);
+    if (selectedPlant !== "all") return [selectedPlant];
+    if (selectedProcessor !== "all") return filteredPlants.map((p: any) => p.id);
+    return plants.map((p: any) => p.id);
   };
 
   useEffect(() => {
-    if (plants.length > 0) {
-      fetchBookings();
-    }
+    if (plants.length > 0) fetchBookings();
   }, [selectedProcessor, selectedPlant, plants]);
 
   const fetchBookings = async () => {
@@ -147,26 +181,20 @@ export default function BookingBoard() {
 
       let query = supabase
         .from('bookings')
-        .select('id, species, head_count, requested_kill_date, status, fill_rate, plant_id, supplier_id, arrival_slot, hgp_status')
+        .select(`id, species, head_count, requested_kill_date, status, fill_rate,
+                 plant_id, supplier_id, arrival_slot, hgp_status, mulesing_status,
+                 lot_id, agent_ref, kill_order_seq, transport_status, msa_enrolled`)
         .order('requested_kill_date', { ascending: true });
 
       if (plantIds.length > 0) {
-        if (plantIds.length === 1) {
-          query = query.eq('plant_id', plantIds[0]);
-        } else {
-          query = query.in('plant_id', plantIds);
-        }
+        if (plantIds.length === 1) query = query.eq('plant_id', plantIds[0]);
+        else query = query.in('plant_id', plantIds);
       }
 
       const { data, error } = await query;
-
       if (error) {
         console.error('Error fetching bookings:', error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch bookings. Please try again.",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "Failed to fetch bookings.", variant: "destructive" });
         return;
       }
 
@@ -177,9 +205,7 @@ export default function BookingBoard() {
       let supplierMap: Record<string, string> = {};
       if (supplierIds.length > 0) {
         const { data: sups } = await supabase
-          .from('suppliers')
-          .select('id, name')
-          .in('id', supplierIds);
+          .from('suppliers').select('id, name').in('id', supplierIds);
         (sups || []).forEach((s: any) => (supplierMap[s.id] = s.name));
       }
 
@@ -187,22 +213,103 @@ export default function BookingBoard() {
         ...b,
         supplierName: b.supplier_id ? (supplierMap[b.supplier_id] || "Unknown supplier") : undefined,
       })));
-    } catch (error) {
-      console.error('Error:', error);
+    } catch (err) {
+      console.error('Error:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleBookingCreated = () => {
-    fetchBookings(); // Refresh the bookings list
+  // ── Dialog helpers ──────────────────────────────────────────────────────────
+
+  const openBooking = (booking: BookingData) => {
+    setSelectedBooking(booking);
+    setEditMode(false);
+    setEditFields({
+      status:           booking.status || "",
+      head_count:       booking.head_count?.toString() || "",
+      arrival_slot:     booking.arrival_slot || "",
+      hgp_status:       booking.hgp_status || "",
+      transport_status: booking.transport_status || "",
+      kill_order_seq:   booking.kill_order_seq?.toString() || "",
+      change_note:      "",
+    });
+    setDialogOpen(true);
   };
+
+  const closeDialog = () => {
+    setDialogOpen(false);
+    setEditMode(false);
+    setSelectedBooking(null);
+  };
+
+  const saveEdit = async () => {
+    if (!selectedBooking) return;
+    setSaving(true);
+
+    const diffable: Array<{ key: keyof EditFields; dbKey: string; oldVal: string }> = [
+      { key: "status",           dbKey: "status",           oldVal: selectedBooking.status || "" },
+      { key: "head_count",       dbKey: "head_count",       oldVal: selectedBooking.head_count?.toString() || "" },
+      { key: "arrival_slot",     dbKey: "arrival_slot",     oldVal: selectedBooking.arrival_slot || "" },
+      { key: "hgp_status",       dbKey: "hgp_status",       oldVal: selectedBooking.hgp_status || "" },
+      { key: "transport_status", dbKey: "transport_status", oldVal: selectedBooking.transport_status || "" },
+      { key: "kill_order_seq",   dbKey: "kill_order_seq",   oldVal: selectedBooking.kill_order_seq?.toString() || "" },
+    ];
+
+    const changed = diffable.filter(f => (editFields[f.key] || "").trim() !== f.oldVal.trim());
+
+    if (changed.length === 0) {
+      toast({ title: "No changes", description: "Nothing was modified." });
+      setEditMode(false);
+      setSaving(false);
+      return;
+    }
+
+    try {
+      // 1. Write to booking_changes (audit trail)
+      const changeRows = changed.map(f => ({
+        booking_id:      selectedBooking.id,
+        field_name:      f.dbKey,
+        old_value:       f.oldVal || null,
+        new_value:       editFields[f.key] || null,
+        changed_by:      "Booking Board",
+        changed_by_role: "Processor",
+        change_note:     editFields.change_note || null,
+      }));
+      const { error: auditErr } = await supabase.from("booking_changes").insert(changeRows);
+      if (auditErr) throw auditErr;
+
+      // 2. Update bookings table
+      const updatePayload: Record<string, any> = {};
+      for (const f of changed) {
+        if (f.dbKey === "head_count")     updatePayload[f.dbKey] = parseInt(editFields.head_count) || null;
+        else if (f.dbKey === "kill_order_seq") updatePayload[f.dbKey] = parseInt(editFields.kill_order_seq) || null;
+        else updatePayload[f.dbKey] = editFields[f.key] || null;
+      }
+      const { error: updateErr } = await supabase.from("bookings").update(updatePayload).eq("id", selectedBooking.id);
+      if (updateErr) throw updateErr;
+
+      // 3. Update local state
+      setBookings(prev => prev.map(b => b.id === selectedBooking.id ? { ...b, ...updatePayload } : b));
+      setSelectedBooking(prev => prev ? { ...prev, ...updatePayload } : prev);
+
+      toast({ title: `${changed.length} change${changed.length > 1 ? "s" : ""} saved`, description: "Booking updated and audit trail written." });
+      setEditMode(false);
+    } catch (err: any) {
+      toast({ title: "Save failed", description: err.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ── CSV export ──────────────────────────────────────────────────────────────
 
   const handleExportCSV = () => {
     if (filteredBookings.length === 0) return;
     const headers = [
       "Booking ID", "Supplier", "Species", "Head Count",
-      "Kill Date", "Arrival Slot", "Status", "HGP Status", "Fill Rate %"
+      "Kill Date", "Arrival Slot", "Status", "HGP Status",
+      "Transport", "Kill Order", "Fill Rate %"
     ];
     const rows = filteredBookings.map(b => [
       b.id.slice(-8).toUpperCase(),
@@ -213,6 +320,8 @@ export default function BookingBoard() {
       b.arrival_slot || "",
       b.status || "",
       b.hgp_status || "",
+      b.transport_status || "",
+      b.kill_order_seq ?? "",
       b.fill_rate != null ? b.fill_rate.toFixed(1) : "",
     ]);
     const csv = [headers, ...rows]
@@ -229,12 +338,15 @@ export default function BookingBoard() {
     URL.revokeObjectURL(url);
   };
 
+  // ── Filtering ──────────────────────────────────────────────────────────────
+
   const filteredBookings = bookings.filter(booking => {
     const q = searchTerm.toLowerCase();
     const matchesSearch = !searchTerm ||
       (booking.species || "").toLowerCase().includes(q) ||
       (booking.supplierName || "").toLowerCase().includes(q) ||
-      booking.id.toLowerCase().includes(q);
+      booking.id.toLowerCase().includes(q) ||
+      (booking.lot_id || "").toLowerCase().includes(q);
     const matchesStatus = statusFilter === "all" || booking.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -244,9 +356,11 @@ export default function BookingBoard() {
     Confirmed:   bookings.filter(b => (b.status || "").toLowerCase() === "confirmed").length,
     High:        bookings.filter(b => (b.status || "").toLowerCase() === "high").length,
     Medium:      bookings.filter(b => (b.status || "").toLowerCase() === "medium").length,
-    Low:         bookings.filter(b => ["low","pending","requested"].includes((b.status||"").toLowerCase())).length,
-    Placeholder: bookings.filter(b => !b.status || (b.status||"").toLowerCase() === "placeholder").length,
+    Low:         bookings.filter(b => ["low", "pending", "requested"].includes((b.status || "").toLowerCase())).length,
+    Placeholder: bookings.filter(b => !b.status || (b.status || "").toLowerCase() === "placeholder").length,
   };
+
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
     <DashboardLayout>
@@ -254,7 +368,7 @@ export default function BookingBoard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Booking Board</h1>
-            <p className="text-muted-foreground">Manage kill slot bookings and scheduling</p>
+            <p className="text-muted-foreground">Manage kill slot bookings — click any row to view or edit</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleExportCSV} disabled={filteredBookings.length === 0}>
@@ -272,18 +386,27 @@ export default function BookingBoard() {
         {!loading && bookings.length > 0 && (
           <div className="flex flex-wrap gap-3">
             {[
-              { label: "Confirmed",   count: confidenceCounts.Confirmed,   colour: "bg-blue-500",    text: "text-blue-700",    bg: "bg-blue-50   border-blue-200" },
-              { label: "High",        count: confidenceCounts.High,        colour: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" },
-              { label: "Medium",      count: confidenceCounts.Medium,      colour: "bg-amber-500",   text: "text-amber-700",   bg: "bg-amber-50  border-amber-200" },
-              { label: "Low",         count: confidenceCounts.Low,         colour: "bg-yellow-400",  text: "text-yellow-700",  bg: "bg-yellow-50 border-yellow-200" },
-              { label: "Placeholder", count: confidenceCounts.Placeholder, colour: "bg-gray-300",    text: "text-gray-600",    bg: "bg-gray-50   border-gray-200" },
-            ].map(({ label, count, colour, text, bg }) => (
-              <div key={label} className={`flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm ${bg}`}>
+              { label: "Confirmed",   count: confidenceCounts.Confirmed,   colour: "bg-blue-500",    text: "text-blue-700",    bg: "bg-blue-50   border-blue-200",   filter: "confirmed" },
+              { label: "High",        count: confidenceCounts.High,        colour: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200", filter: "high" },
+              { label: "Medium",      count: confidenceCounts.Medium,      colour: "bg-amber-500",   text: "text-amber-700",   bg: "bg-amber-50  border-amber-200",   filter: "medium" },
+              { label: "Low",         count: confidenceCounts.Low,         colour: "bg-yellow-400",  text: "text-yellow-700",  bg: "bg-yellow-50 border-yellow-200",  filter: "low" },
+              { label: "Placeholder", count: confidenceCounts.Placeholder, colour: "bg-gray-300",    text: "text-gray-600",    bg: "bg-gray-50   border-gray-200",    filter: "placeholder" },
+            ].map(({ label, count, colour, text, bg, filter }) => (
+              <button
+                key={label}
+                onClick={() => setStatusFilter(prev => prev === filter ? "all" : filter)}
+                className={`flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-all cursor-pointer ${bg} ${statusFilter === filter ? "ring-2 ring-offset-1 ring-current" : ""}`}
+              >
                 <div className={`w-2.5 h-2.5 rounded-full ${colour}`} />
                 <span className={`font-medium ${text}`}>{label}</span>
                 <span className={`font-bold ${text}`}>{count}</span>
-              </div>
+              </button>
             ))}
+            {statusFilter !== "all" && (
+              <button className="text-xs text-muted-foreground underline self-center" onClick={() => setStatusFilter("all")}>
+                Clear filter
+              </button>
+            )}
           </div>
         )}
 
@@ -304,9 +427,7 @@ export default function BookingBoard() {
                 <SelectContent className="bg-popover z-50">
                   <SelectItem value="all">All Processors</SelectItem>
                   {processors.map((processor) => (
-                    <SelectItem key={processor} value={processor}>
-                      {processor}
-                    </SelectItem>
+                    <SelectItem key={processor} value={processor}>{processor}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -316,26 +437,24 @@ export default function BookingBoard() {
                 </SelectTrigger>
                 <SelectContent className="bg-popover z-50">
                   <SelectItem value="all">All Plants</SelectItem>
-                  {filteredPlants.map((plant) => (
-                    <SelectItem key={plant.id} value={plant.id}>
-                      {plant.plant_name}
-                    </SelectItem>
+                  {filteredPlants.map((plant: any) => (
+                    <SelectItem key={plant.id} value={plant.id}>{plant.plant_name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <div className="flex-1">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by supplier, species, booking ID…"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+                  <Input
+                    placeholder="Search by supplier, species, ID, lot…"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
                 </div>
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-44">
                   <SelectValue placeholder="Confidence" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover z-50">
@@ -357,7 +476,7 @@ export default function BookingBoard() {
         <Card>
           <CardHeader>
             <CardTitle>
-              {loading ? "Loading bookings..." : `Current Bookings (${filteredBookings.length})`}
+              {loading ? "Loading bookings…" : `Current Bookings (${filteredBookings.length}${statusFilter !== "all" ? " · filtered" : ""})`}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -373,60 +492,74 @@ export default function BookingBoard() {
                     <th className="text-left py-3 px-3 text-sm font-medium">Slot</th>
                     <th className="text-left py-3 px-3 text-sm font-medium">Status</th>
                     <th className="text-left py-3 px-3 text-sm font-medium">HGP</th>
-                    <th className="text-right py-3 px-3 text-sm font-medium">Fill Rate</th>
+                    <th className="text-left py-3 px-3 text-sm font-medium">Transport</th>
+                    <th className="text-right py-3 px-3 text-sm font-medium">Fill %</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={9} className="py-8 text-center text-muted-foreground">
-                        Loading bookings...
-                      </td>
+                      <td colSpan={10} className="py-8 text-center text-muted-foreground">Loading bookings…</td>
                     </tr>
                   ) : filteredBookings.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="py-8 text-center text-muted-foreground">
-                        No bookings found
-                      </td>
+                      <td colSpan={10} className="py-8 text-center text-muted-foreground">No bookings found</td>
                     </tr>
                   ) : (
-                    filteredBookings.map((booking) => (
-                      <tr key={booking.id} className={`table-row-hover border-b border-border transition-colors ${confidenceRowStyle(booking.status)}`}>
-                        <td className="py-3 px-3 text-sm font-medium font-mono">{booking.id.slice(-8).toUpperCase()}</td>
-                        <td className="py-3 px-3 text-sm max-w-[160px] truncate" title={booking.supplierName}>
-                          {booking.supplierName || <span className="text-muted-foreground">—</span>}
-                        </td>
-                        <td className="py-3 px-3">
-                          <Badge variant={getSpeciesVariant(booking.species || "")} className="capitalize">
-                            {booking.species || "—"}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-3 text-sm text-right table-cell-numeric">{(booking.head_count || 0).toLocaleString() || '-'}</td>
-                        <td className="py-3 px-3 text-sm">
-                          {booking.requested_kill_date ? new Date(booking.requested_kill_date).toLocaleDateString('en-AU') : '—'}
-                        </td>
-                        <td className="py-3 px-3 text-sm text-muted-foreground">
-                          {booking.arrival_slot || '—'}
-                        </td>
-                        <td className="py-3 px-3">
-                          <Badge variant={getStatusVariant(booking.status || 'unknown')}>
-                            {booking.status || 'unknown'}
-                          </Badge>
-                        </td>
-                        <td className="py-3 px-3 text-sm">
-                          {booking.hgp_status === 'hgp_free' ? (
-                            <span className="text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.5">HGP free</span>
-                          ) : booking.hgp_status === 'hgp_treated' ? (
-                            <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">HGP treated</span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
-                        </td>
-                        <td className="py-3 px-3 text-sm text-right table-cell-numeric">
-                          {booking.fill_rate != null ? `${booking.fill_rate.toFixed(1)}%` : '—'}
-                        </td>
-                      </tr>
-                    ))
+                    filteredBookings.map((booking) => {
+                      const hgp = hgpLabel(booking.hgp_status);
+                      const transport = transportLabel(booking.transport_status);
+                      return (
+                        <tr
+                          key={booking.id}
+                          onClick={() => openBooking(booking)}
+                          className={`table-row-hover border-b border-border transition-colors cursor-pointer hover:bg-muted/40 ${confidenceRowStyle(booking.status)}`}
+                        >
+                          <td className="py-3 px-3 text-sm font-medium font-mono">{booking.id.slice(-8).toUpperCase()}</td>
+                          <td className="py-3 px-3 text-sm max-w-[150px] truncate" title={booking.supplierName}>
+                            {booking.supplierName || <span className="text-muted-foreground">—</span>}
+                          </td>
+                          <td className="py-3 px-3">
+                            <Badge variant={getSpeciesVariant(booking.species || "")} className="capitalize">
+                              {booking.species || "—"}
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-3 text-sm text-right table-cell-numeric">
+                            {(booking.head_count || 0).toLocaleString() || "—"}
+                          </td>
+                          <td className="py-3 px-3 text-sm">
+                            {booking.requested_kill_date
+                              ? format(new Date(booking.requested_kill_date), "EEE d MMM")
+                              : "—"}
+                          </td>
+                          <td className="py-3 px-3 text-sm text-muted-foreground">
+                            {booking.arrival_slot || "—"}
+                          </td>
+                          <td className="py-3 px-3">
+                            <Badge variant={getStatusVariant(booking.status || "")}>
+                              {booking.status || "—"}
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-3 text-sm">
+                            {hgp ? (
+                              <span className={`text-xs font-medium border rounded px-1.5 py-0.5 ${hgp.cls}`}>{hgp.text}</span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-3 text-sm">
+                            {transport ? (
+                              <span className={`text-xs font-medium border rounded px-1.5 py-0.5 ${transport.cls}`}>{transport.text}</span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-3 text-sm text-right table-cell-numeric">
+                            {booking.fill_rate != null ? `${booking.fill_rate.toFixed(1)}%` : "—"}
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -437,42 +570,257 @@ export default function BookingBoard() {
         {/* Calendar View */}
         <BookingCalendar />
 
-        {/* Demo Data Notice */}
-        <Card className="border-dashed border-muted-foreground/30">
-          <CardContent className="pt-6">
-            <div className="text-center text-sm text-muted-foreground">
-              <p className="font-medium">📊 Demo Data</p>
-              <p>This is sample booking data for demonstration purposes. Real supplier names and booking details would appear in production.</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Transport Slotting Demo Notice */}
-        <Card className="border-dashed border-muted-foreground/30">
-          <CardContent className="pt-6">
-            <div className="text-center text-sm text-muted-foreground">
-              <p className="font-medium">🚛 Transport & Capacity Management</p>
-              <p>Visit Transport Slotting to see assigned/capacity ratios and conflict warnings in action.</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Import Preview Notice */}
-        <Card className="border-dashed border-muted-foreground/30">
-          <CardContent className="pt-6">
-            <div className="text-center text-sm text-muted-foreground">
-              <p className="font-medium">📤 Data Import & Validation</p>
-              <p>Check the Import Data page to see CSV preview and row validation features.</p>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* New Booking Form */}
-        <NewBookingForm 
+        <NewBookingForm
           open={isNewBookingOpen}
           onOpenChange={setIsNewBookingOpen}
-          onBookingCreated={handleBookingCreated}
+          onBookingCreated={fetchBookings}
         />
+
+        {/* Booking Detail / Edit Dialog */}
+        <Dialog open={dialogOpen} onOpenChange={open => { if (!open) closeDialog(); }}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center justify-between pr-6">
+                <span>
+                  Booking{" "}
+                  <span className="font-mono text-sm text-muted-foreground ml-1">
+                    {selectedBooking?.id.slice(-8).toUpperCase()}
+                  </span>
+                </span>
+                {!editMode && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setEditMode(true)}
+                    className="ml-4"
+                  >
+                    <Edit2 className="h-3.5 w-3.5 mr-1.5" />
+                    Edit
+                  </Button>
+                )}
+              </DialogTitle>
+            </DialogHeader>
+
+            {selectedBooking && !editMode && (
+              <div className="space-y-5">
+                {/* Booking overview */}
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-0.5">Supplier</p>
+                    <p className="font-medium">{selectedBooking.supplierName || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-0.5">Species</p>
+                    <Badge variant={getSpeciesVariant(selectedBooking.species || "")} className="capitalize">
+                      {selectedBooking.species || "—"}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-0.5">Head Count</p>
+                    <p className="font-medium">{selectedBooking.head_count?.toLocaleString() || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-0.5">Kill Date</p>
+                    <p className="font-medium">
+                      {selectedBooking.requested_kill_date
+                        ? format(new Date(selectedBooking.requested_kill_date), "EEE d MMM yyyy")
+                        : "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-0.5">Arrival Slot</p>
+                    <p>{selectedBooking.arrival_slot || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-0.5">Kill Order</p>
+                    <p>{selectedBooking.kill_order_seq != null ? `#${selectedBooking.kill_order_seq}` : "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-0.5">Status</p>
+                    <Badge variant={getStatusVariant(selectedBooking.status || "")}>
+                      {selectedBooking.status || "—"}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-0.5">Fill Rate</p>
+                    <p>{selectedBooking.fill_rate != null ? `${selectedBooking.fill_rate.toFixed(1)}%` : "—"}</p>
+                  </div>
+                </div>
+
+                {/* Compliance fields */}
+                <div className="border-t pt-4">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Compliance</p>
+                  <div className="grid grid-cols-3 gap-3 text-sm">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">HGP Status</p>
+                      {hgpLabel(selectedBooking.hgp_status) ? (
+                        <span className={`text-xs font-medium border rounded px-1.5 py-0.5 ${hgpLabel(selectedBooking.hgp_status)!.cls}`}>
+                          {hgpLabel(selectedBooking.hgp_status)!.text}
+                        </span>
+                      ) : <span className="text-muted-foreground">—</span>}
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Mulesing</p>
+                      <p className="capitalize">{selectedBooking.mulesing_status?.replace(/_/g, " ") || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">MSA Enrolled</p>
+                      <p>{selectedBooking.msa_enrolled === true ? "Yes" : selectedBooking.msa_enrolled === false ? "No" : "—"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Logistics */}
+                <div className="border-t pt-4">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Logistics</p>
+                  <div className="grid grid-cols-3 gap-3 text-sm">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Transport</p>
+                      {transportLabel(selectedBooking.transport_status) ? (
+                        <span className={`text-xs font-medium border rounded px-1.5 py-0.5 ${transportLabel(selectedBooking.transport_status)!.cls}`}>
+                          {transportLabel(selectedBooking.transport_status)!.text}
+                        </span>
+                      ) : <span className="text-muted-foreground">—</span>}
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Lot ID</p>
+                      <p className="font-mono text-xs">{selectedBooking.lot_id || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Agent Ref / eNVD</p>
+                      <p className="font-mono text-xs">{selectedBooking.agent_ref || "—"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Change history link hint */}
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground border-t pt-3">
+                  <History className="h-3.5 w-3.5" />
+                  Full audit trail available in Change History
+                </div>
+              </div>
+            )}
+
+            {selectedBooking && editMode && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Status / Confidence</Label>
+                    <Select value={editFields.status} onValueChange={v => setEditFields(p => ({ ...p, status: v }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover z-50">
+                        <SelectItem value="confirmed">Confirmed</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="placeholder">Placeholder</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Head Count</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={editFields.head_count}
+                      onChange={e => setEditFields(p => ({ ...p, head_count: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Arrival Slot</Label>
+                    <Select value={editFields.arrival_slot} onValueChange={v => setEditFields(p => ({ ...p, arrival_slot: v }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select slot" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover z-50 max-h-48 overflow-y-auto">
+                        <SelectItem value="">No slot</SelectItem>
+                        {ARRIVAL_SLOTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Kill Order Seq</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={editFields.kill_order_seq}
+                      onChange={e => setEditFields(p => ({ ...p, kill_order_seq: e.target.value }))}
+                      placeholder="e.g. 1"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>HGP Status</Label>
+                    <Select value={editFields.hgp_status} onValueChange={v => setEditFields(p => ({ ...p, hgp_status: v }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select HGP status" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover z-50">
+                        <SelectItem value="hgp_free">HGP-Free</SelectItem>
+                        <SelectItem value="hgp_treated">HGP-Treated</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Transport Status</Label>
+                    <Select value={editFields.transport_status} onValueChange={v => setEditFields(p => ({ ...p, transport_status: v }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select transport status" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover z-50">
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="arranged">Arranged</SelectItem>
+                        <SelectItem value="confirmed">Confirmed</SelectItem>
+                        <SelectItem value="in_transit">In Transit</SelectItem>
+                        <SelectItem value="arrived">Arrived</SelectItem>
+                        <SelectItem value="not_required">Not Required</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Change note <span className="font-normal text-muted-foreground">(optional — added to audit trail)</span></Label>
+                  <Textarea
+                    value={editFields.change_note}
+                    onChange={e => setEditFields(p => ({ ...p, change_note: e.target.value }))}
+                    placeholder="Reason for change, e.g. 'Supplier requested additional 20 head'"
+                    className="min-h-[72px]"
+                  />
+                </div>
+              </div>
+            )}
+
+            <DialogFooter className="flex gap-2 justify-end pt-2">
+              {editMode ? (
+                <>
+                  <Button variant="outline" onClick={() => setEditMode(false)} disabled={saving}>
+                    <X className="h-4 w-4 mr-1.5" />
+                    Cancel
+                  </Button>
+                  <Button onClick={saveEdit} disabled={saving}>
+                    {saving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                        Saving…
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-1.5" />
+                        Save changes
+                      </>
+                    )}
+                  </Button>
+                </>
+              ) : (
+                <Button variant="outline" onClick={closeDialog}>Close</Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
