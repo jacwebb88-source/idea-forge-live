@@ -11,11 +11,14 @@ import GridSpecs from "./pages/GridSpecs";
 import KPIDashboard from "./pages/KPIDashboard";
 import ImportData from "./pages/ImportData";
 import Plants from "./pages/Plants";
+import Suppliers from "./pages/Suppliers";
 import BuyerSupplierRequest from "./pages/BuyerSupplierRequest";
 import PilotProjects from "./pages/PilotProjects";
 import ComplianceChecks from "./pages/ComplianceChecks";
 import KillReports from "./pages/KillReports";
 import ChangeHistory from "./pages/ChangeHistory";
+import IntakeStatus from "./pages/IntakeStatus";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +43,9 @@ const App = () => (
           <Route path="/compliance" element={<ComplianceChecks />} />
           <Route path="/kill-reports" element={<KillReports />} />
           <Route path="/change-history" element={<ChangeHistory />} />
+          <Route path="/suppliers" element={<Suppliers />} />
+          <Route path="/intake" element={<IntakeStatus />} />
+          <Route path="/settings" element={<Settings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
