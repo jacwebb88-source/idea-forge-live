@@ -187,6 +187,8 @@ export default function KillPlan() {
   });
   const [saving, setSaving] = useState(false);
 
+  const [compliance, setCompliance] = useState<Record<string, ComplianceCheck>>({});
+
   const weekEnd = useMemo(() => endOfWeek(weekStart, { weekStartsOn: 1 }), [weekStart]);
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
@@ -204,7 +206,7 @@ export default function KillPlan() {
         supabase
           .from("bookings")
           .select(
-            "id, species, head_count, requested_kill_date, status, supplier_id, plant_id, fill_rate, lot_id, agent_ref, slot_time, arrival_slot, transport_status, hgp_status, kill_order_seq, msa_enrolled, pericardium_ok, mulesing_status, species_class"
+            "id, species, head_count, requested_kill_date, status, supplier_id, plant_id, fill_rate, lot_id, agent_ref, slot_time, arrival_slot, transport_status, hgp_status, kill_order_seq, msa_enrolled, pericardium_ok, mulesing_status, species_class, exit_followup_status"
           )
           .gte("requested_kill_date", startStr)
           .lte("requested_kill_date", endStr),
@@ -215,7 +217,7 @@ export default function KillPlan() {
           .lte("date", endStr),
       ]);
 
-      const bookingList = (bks as Booking[]) || [];
+      const bookingList = (bks as unknown as Booking[]) || [];
       setBookings(bookingList);
       setDayPlans((dps as DayPlan[]) || []);
 
@@ -233,6 +235,23 @@ export default function KillPlan() {
       } else {
         setSuppliers({});
       }
+
+      // Compliance status per booking
+      const bookingIds = bookingList.map(b => b.id);
+      if (bookingIds.length) {
+        const { data: cc } = await supabase
+          .from("compliance_checks")
+          .select("booking_id, nlis_status, nvd_status, pic_status")
+          .in("booking_id", bookingIds);
+        const cMap: Record<string, ComplianceCheck> = {};
+        (cc as ComplianceCheck[] | null)?.forEach(r => {
+          if (r.booking_id) cMap[r.booking_id] = r;
+        });
+        setCompliance(cMap);
+      } else {
+        setCompliance({});
+      }
+
       setLoading(false);
     };
     load();
