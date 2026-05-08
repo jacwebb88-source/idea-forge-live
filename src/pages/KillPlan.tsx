@@ -845,7 +845,7 @@ export default function KillPlan() {
                   <p>{selectedBooking.lot_id || "—"}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Agent ref</p>
+                  <p className="text-xs text-muted-foreground">Buyer / agent allocation</p>
                   <p>{selectedBooking.agent_ref || "—"}</p>
                 </div>
               </div>
