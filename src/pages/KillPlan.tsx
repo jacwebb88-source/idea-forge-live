@@ -49,6 +49,22 @@ type Booking = {
   pericardium_ok: boolean | null;
   mulesing_status: string | null;
   species_class: string | null;
+  exit_followup_status: string | null;
+};
+
+type ComplianceCheck = {
+  booking_id: string | null;
+  nlis_status: string | null;
+  nvd_status: string | null;
+  pic_status: string | null;
+};
+
+const complianceState = (c?: ComplianceCheck): "ok" | "pending" | "fail" | "none" => {
+  if (!c) return "none";
+  const vals = [c.nlis_status, c.nvd_status, c.pic_status].map(v => (v || "").toLowerCase());
+  if (vals.some(v => v === "fail" || v === "failed" || v === "rejected")) return "fail";
+  if (vals.every(v => v === "ok" || v === "pass" || v === "verified" || v === "approved")) return "ok";
+  return "pending";
 };
 
 type Supplier = { id: string; name: string };
