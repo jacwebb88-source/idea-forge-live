@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { NewBookingForm } from "@/components/NewBookingForm";
 import { BookingCalendar } from "@/components/BookingCalendar";
 import { useToast } from "@/hooks/use-toast";
+import { buildBookingChangeRows, resolveAuditActor } from "@/lib/bookingAudit";
 import { Search, Plus, Filter, Download, Edit2, Save, X, Loader2, History } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -266,16 +267,17 @@ export default function BookingBoard() {
     }
 
     try {
+      const actor = await resolveAuditActor("Booking Board");
+
       // 1. Write to booking_changes (audit trail)
-      const changeRows = changed.map(f => ({
-        booking_id:      selectedBooking.id,
-        field_name:      f.dbKey,
-        old_value:       f.oldVal || null,
-        new_value:       editFields[f.key] || null,
-        changed_by:      "Booking Board",
-        changed_by_role: "Processor",
-        change_note:     editFields.change_note || null,
-      }));
+      const changeRows = buildBookingChangeRows(changed.map((f) => ({
+        bookingId: selectedBooking.id,
+        fieldName: f.dbKey,
+        oldValue: f.oldVal,
+        newValue: editFields[f.key] || "",
+        changeNote: editFields.change_note,
+        actor,
+      })));
       const { error: auditErr } = await supabase.from("booking_changes").insert(changeRows);
       if (auditErr) throw auditErr;
 

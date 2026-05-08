@@ -61,7 +61,6 @@ const dayHeading = (iso: string) => {
 
 export default function ChangeHistory() {
   const [changes, setChanges] = useState<ChangeRecord[]>([]);
-  const [suppliers, setSuppliers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -73,33 +72,54 @@ export default function ChangeHistory() {
       setLoading(true);
       const since = format(subDays(new Date(), parseInt(dateRange)), "yyyy-MM-dd");
 
-      const [{ data: changesData }, { data: suppliersData }] = await Promise.all([
-        (supabase as any)
-          .from("booking_changes")
-          .select(`
-            id, booking_id, changed_at, changed_by, changed_by_role,
-            field_name, old_value, new_value, change_note,
-            bookings(requested_kill_date, species, head_count, status, supplier_id)
-          `)
-          .gte("changed_at", since)
-          .order("changed_at", { ascending: false })
-          .limit(300),
-        (supabase as any).from("suppliers").select("id, name"),
-      ]);
+      const { data: changesData } = await (supabase as any)
+        .from("booking_changes")
+        .select("id, booking_id, changed_at, changed_by, changed_by_role, field_name, old_value, new_value, change_note")
+        .gte("changed_at", since)
+        .order("changed_at", { ascending: false })
+        .limit(300);
 
+      const bookingIds = Array.from(
+        new Set(((changesData as any[]) || []).map((change) => change.booking_id).filter(Boolean))
+      );
+
+      const { data: bookingsData } = bookingIds.length
+        ? await (supabase as any)
+            .from("bookings")
+            .select("id, requested_kill_date, species, head_count, status, supplier_id")
+            .in("id", bookingIds)
+        : { data: [] };
+
+      const supplierIds = Array.from(
+        new Set(((bookingsData as any[]) || []).map((booking) => booking.supplier_id).filter(Boolean))
+      );
+
+      const { data: suppliersData } = supplierIds.length
+        ? await (supabase as any)
+            .from("suppliers")
+            .select("id, name")
+            .in("id", supplierIds)
+        : { data: [] };
+
+      const bookingMap = new Map<string, any>(
+        ((bookingsData as any[]) || []).map((booking) => [booking.id, booking])
+      );
       const supMap: Record<string, string> = {};
-      (suppliersData as any[] | null)?.forEach((s) => { supMap[s.id] = s.name; });
-      setSuppliers(supMap);
+      ((suppliersData as any[]) || []).forEach((supplier) => { supMap[supplier.id] = supplier.name; });
 
-      const flat: ChangeRecord[] = ((changesData as any[]) || []).map((c) => ({
-        ...c,
-        requested_kill_date: c.bookings?.requested_kill_date,
-        species:              c.bookings?.species,
-        head_count:           c.bookings?.head_count,
-        status:               c.bookings?.status,
-        supplier_id:          c.bookings?.supplier_id,
-        supplier_name:        c.bookings?.supplier_id ? supMap[c.bookings.supplier_id] : null,
-      }));
+      const flat: ChangeRecord[] = ((changesData as any[]) || []).map((c) => {
+        const booking = bookingMap.get(c.booking_id);
+        return {
+          ...c,
+          requested_kill_date: booking?.requested_kill_date ?? null,
+          species: booking?.species ?? null,
+          head_count: booking?.head_count ?? null,
+          status: booking?.status ?? null,
+          supplier_id: booking?.supplier_id ?? null,
+          supplier_name: booking?.supplier_id ? supMap[booking.supplier_id] ?? null : null,
+        };
+      });
+
       setChanges(flat);
       setLoading(false);
     };
