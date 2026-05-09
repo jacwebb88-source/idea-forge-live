@@ -206,8 +206,8 @@ export default function KillReports() {
       const seqA = a.kill_order_seq ?? 999;
       const seqB = b.kill_order_seq ?? 999;
       if (seqA !== seqB) return seqA - seqB;
-      // HGP-free before HGP-treated
-      const hgpOrder = (h: string | null) => (h === "hgp_free" ? 0 : h === "hgp_treated" ? 2 : 1);
+      // nil (HGP-free) kills first, then implanted (W/D clear), then under_withholding last
+      const hgpOrder = (h: string | null) => h === "nil" ? 0 : h === "implanted" ? 1 : h === "under_withholding" ? 2 : 1;
       if (hgpOrder(a.hgp_status) !== hgpOrder(b.hgp_status)) return hgpOrder(a.hgp_status) - hgpOrder(b.hgp_status);
       return (a.arrival_slot || "").localeCompare(b.arrival_slot || "");
     });
@@ -225,7 +225,7 @@ export default function KillReports() {
       b.species_class || "",
       b.head_count ?? "",
       b.arrival_slot || b.slot_time || "",
-      b.hgp_status === "hgp_free" ? "HGP Free" : b.hgp_status === "hgp_treated" ? "HGP Treated" : "Unknown",
+      b.hgp_status === "nil" ? "No HGP" : b.hgp_status === "implanted" ? "HGP (W/D clear)" : b.hgp_status === "under_withholding" ? "HGP – W/D Period" : (b.hgp_status || "—"),
       b.msa_enrolled ? "Yes" : "No",
       b.transport_status || "",
       b.lot_id || "",
@@ -472,11 +472,14 @@ export default function KillReports() {
                                       {b.arrival_slot || b.slot_time}
                                     </span>
                                   )}
-                                  {b.hgp_status === "hgp_free" && (
-                                    <span className="text-xs font-semibold bg-emerald-50 border border-emerald-200 text-emerald-700 rounded px-1.5 py-0.5">HGP Free</span>
+                                  {b.hgp_status === "nil" && (
+                                    <span className="text-xs font-semibold bg-emerald-50 border border-emerald-200 text-emerald-700 rounded px-1.5 py-0.5">No HGP</span>
                                   )}
-                                  {b.hgp_status === "hgp_treated" && (
-                                    <span className="text-xs font-semibold bg-orange-50 border border-orange-200 text-orange-700 rounded px-1.5 py-0.5">HGP ⚠</span>
+                                  {b.hgp_status === "implanted" && (
+                                    <span className="text-xs font-semibold bg-amber-50 border border-amber-200 text-amber-700 rounded px-1.5 py-0.5">HGP ⚠</span>
+                                  )}
+                                  {b.hgp_status === "under_withholding" && (
+                                    <span className="text-xs font-semibold bg-orange-50 border border-orange-200 text-orange-700 rounded px-1.5 py-0.5">HGP – W/D ⚠</span>
                                   )}
                                   {b.msa_enrolled && (
                                     <span className="text-xs bg-blue-50 border border-blue-200 text-blue-700 rounded px-1.5 py-0.5">MSA</span>

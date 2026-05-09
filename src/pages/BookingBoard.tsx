@@ -11,7 +11,7 @@ import { NewBookingForm } from "@/components/NewBookingForm";
 import { BookingCalendar } from "@/components/BookingCalendar";
 import { useToast } from "@/hooks/use-toast";
 import { buildBookingChangeRows, resolveAuditActor } from "@/lib/bookingAudit";
-import { Search, Plus, Filter, Download, Edit2, Save, X, Loader2, History } from "lucide-react";
+import { Search, Plus, Filter, Download, Edit2, Save, X, Loader2, History, Bell, CheckCircle, XCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -100,8 +100,9 @@ const confidenceRowStyle = (status: string | null): string => {
 };
 
 const hgpLabel = (hgp: string | null) => {
-  if (hgp === "hgp_free")    return { text: "HGP free",    cls: "text-emerald-700 bg-emerald-50 border-emerald-200" };
-  if (hgp === "hgp_treated") return { text: "HGP treated", cls: "text-amber-700 bg-amber-50 border-amber-200" };
+  if (hgp === "nil")               return { text: "No HGP",    cls: "text-emerald-700 bg-emerald-50 border-emerald-200" };
+  if (hgp === "implanted")         return { text: "HGP",       cls: "text-amber-700 bg-amber-50 border-amber-200" };
+  if (hgp === "under_withholding") return { text: "HGP – W/D", cls: "text-orange-700 bg-orange-50 border-orange-200" };
   return null;
 };
 
@@ -252,6 +253,31 @@ export default function BookingBoard() {
     setSelectedBooking(null);
   };
 
+  // ── Quick confirm (no dialog needed) ───────────────────────────────────────
+  const quickConfirm = async (e: React.MouseEvent, booking: BookingData) => {
+    e.stopPropagation();
+    const { error } = await supabase.from("bookings").update({ status: "confirmed" }).eq("id", booking.id);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    setBookings(prev => prev.map(b => b.id === booking.id ? { ...b, status: "confirmed" } : b));
+    toast({ title: "Booking confirmed", description: `${booking.supplierName || "Booking"} · ${(booking.head_count || 0).toLocaleString()} head` });
+  };
+
+  const approveRequest = async (e: React.MouseEvent, booking: BookingData) => {
+    e.stopPropagation();
+    const { error } = await supabase.from("bookings").update({ status: "confirmed" }).eq("id", booking.id);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    setBookings(prev => prev.map(b => b.id === booking.id ? { ...b, status: "confirmed" } : b));
+    toast({ title: "Booking request approved", description: `${booking.supplierName || "Booking"} · ${(booking.head_count || 0).toLocaleString()} head confirmed.` });
+  };
+
+  const declineRequest = async (e: React.MouseEvent, booking: BookingData) => {
+    e.stopPropagation();
+    const { error } = await supabase.from("bookings").update({ status: "cancelled" }).eq("id", booking.id);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    setBookings(prev => prev.map(b => b.id === booking.id ? { ...b, status: "cancelled" } : b));
+    toast({ title: "Request declined", description: `${booking.supplierName || "Booking"} request has been declined.`, variant: "destructive" });
+  };
+
   const saveEdit = async () => {
     if (!selectedBooking) return;
     setSaving(true);
@@ -392,6 +418,25 @@ export default function BookingBoard() {
           </div>
         </div>
 
+        {/* Supplier booking requests alert */}
+        {!loading && bookings.filter(b => b.status === "requested").length > 0 && (
+          <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+            <Bell className="h-5 w-5 text-amber-600 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-amber-800">
+                {bookings.filter(b => b.status === "requested").length} supplier booking request{bookings.filter(b => b.status === "requested").length !== 1 ? "s" : ""} awaiting approval
+              </p>
+              <p className="text-xs text-amber-700">Review each request below — approve to confirm the slot or decline to reject it</p>
+            </div>
+            <button
+              onClick={() => setStatusFilter("requested")}
+              className="text-xs font-semibold text-amber-700 underline whitespace-nowrap"
+            >
+              View requests
+            </button>
+          </div>
+        )}
+
         {/* Confidence summary strip */}
         {!loading && bookings.length > 0 && (
           <div className="flex flex-wrap gap-3">
@@ -504,16 +549,17 @@ export default function BookingBoard() {
                     <th className="text-left py-3 px-3 text-sm font-medium">HGP</th>
                     <th className="text-left py-3 px-3 text-sm font-medium">Transport</th>
                     <th className="text-right py-3 px-3 text-sm font-medium">Fill %</th>
+                    <th className="py-3 px-3 w-24"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={10} className="py-8 text-center text-muted-foreground">Loading bookings…</td>
+                      <td colSpan={11} className="py-8 text-center text-muted-foreground">Loading bookings…</td>
                     </tr>
                   ) : filteredBookings.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="py-8 text-center text-muted-foreground">No bookings found</td>
+                      <td colSpan={11} className="py-8 text-center text-muted-foreground">No bookings found</td>
                     </tr>
                   ) : (
                     filteredBookings.map((booking) => {
@@ -566,6 +612,35 @@ export default function BookingBoard() {
                           </td>
                           <td className="py-3 px-3 text-sm text-right table-cell-numeric">
                             {booking.fill_rate != null ? `${booking.fill_rate.toFixed(1)}%` : "—"}
+                          </td>
+                          <td className="py-2 px-2">
+                            {(booking.status || "").toLowerCase() === "requested" ? (
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={e => approveRequest(e, booking)}
+                                  title="Approve request"
+                                  className="flex items-center gap-0.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-2 py-1 hover:bg-emerald-100 transition-colors whitespace-nowrap"
+                                >
+                                  <CheckCircle className="h-3.5 w-3.5" />
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={e => declineRequest(e, booking)}
+                                  title="Decline request"
+                                  className="flex items-center gap-0.5 text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1 hover:bg-red-100 transition-colors whitespace-nowrap"
+                                >
+                                  <XCircle className="h-3.5 w-3.5" />
+                                  Decline
+                                </button>
+                              </div>
+                            ) : ["pending", "low"].includes((booking.status || "").toLowerCase()) ? (
+                              <button
+                                onClick={e => quickConfirm(e, booking)}
+                                className="text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-1 hover:bg-blue-100 transition-colors whitespace-nowrap"
+                              >
+                                ✓ Confirm
+                              </button>
+                            ) : null}
                           </td>
                         </tr>
                       );
@@ -770,8 +845,10 @@ export default function BookingBoard() {
                         <SelectValue placeholder="Select HGP status" />
                       </SelectTrigger>
                       <SelectContent className="bg-popover z-50">
-                        <SelectItem value="hgp_free">HGP-Free</SelectItem>
-                        <SelectItem value="hgp_treated">HGP-Treated</SelectItem>
+                        <SelectItem value="">Not set</SelectItem>
+                        <SelectItem value="nil">No HGP</SelectItem>
+                        <SelectItem value="implanted">HGP — W/D complete</SelectItem>
+                        <SelectItem value="under_withholding">HGP — in W/D period</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

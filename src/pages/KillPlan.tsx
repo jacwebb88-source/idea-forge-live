@@ -424,10 +424,12 @@ export default function KillPlan() {
   // ── HGP sequencing check: returns true if HGP-treated appears before HGP-free on a day ──
   const hasHGPSequenceError = (dayBks: Booking[]): boolean => {
     const sorted = [...dayBks].sort((a, b) => (a.kill_order_seq ?? 999) - (b.kill_order_seq ?? 999));
+    const isHGPTreated = (h: string | null) => h === "implanted" || h === "under_withholding";
+    const isHGPFree    = (h: string | null) => h === "nil";
     let seenTreated = false;
     for (const b of sorted) {
-      if ((b.hgp_status || "").toLowerCase() === "hgp_treated") seenTreated = true;
-      if (seenTreated && (b.hgp_status || "").toLowerCase() === "hgp_free") return true;
+      if (isHGPTreated(b.hgp_status)) seenTreated = true;
+      if (seenTreated && isHGPFree(b.hgp_status)) return true;
     }
     return false;
   };
@@ -745,14 +747,19 @@ export default function KillPlan() {
                               Exit f/u
                             </span>
                           )}
-                          {b.hgp_status === "hgp_free" && (
+                          {b.hgp_status === "nil" && (
                             <span className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border-emerald-200">
-                              HGP-Free
+                              No HGP
                             </span>
                           )}
-                          {b.hgp_status === "hgp_treated" && (
+                          {b.hgp_status === "implanted" && (
+                            <span className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs font-semibold bg-amber-50 text-amber-700 border-amber-200">
+                              HGP ⚠
+                            </span>
+                          )}
+                          {b.hgp_status === "under_withholding" && (
                             <span className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs font-semibold bg-orange-50 text-orange-700 border-orange-200">
-                              HGP
+                              HGP–W/D ⚠
                             </span>
                           )}
                           {b.arrival_slot && (
@@ -862,10 +869,12 @@ export default function KillPlan() {
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                   <div>
                     <p className="text-xs text-muted-foreground">HGP status</p>
-                    {selectedBooking.hgp_status === "hgp_free" ? (
-                      <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border-emerald-200">✓ HGP-Free</span>
-                    ) : selectedBooking.hgp_status === "hgp_treated" ? (
-                      <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold bg-orange-50 text-orange-700 border-orange-200">HGP-Treated</span>
+                    {selectedBooking.hgp_status === "nil" ? (
+                      <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border-emerald-200">✓ No HGP</span>
+                    ) : selectedBooking.hgp_status === "implanted" ? (
+                      <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold bg-amber-50 text-amber-700 border-amber-200">HGP — W/D clear</span>
+                    ) : selectedBooking.hgp_status === "under_withholding" ? (
+                      <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold bg-orange-50 text-orange-700 border-orange-200">⚠ HGP — W/D period</span>
                     ) : (
                       <span className="text-muted-foreground text-xs">Not set</span>
                     )}
@@ -1026,9 +1035,10 @@ export default function KillPlan() {
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
                     <SelectContent className="bg-popover z-[200]">
-                      <SelectItem value="">Unknown</SelectItem>
-                      <SelectItem value="hgp_free">HGP-Free</SelectItem>
-                      <SelectItem value="hgp_treated">HGP-Treated</SelectItem>
+                      <SelectItem value="">Not set</SelectItem>
+                      <SelectItem value="nil">No HGP</SelectItem>
+                      <SelectItem value="implanted">HGP — W/D complete</SelectItem>
+                      <SelectItem value="under_withholding">HGP — in W/D period</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

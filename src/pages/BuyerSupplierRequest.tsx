@@ -161,7 +161,7 @@ export default function BuyerSupplierRequest() {
 
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Booking Intake Form</h1>
+          <h1 className="text-3xl font-bold text-foreground">Supplier Booking Request</h1>
           <p className="text-muted-foreground">
             Submit a livestock processing booking request. Fields marked * are required.
           </p>

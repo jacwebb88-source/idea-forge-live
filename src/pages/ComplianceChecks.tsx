@@ -61,8 +61,9 @@ const nlisStatusVariant = (s: string | null): "confirmed" | "cancelled" | "secon
 };
 
 const hgpBadge = (hgp: string | null) => {
-  if (hgp === "hgp_free")    return { text: "HGP Free",    cls: "text-emerald-700 bg-emerald-50 border border-emerald-200" };
-  if (hgp === "hgp_treated") return { text: "HGP Treated", cls: "text-amber-700 bg-amber-50 border border-amber-200" };
+  if (hgp === "nil")               return { text: "No HGP",    cls: "text-emerald-700 bg-emerald-50 border border-emerald-200" };
+  if (hgp === "implanted")         return { text: "HGP",       cls: "text-amber-700 bg-amber-50 border border-amber-200" };
+  if (hgp === "under_withholding") return { text: "HGP – W/D", cls: "text-orange-700 bg-orange-50 border border-orange-200" };
   return null;
 };
 
@@ -190,7 +191,7 @@ export default function ComplianceChecks() {
   const complianceIssues = useMemo(() =>
     bookings.filter(b => {
       const isLamb = ["lamb", "sheep", "mutton"].includes((b.species || "").toLowerCase());
-      const hgpConcern = b.hgp_status === "hgp_treated";
+      const hgpConcern = b.hgp_status === "implanted" || b.hgp_status === "under_withholding";
       const mulesingConcern = isLamb && !b.mulesing_status;
       return hgpConcern || mulesingConcern;
     }),
@@ -445,7 +446,7 @@ export default function ComplianceChecks() {
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 text-rose-500" />
-                  Bookings with compliance flags (HGP-treated, undeclared mulesing for lamb/sheep)
+                  Bookings with compliance flags (HGP implanted/W/D, undeclared mulesing for lamb/sheep)
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -473,7 +474,7 @@ export default function ComplianceChecks() {
                     <TableBody>
                       {complianceIssues.map(b => {
                         const isLamb = ["lamb", "sheep", "mutton"].includes((b.species || "").toLowerCase());
-                        const hgpConcern = b.hgp_status === "hgp_treated";
+                        const hgpConcern = b.hgp_status === "implanted" || b.hgp_status === "under_withholding";
                         const mulesingConcern = isLamb && !b.mulesing_status;
                         const hgp = hgpBadge(b.hgp_status);
                         const ml = mulesingLabel(b.mulesing_status);

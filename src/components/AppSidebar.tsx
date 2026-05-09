@@ -42,7 +42,7 @@ const mainItems = [
   { title: "Kill Reports & Despatch", url: "/kill-reports", icon: FileText },
   { title: "Change History", url: "/change-history", icon: History },
   { title: "Pilot Projects", url: "/pilots", icon: Lightbulb },
-  { title: "Vendor Intake Form", url: "/buyer-request", icon: UserCheck },
+  { title: "Supplier Booking Request", url: "/buyer-request", icon: UserCheck },
 ];
 
 const dataItems = [

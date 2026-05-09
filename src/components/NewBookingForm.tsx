@@ -384,14 +384,21 @@ export function NewBookingForm({ open, onOpenChange, onBookingCreated }: NewBook
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-popover z-50">
                   <SelectItem value="unknown">Not specified</SelectItem>
-                  <SelectItem value="hgp_free">HGP-Free</SelectItem>
-                  <SelectItem value="hgp_treated">HGP-Treated</SelectItem>
+                  <SelectItem value="nil">No HGP — never implanted</SelectItem>
+                  <SelectItem value="implanted">HGP implanted — W/D period complete</SelectItem>
+                  <SelectItem value="under_withholding">HGP — still in W/D period</SelectItem>
                 </SelectContent>
               </Select>
-              {form.hgp_status === "hgp_treated" && (
+              {form.hgp_status === "implanted" && (
                 <p className="text-xs text-amber-600 flex items-center gap-1">
                   <AlertTriangle className="h-3 w-3" />
                   Will be scheduled after HGP-free animals
+                </p>
+              )}
+              {form.hgp_status === "under_withholding" && (
+                <p className="text-xs text-red-600 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  ⚠ Withholding period not complete — animal cannot be processed until cleared
                 </p>
               )}
             </div>
