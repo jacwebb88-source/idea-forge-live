@@ -54,6 +54,7 @@ export default function KPIDashboard() {
   const [plantBreakdown, setPlantBreakdown] = useState<PlantKPI[]>([]);
   const [plants, setPlants] = useState<any[]>([]);
   const [processors, setProcessors] = useState<string[]>([]);
+  const [plantsLoaded, setPlantsLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dailyChartData, setDailyChartData] = useState<any[]>([]);
   const [weeklyTrendData, setWeeklyTrendData] = useState<any[]>([]);
@@ -77,6 +78,7 @@ export default function KPIDashboard() {
         const uniqueProcessors = [...new Set(data.map(p => p.company_name).filter(Boolean))] as string[];
         setProcessors(uniqueProcessors);
       }
+      setPlantsLoaded(true); // always mark done, even if no plants
     };
     fetchPlants();
   }, []);
@@ -432,10 +434,10 @@ export default function KPIDashboard() {
       setLoading(false);
     };
 
-    if (plants.length > 0) {
+    if (plantsLoaded) {
       fetchKPIData();
     }
-  }, [selectedPlant, selectedProcessor, plants, currentWeekStart, previousWeekStart]);
+  }, [selectedPlant, selectedProcessor, plantsLoaded, currentWeekStart, previousWeekStart]);
 
   const calculateChange = (current: number, previous: number): {
     value: string;
