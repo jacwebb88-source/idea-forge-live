@@ -314,10 +314,12 @@ export default function TransportSlotting() {
                             {b.arrival_slot || "—"}
                           </td>
                           <td className="py-2 px-3">
-                            {b.hgp_status === "hgp_free" ? (
-                              <span className="text-xs text-emerald-700">HGP ✓</span>
-                            ) : b.hgp_status === "hgp_treated" ? (
+                            {b.hgp_status === "nil" ? (
+                              <span className="text-xs text-emerald-700">No HGP</span>
+                            ) : b.hgp_status === "implanted" ? (
                               <span className="text-xs text-amber-700 font-semibold">HGP ⚠</span>
+                            ) : b.hgp_status === "under_withholding" ? (
+                              <span className="text-xs text-orange-700 font-semibold">HGP–W/D ⚠</span>
                             ) : (
                               <span className="text-xs text-muted-foreground">—</span>
                             )}

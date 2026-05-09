@@ -2,16 +2,18 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format, addDays } from "date-fns";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowUpDown, AlertTriangle, CheckCircle, Clock, Search, ShieldCheck, ShieldAlert, ShieldOff } from "lucide-react";
+import { ArrowUpDown, AlertTriangle, CheckCircle, Clock, Search, ShieldCheck, ShieldAlert, ShieldOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -89,6 +91,8 @@ const isUpcoming = (dateStr: string | null) => {
 // ── Component ──────────────────────────────────────────────────────────────────
 
 export default function ComplianceChecks() {
+  const { toast } = useToast();
+
   // compliance_checks data
   const [checks, setChecks]   = useState<ComplianceCheck[]>([]);
   const [loadingChecks, setLoadingChecks] = useState(true);
@@ -105,6 +109,14 @@ export default function ComplianceChecks() {
   const [selectedCheck, setSelectedCheck] = useState<ComplianceCheck | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<BookingComplianceRow | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // create-check form state
+  const [createMode, setCreateMode] = useState(false);
+  const [newNlis, setNewNlis]       = useState("pending");
+  const [newNvd, setNewNvd]         = useState("pending");
+  const [newPic, setNewPic]         = useState("pending");
+  const [newBy, setNewBy]           = useState("");
+  const [saving, setSaving]         = useState(false);
 
   // ── Fetch compliance_checks ──────────────────────────────────────────────────
 
@@ -203,13 +215,45 @@ export default function ComplianceChecks() {
   const openCheckDialog = (check: ComplianceCheck) => {
     setSelectedCheck(check);
     setSelectedBooking(bookings.find(b => b.id === check.booking_id) || null);
+    setCreateMode(false);
     setDialogOpen(true);
   };
 
   const openBookingDialog = (booking: BookingComplianceRow) => {
     setSelectedBooking(booking);
     setSelectedCheck(checks.find(c => c.booking_id === booking.id) || null);
+    setCreateMode(false);
+    setNewNlis("pending"); setNewNvd("pending"); setNewPic("pending"); setNewBy("");
     setDialogOpen(true);
+  };
+
+  const handleCreateCheck = async () => {
+    if (!selectedBooking) return;
+    setSaving(true);
+    const { error, data } = await (supabase as any)
+      .from("compliance_checks")
+      .insert({
+        booking_id:  selectedBooking.id,
+        nlis_status: newNlis,
+        nvd_status:  newNvd,
+        pic_status:  newPic,
+        checked_by:  newBy || "Intake",
+        checked_at:  new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      setSaving(false);
+      return;
+    }
+
+    setSelectedCheck(data);
+    setChecks(prev => [data, ...prev]);
+    setCreateMode(false);
+    toast({ title: "Check recorded", description: `NLIS: ${newNlis} · NVD: ${newNvd} · PIC: ${newPic}` });
+    setSaving(false);
   };
 
   // ── Render ────────────────────────────────────────────────────────────────────
@@ -595,9 +639,11 @@ export default function ComplianceChecks() {
               )}
 
               {/* compliance_checks record */}
-              {selectedCheck ? (
+              {selectedCheck && !createMode ? (
                 <div className="border rounded-md p-3 space-y-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">NLIS / NVD / PIC check record</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">NLIS / NVD / PIC check record</p>
+                  </div>
                   <div className="grid grid-cols-3 gap-2">
                     <div>
                       <p className="text-xs text-muted-foreground">NLIS</p>
@@ -619,10 +665,63 @@ export default function ComplianceChecks() {
                     </p>
                   )}
                 </div>
+              ) : !createMode ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 border rounded-md p-3 text-amber-700 bg-amber-50">
+                    <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                    <p className="text-xs">No NLIS/NVD/PIC check record exists for this booking.</p>
+                  </div>
+                  <Button size="sm" className="w-full" onClick={() => setCreateMode(true)}>
+                    <ShieldCheck className="h-3.5 w-3.5 mr-1.5" />
+                    Record compliance check
+                  </Button>
+                </div>
               ) : (
-                <div className="flex items-center gap-2 border rounded-md p-3 text-amber-700 bg-amber-50">
-                  <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                  <p className="text-xs">No NLIS/NVD/PIC check record exists for this booking.</p>
+                /* ── Create check form ── */
+                <div className="border rounded-md p-3 space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Record NLIS / NVD / PIC check</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { label: "NLIS",  value: newNlis, set: setNewNlis },
+                      { label: "NVD",   value: newNvd,  set: setNewNvd },
+                      { label: "PIC",   value: newPic,  set: setNewPic },
+                    ].map(({ label, value, set }) => (
+                      <div key={label} className="space-y-1">
+                        <Label className="text-xs">{label}</Label>
+                        <Select value={value} onValueChange={set}>
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover z-[200]">
+                            <SelectItem value="verified">Verified</SelectItem>
+                            <SelectItem value="received">Received</SelectItem>
+                            <SelectItem value="valid">Valid</SelectItem>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="missing">Missing</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Checked by</Label>
+                    <input
+                      className="w-full h-8 rounded-md border border-input bg-background px-3 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+                      placeholder="e.g. Sam Reece — Intake"
+                      value={newBy}
+                      onChange={e => setNewBy(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setCreateMode(false)} disabled={saving}>Cancel</Button>
+                    <Button size="sm" className="flex-1" onClick={handleCreateCheck} disabled={saving}>
+                      {saving ? (
+                        <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Saving…</>
+                      ) : (
+                        <><ShieldCheck className="h-3.5 w-3.5 mr-1.5" />Save check</>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
