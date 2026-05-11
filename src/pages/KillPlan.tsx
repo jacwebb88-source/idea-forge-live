@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -170,6 +171,7 @@ type EditableFields = {
 
 export default function KillPlan() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [weekStart, setWeekStart] = useState<Date>(
     startOfWeek(new Date(), { weekStartsOn: 1 })
   );
@@ -940,6 +942,65 @@ export default function KillPlan() {
                   </div>
                 )}
               </div>
+
+              {/* ── What's next? ── */}
+              {(() => {
+                const cs = complianceState(compliance[selectedBooking.id]);
+                const hasCompliance = cs === "ok";
+                const transportOk = ["confirmed", "arranged", "arrived", "not_required"].includes(
+                  (selectedBooking.transport_status || "").toLowerCase()
+                );
+                const isUnconfirmed = ["placeholder", "low", "pending", "requested"].includes(
+                  (selectedBooking.status || "").toLowerCase()
+                );
+                const needsAction = isUnconfirmed || !hasCompliance || !transportOk;
+                if (!needsAction) return null;
+                return (
+                  <div className="border-t pt-3 space-y-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">What's next?</p>
+                    <div className="flex flex-wrap gap-2">
+                      {isUnconfirmed && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs h-7 border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100"
+                          onClick={() => setEditMode(true)}
+                        >
+                          ✓ Confirm this booking
+                        </Button>
+                      )}
+                      {!hasCompliance && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs h-7 border-orange-200 text-orange-700 bg-orange-50 hover:bg-orange-100"
+                          onClick={() => {
+                            setSelectedBooking(null);
+                            setEditMode(false);
+                            navigate("/compliance");
+                          }}
+                        >
+                          Add compliance check →
+                        </Button>
+                      )}
+                      {!transportOk && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs h-7 border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100"
+                          onClick={() => {
+                            setSelectedBooking(null);
+                            setEditMode(false);
+                            navigate("/transport");
+                          }}
+                        >
+                          Arrange transport →
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 

@@ -513,6 +513,7 @@ export default function ComplianceChecks() {
                         <TableHead>Flag</TableHead>
                         <TableHead>HGP</TableHead>
                         <TableHead>Mulesing</TableHead>
+                        <TableHead>Resolve</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -563,6 +564,29 @@ export default function ComplianceChecks() {
                                   ? <span className="text-xs font-medium text-rose-600">Not declared</span>
                                   : <span className="text-xs text-muted-foreground">—</span>
                               )}
+                            </TableCell>
+                            <TableCell onClick={e => e.stopPropagation()}>
+                              <div className="flex flex-col gap-1">
+                                {mulesingConcern && (
+                                  <button
+                                    onClick={() => openBookingDialog(b)}
+                                    className="text-xs font-semibold text-rose-700 underline whitespace-nowrap text-left"
+                                  >
+                                    Update booking →
+                                  </button>
+                                )}
+                                {hgpConcern && (
+                                  <a href="/kill-plan" className="text-xs font-semibold text-amber-700 underline whitespace-nowrap">
+                                    Fix kill order →
+                                  </a>
+                                )}
+                                <button
+                                  onClick={() => openBookingDialog(b)}
+                                  className="text-xs font-semibold text-primary underline whitespace-nowrap text-left"
+                                >
+                                  Add check →
+                                </button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         );
