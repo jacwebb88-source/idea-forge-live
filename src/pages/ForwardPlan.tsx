@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -133,6 +134,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function ForwardPlan() {
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [dayPlans, setDayPlans] = useState<DayPlan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -402,15 +404,20 @@ export default function ForwardPlan() {
                   <th className="text-right py-2 px-3 font-medium">Total</th>
                   <th className="text-right py-2 px-3 font-medium text-muted-foreground">Capacity</th>
                   <th className="text-right py-2 px-3 font-medium">Fill %</th>
+                  <th className="py-2 px-3"></th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={9} className="py-8 text-center text-muted-foreground">Loading…</td></tr>
+                  <tr><td colSpan={10} className="py-8 text-center text-muted-foreground">Loading…</td></tr>
                 ) : chartData.map(w => {
                   const isOver = w.capacity > 0 && w.total > w.capacity;
                   return (
-                    <tr key={w.weekStart} className={`border-b border-border/50 ${isOver ? "bg-destructive/5" : ""}`}>
+                    <tr
+                      key={w.weekStart}
+                      className={`border-b border-border/50 cursor-pointer hover:bg-muted/40 transition-colors ${isOver ? "bg-destructive/5 hover:bg-destructive/10" : ""}`}
+                      onClick={() => navigate(`/bookings?week=${w.weekStart}`)}
+                    >
                       <td className="py-2 px-3 font-medium">{w.weekLabel}</td>
                       <td className="py-2 px-3 text-right text-blue-700">{w.confirmed > 0 ? w.confirmed.toLocaleString() : "—"}</td>
                       <td className="py-2 px-3 text-right text-emerald-700">{w.high > 0 ? w.high.toLocaleString() : "—"}</td>
@@ -422,6 +429,11 @@ export default function ForwardPlan() {
                       <td className={`py-2 px-3 text-right font-bold ${isOver ? "text-destructive" : w.fillRate >= 80 ? "text-emerald-600" : "text-muted-foreground"}`}>
                         {w.capacity > 0 ? `${w.fillRate.toFixed(0)}%` : "—"}
                         {isOver && " ⚠"}
+                      </td>
+                      <td className="py-2 px-3 text-right">
+                        <span className="text-xs font-semibold text-primary underline whitespace-nowrap">
+                          {isOver ? "Resolve →" : "View →"}
+                        </span>
                       </td>
                     </tr>
                   );
@@ -441,6 +453,7 @@ export default function ForwardPlan() {
                     <td className={`py-2 px-3 text-right ${avgFill > 100 ? "text-destructive" : avgFill >= 80 ? "text-emerald-600" : ""}`}>
                       {totalCap > 0 ? `${avgFill.toFixed(0)}%` : "—"}
                     </td>
+                    <td className="py-2 px-3"></td>
                   </tr>
                 </tfoot>
               )}

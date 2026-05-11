@@ -13,8 +13,9 @@ import { useToast } from "@/hooks/use-toast";
 import { buildBookingChangeRows, resolveAuditActor } from "@/lib/bookingAudit";
 import { Search, Plus, Filter, Download, Edit2, Save, X, Loader2, History, Bell, CheckCircle, XCircle } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import { format, parseISO, addDays } from "date-fns";
 
 // 30-minute arrival slots 06:00–22:00
 const ARRIVAL_SLOTS = Array.from({ length: 32 }, (_, i) => {
@@ -120,6 +121,8 @@ const transportLabel = (ts: string | null) => {
 
 export default function BookingBoard() {
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const weekParam = searchParams.get("week"); // ISO date string = Monday of that week
   const [bookings, setBookings] = useState<BookingData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -384,7 +387,14 @@ export default function BookingBoard() {
       booking.id.toLowerCase().includes(q) ||
       (booking.lot_id || "").toLowerCase().includes(q);
     const matchesStatus = statusFilter === "all" || booking.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    let matchesWeek = true;
+    if (weekParam && booking.requested_kill_date) {
+      const weekStart = parseISO(weekParam);
+      const weekEnd = addDays(weekStart, 6);
+      const killDate = parseISO(booking.requested_kill_date);
+      matchesWeek = killDate >= weekStart && killDate <= weekEnd;
+    }
+    return matchesSearch && matchesStatus && matchesWeek;
   });
 
   // Confidence summary counts
@@ -417,6 +427,18 @@ export default function BookingBoard() {
             </Button>
           </div>
         </div>
+
+        {/* Week filter banner (when navigated from Forward Plan) */}
+        {weekParam && (
+          <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+            <span className="text-sm font-semibold text-blue-800">
+              Showing bookings for week of {format(parseISO(weekParam), "d MMM yyyy")}
+            </span>
+            <a href="/bookings" className="ml-auto text-xs font-semibold text-blue-700 underline whitespace-nowrap">
+              Clear filter
+            </a>
+          </div>
+        )}
 
         {/* Supplier booking requests alert */}
         {!loading && bookings.filter(b => b.status === "requested").length > 0 && (
