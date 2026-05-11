@@ -217,7 +217,6 @@ export default function IntakeStatus() {
     }
 
     const eventLabel = EVENT_TYPES.find(e => e.value === logEventType)?.label || logEventType;
-    const actualHead = logActualHead ? parseInt(logActualHead) : null;
     const mismatch = actualHead !== null && actualHead !== (bookingForLog?.head_count || 0);
     toast({
       title: mismatch
