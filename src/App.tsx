@@ -25,6 +25,7 @@ import IntakeStatus from "./pages/IntakeStatus";
 import Settings from "./pages/Settings";
 import ForwardPlan from "./pages/ForwardPlan";
 import BuyerPortal from "./pages/BuyerPortal";
+import UserAccess from "./pages/UserAccess";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -63,6 +64,9 @@ const App = () => (
 
             {/* Buyer portal — buyers, ops can also view */}
             <Route path="/buyer-portal" element={<ProtectedRoute allowedRoles={["buyer","ops","management"]}><BuyerPortal /></ProtectedRoute>} />
+
+            {/* Users & Access — ops and management only */}
+            <Route path="/users" element={<ProtectedRoute allowedRoles={["ops","management"]}><UserAccess /></ProtectedRoute>} />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

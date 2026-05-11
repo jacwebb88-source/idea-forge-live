@@ -10,6 +10,8 @@ export type UserProfile = {
   display_name: string | null;
   role: UserRole;
   plant_id: string | null;
+  last_seen_at: string | null;
+  is_active: boolean;
 };
 
 type AuthContextType = {
@@ -56,11 +58,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
           await fetchProfile(session.user.id);
+          // Stamp last_seen_at on every sign-in or token refresh
+          if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+            await supabase
+              .from("user_profiles")
+              .update({ last_seen_at: new Date().toISOString() })
+              .eq("id", session.user.id);
+          }
         } else {
           setProfile(null);
         }

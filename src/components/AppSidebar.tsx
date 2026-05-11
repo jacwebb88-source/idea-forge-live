@@ -18,6 +18,7 @@ import {
   TrendingUp,
   LogOut,
   ShoppingBag,
+  UserCog,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -57,6 +58,7 @@ const dataItems = [
 const systemItems = [
   { title: "Intake Status", url: "/intake", icon: MessageSquare },
   { title: "Buyer Portal", url: "/buyer-portal", icon: ShoppingBag },
+  { title: "Users & Access", url: "/users", icon: UserCog },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
