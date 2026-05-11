@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { MessageSquare, Search, Calendar, MapPin, FileText, Plus, Loader2, CheckCircle2, Truck, Scale, PenLine, Hammer, Package } from "lucide-react";
+import { MessageSquare, Search, Calendar, MapPin, FileText, Plus, Loader2, CheckCircle2, CheckCircle, Truck, Scale, PenLine, Hammer, Package } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
@@ -92,6 +92,7 @@ export default function IntakeStatus() {
   const [logEventType, setLogEventType] = useState("");
   const [logLocation, setLogLocation]   = useState("");
   const [logNotes, setLogNotes]         = useState("");
+  const [logActualHead, setLogActualHead] = useState("");
   const [saving, setSaving]             = useState(false);
 
   // ── Fetch today's bookings ─────────────────────────────────────────────────
@@ -191,11 +192,21 @@ export default function IntakeStatus() {
     }
     setSaving(true);
 
+    const bookingForLog = todayBookings.find(b => b.id === logBookingId);
+    const bookedHead = bookingForLog?.head_count || 0;
+    const actualHead = logActualHead ? parseInt(logActualHead) : null;
+    const headMismatch = actualHead !== null && actualHead !== bookedHead
+      ? ` | Actual head: ${actualHead} (booked: ${bookedHead}, diff: ${actualHead - bookedHead})`
+      : actualHead !== null ? ` | Head confirmed: ${actualHead}` : "";
+    const finalNotes = logNotes
+      ? logNotes + headMismatch
+      : headMismatch ? headMismatch.replace(" | ", "").trim() : null;
+
     const { error } = await supabase.from("intake_events").insert({
       booking_id: logBookingId,
       event_type: logEventType,
       location:   logLocation || null,
-      notes:      logNotes    || null,
+      notes:      finalNotes  || null,
       timestamp:  new Date().toISOString(),
     });
 
@@ -205,16 +216,23 @@ export default function IntakeStatus() {
       return;
     }
 
-    const booking = todayBookings.find(b => b.id === logBookingId);
     const eventLabel = EVENT_TYPES.find(e => e.value === logEventType)?.label || logEventType;
+    const actualHead = logActualHead ? parseInt(logActualHead) : null;
+    const mismatch = actualHead !== null && actualHead !== (bookingForLog?.head_count || 0);
     toast({
-      title: `${eventLabel} logged`,
-      description: `${booking?.supplier_name || "Booking"} — ${(booking?.head_count || 0).toLocaleString()} head`,
+      title: mismatch
+        ? `${eventLabel} logged — head count mismatch`
+        : `${eventLabel} logged`,
+      description: mismatch
+        ? `Booked ${(bookingForLog?.head_count || 0).toLocaleString()} — arrived ${actualHead?.toLocaleString()}. Shortfall of ${Math.abs(actualHead! - (bookingForLog?.head_count || 0))} head.`
+        : `${bookingForLog?.supplier_name || "Booking"} — ${(bookingForLog?.head_count || 0).toLocaleString()} head`,
+      variant: mismatch ? "destructive" : "default",
     });
 
     // Reset form but keep booking selected for quick follow-up events
     setLogEventType("");
     setLogNotes("");
+    setLogActualHead("");
     setSaving(false);
     fetchEvents(); // refresh log
   };
@@ -357,6 +375,50 @@ export default function IntakeStatus() {
                       ))}
                     </div>
                   </div>
+
+                  {/* Actual head count — shown when event is "arrived" or "weighed" */}
+                  {(logEventType === "arrived" || logEventType === "weighed") && selectedBookingForLog && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">
+                        Actual head count on arrival
+                        <span className="font-normal text-muted-foreground ml-1">(booked: {(selectedBookingForLog.head_count || 0).toLocaleString()})</span>
+                      </Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        placeholder={`Expected ${selectedBookingForLog.head_count || 0}`}
+                        value={logActualHead}
+                        onChange={e => setLogActualHead(e.target.value)}
+                        className="text-sm"
+                      />
+                      {/* Mismatch warning */}
+                      {logActualHead && selectedBookingForLog.head_count && (() => {
+                        const actual = parseInt(logActualHead);
+                        const booked = selectedBookingForLog.head_count || 0;
+                        const diff = actual - booked;
+                        const pct = Math.abs(diff / booked * 100);
+                        if (Math.abs(diff) === 0) return (
+                          <p className="text-xs text-emerald-700 flex items-center gap-1">
+                            <CheckCircle className="h-3.5 w-3.5" /> Head count matches booking
+                          </p>
+                        );
+                        return (
+                          <div className={`rounded-md px-3 py-2 text-xs border ${diff < 0 ? "bg-red-50 border-red-200 text-red-800" : "bg-amber-50 border-amber-200 text-amber-800"}`}>
+                            <p className="font-semibold">
+                              {diff < 0
+                                ? `⚠ Short by ${Math.abs(diff)} head (${pct.toFixed(0)}% shortfall)`
+                                : `${diff} extra head above booking`}
+                            </p>
+                            <p className="mt-0.5">
+                              {diff < 0
+                                ? "Note in the Notes field below — procurement will need to be notified."
+                                : "Confirm with supplier whether additional head are authorised."}
+                            </p>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
 
                   {/* Location */}
                   <div className="space-y-1.5">

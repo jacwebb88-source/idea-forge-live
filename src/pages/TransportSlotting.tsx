@@ -385,6 +385,7 @@ export default function TransportSlotting() {
                       <th className="text-right py-2 px-3 font-medium text-muted-foreground">Loads</th>
                       <th className="text-right py-2 px-3 font-medium text-muted-foreground">Max</th>
                       <th className="text-left py-2 px-3 font-medium text-muted-foreground">Status</th>
+                      <th className="py-2 px-3"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -409,6 +410,16 @@ export default function TransportSlotting() {
                               <CheckCircle className="h-3.5 w-3.5" />
                               OK
                             </span>
+                          )}
+                        </td>
+                        <td className="py-2 px-3">
+                          {c.is_conflict && (
+                            <a
+                              href="/kill-plan"
+                              className="text-xs font-semibold text-primary underline whitespace-nowrap"
+                            >
+                              Reschedule →
+                            </a>
                           )}
                         </td>
                       </tr>
