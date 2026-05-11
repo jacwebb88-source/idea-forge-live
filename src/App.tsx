@@ -3,7 +3,11 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+
 import Index from "./pages/Index";
+import Login from "./pages/Login";
 import BookingBoard from "./pages/BookingBoard";
 import KillPlan from "./pages/KillPlan";
 import TransportSlotting from "./pages/TransportSlotting";
@@ -20,6 +24,7 @@ import ChangeHistory from "./pages/ChangeHistory";
 import IntakeStatus from "./pages/IntakeStatus";
 import Settings from "./pages/Settings";
 import ForwardPlan from "./pages/ForwardPlan";
+import BuyerPortal from "./pages/BuyerPortal";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,27 +35,39 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/kill-plan" element={<KillPlan />} />
-          <Route path="/bookings" element={<BookingBoard />} />
-          <Route path="/transport" element={<TransportSlotting />} />
-          <Route path="/grid-specs" element={<GridSpecs />} />
-          <Route path="/kpis" element={<KPIDashboard />} />
-          <Route path="/import" element={<ImportData />} />
-          <Route path="/plants" element={<Plants />} />
-          <Route path="/buyer-request" element={<BuyerSupplierRequest />} />
-          <Route path="/pilots" element={<PilotProjects />} />
-          <Route path="/compliance" element={<ComplianceChecks />} />
-          <Route path="/kill-reports" element={<KillReports />} />
-          <Route path="/change-history" element={<ChangeHistory />} />
-          <Route path="/suppliers" element={<Suppliers />} />
-          <Route path="/intake" element={<IntakeStatus />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/forward-plan" element={<ForwardPlan />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            {/* Public */}
+            <Route path="/login" element={<Login />} />
+
+            {/* Ops / management routes — full access */}
+            <Route path="/" element={<ProtectedRoute allowedRoles={["ops","management"]}><Index /></ProtectedRoute>} />
+            <Route path="/kill-plan" element={<ProtectedRoute allowedRoles={["ops","management"]}><KillPlan /></ProtectedRoute>} />
+            <Route path="/bookings" element={<ProtectedRoute allowedRoles={["ops","management","buyer"]}><BookingBoard /></ProtectedRoute>} />
+            <Route path="/transport" element={<ProtectedRoute allowedRoles={["ops","management","transport"]}><TransportSlotting /></ProtectedRoute>} />
+            <Route path="/grid-specs" element={<ProtectedRoute allowedRoles={["ops","management"]}><GridSpecs /></ProtectedRoute>} />
+            <Route path="/kpis" element={<ProtectedRoute allowedRoles={["ops","management"]}><KPIDashboard /></ProtectedRoute>} />
+            <Route path="/import" element={<ProtectedRoute allowedRoles={["ops","management"]}><ImportData /></ProtectedRoute>} />
+            <Route path="/plants" element={<ProtectedRoute allowedRoles={["ops","management"]}><Plants /></ProtectedRoute>} />
+            <Route path="/suppliers" element={<ProtectedRoute allowedRoles={["ops","management"]}><Suppliers /></ProtectedRoute>} />
+            <Route path="/pilots" element={<ProtectedRoute allowedRoles={["ops","management"]}><PilotProjects /></ProtectedRoute>} />
+            <Route path="/compliance" element={<ProtectedRoute allowedRoles={["ops","management"]}><ComplianceChecks /></ProtectedRoute>} />
+            <Route path="/kill-reports" element={<ProtectedRoute allowedRoles={["ops","management"]}><KillReports /></ProtectedRoute>} />
+            <Route path="/change-history" element={<ProtectedRoute allowedRoles={["ops","management"]}><ChangeHistory /></ProtectedRoute>} />
+            <Route path="/intake" element={<ProtectedRoute allowedRoles={["ops","management"]}><IntakeStatus /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/forward-plan" element={<ProtectedRoute allowedRoles={["ops","management"]}><ForwardPlan /></ProtectedRoute>} />
+
+            {/* Supplier booking request — accessible to buyers and suppliers too */}
+            <Route path="/buyer-request" element={<ProtectedRoute allowedRoles={["ops","management","buyer","supplier"]}><BuyerSupplierRequest /></ProtectedRoute>} />
+
+            {/* Buyer portal — buyers, ops can also view */}
+            <Route path="/buyer-portal" element={<ProtectedRoute allowedRoles={["buyer","ops","management"]}><BuyerPortal /></ProtectedRoute>} />
+
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

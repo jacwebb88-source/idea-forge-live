@@ -16,7 +16,10 @@ import {
   FileText,
   History,
   TrendingUp,
+  LogOut,
+  ShoppingBag,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 import {
   Sidebar,
@@ -53,11 +56,21 @@ const dataItems = [
 
 const systemItems = [
   { title: "Intake Status", url: "/intake", icon: MessageSquare },
+  { title: "Buyer Portal", url: "/buyer-portal", icon: ShoppingBag },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
+const ROLE_LABELS: Record<string, string> = {
+  ops:        "Kill Floor Ops",
+  buyer:      "Field Buyer",
+  supplier:   "Supplier",
+  transport:  "Transport",
+  management: "Management",
+};
+
 export function AppSidebar() {
   const { state } = useSidebar();
+  const { profile, signOut } = useAuth();
   const location = useLocation();
   const currentPath = location.pathname;
   const collapsed = state === "collapsed";
@@ -130,6 +143,44 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* User strip at bottom */}
+        {profile && (
+          <div className="mt-auto border-t border-sidebar-border p-3">
+            {collapsed ? (
+              <button
+                onClick={signOut}
+                className="w-full flex justify-center p-1 rounded hover:bg-sidebar-accent/50 text-sidebar-foreground"
+                title="Sign out"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                  <span className="text-xs font-bold text-primary">
+                    {(profile.display_name ?? profile.email ?? "?")[0].toUpperCase()}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-sidebar-foreground truncate">
+                    {profile.display_name ?? profile.email}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {ROLE_LABELS[profile.role] ?? profile.role}
+                  </p>
+                </div>
+                <button
+                  onClick={signOut}
+                  className="shrink-0 p-1 rounded hover:bg-sidebar-accent/50 text-muted-foreground hover:text-sidebar-foreground"
+                  title="Sign out"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </SidebarContent>
     </Sidebar>
   );
