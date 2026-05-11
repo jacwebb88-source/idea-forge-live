@@ -59,6 +59,14 @@ type DashboardMetrics = {
   todaySuppliers: number;
 };
 
+type TodayReadiness = {
+  totalBookings: number;
+  confirmedBookings: number;
+  complianceChecked: number;
+  transportArranged: number;
+  hgpConflict: boolean;
+};
+
 const Index = () => {
   const [complianceOk, setComplianceOk] = useState<number | null>(null);
   const [missingCompliance, setMissingCompliance] = useState<number>(0);
@@ -70,6 +78,7 @@ const Index = () => {
   const [loadingMetrics, setLoadingMetrics] = useState(true);
   const [operationalGaps, setOperationalGaps] = useState<OperationalGap[]>([]);
   const [loadingGaps, setLoadingGaps] = useState(true);
+  const [todayReadiness, setTodayReadiness] = useState<TodayReadiness | null>(null);
 
   // ── Live dashboard metrics from Supabase ──
   useEffect(() => {
@@ -118,6 +127,53 @@ const Index = () => {
       setLoadingMetrics(false);
     };
     fetchMetrics();
+  }, []);
+
+  // ── Kill-day readiness check ──
+  useEffect(() => {
+    const fetchReadiness = async () => {
+      const today = format(new Date(), "yyyy-MM-dd");
+      const { data: todayBks } = await supabase
+        .from("bookings")
+        .select("id, status, transport_status, hgp_status, kill_order_seq")
+        .eq("requested_kill_date", today)
+        .neq("status", "cancelled");
+
+      if (!todayBks || todayBks.length === 0) { setTodayReadiness(null); return; }
+
+      const ids = todayBks.map((b: any) => b.id);
+      const { data: checks } = await (supabase as any)
+        .from("compliance_checks")
+        .select("booking_id, nvd_status, nlis_status, pic_status")
+        .in("booking_id", ids);
+
+      const checkedSet = new Set(
+        ((checks as any[]) || [])
+          .filter((c: any) => c.nvd_status === "ok" && c.nlis_status === "ok" && c.pic_status === "ok")
+          .map((c: any) => c.booking_id)
+      );
+
+      const transportOk = (b: any) =>
+        ["confirmed", "arranged", "arrived", "not_required"].includes((b.transport_status || "").toLowerCase());
+
+      // HGP conflict: a nil-HGP booking has a higher kill_order_seq than an implanted/under_withholding booking
+      const sorted = [...todayBks].sort((a: any, b: any) => (a.kill_order_seq ?? 999) - (b.kill_order_seq ?? 999));
+      let hgpConflict = false;
+      let seenHgpTreated = false;
+      for (const b of sorted as any[]) {
+        if (b.hgp_status === "implanted" || b.hgp_status === "under_withholding") seenHgpTreated = true;
+        if (seenHgpTreated && b.hgp_status === "nil") { hgpConflict = true; break; }
+      }
+
+      setTodayReadiness({
+        totalBookings:    todayBks.length,
+        confirmedBookings: todayBks.filter((b: any) => b.status === "confirmed").length,
+        complianceChecked: ids.filter(id => checkedSet.has(id)).length,
+        transportArranged: todayBks.filter((b: any) => transportOk(b)).length,
+        hgpConflict,
+      });
+    };
+    fetchReadiness();
   }, []);
 
   // Fetch unconfirmed bookings due in the next 14 days
@@ -320,54 +376,122 @@ const Index = () => {
           </div>
         </div>
 
-        {/* ── Today's Kill Banner ── */}
-        {!loadingMetrics && (
-          <Card className={`${(metrics?.todayBookings ?? 0) > 0 ? "border-primary/30 bg-primary/5" : "border-dashed border-muted-foreground/30"}`}>
-            <CardContent className="pt-4 pb-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className={`rounded-full p-2 ${(metrics?.todayBookings ?? 0) > 0 ? "bg-primary/10" : "bg-muted"}`}>
-                    <Calendar className={`h-4 w-4 ${(metrics?.todayBookings ?? 0) > 0 ? "text-primary" : "text-muted-foreground"}`} />
+        {/* ── Kill-Day Readiness Checklist ── */}
+        {!loadingMetrics && todayReadiness && (() => {
+          const r = todayReadiness;
+          const allGood = r.confirmedBookings === r.totalBookings
+            && r.complianceChecked === r.totalBookings
+            && r.transportArranged === r.totalBookings
+            && !r.hgpConflict;
+          const issueCount = (r.confirmedBookings < r.totalBookings ? 1 : 0)
+            + (r.complianceChecked < r.totalBookings ? 1 : 0)
+            + (r.transportArranged < r.totalBookings ? 1 : 0)
+            + (r.hgpConflict ? 1 : 0);
+
+          const Row = ({ ok, label, detail, to }: { ok: boolean; label: string; detail: string; to?: string }) => (
+            <div className="flex items-center gap-3">
+              {ok
+                ? <CheckCircle className="h-4 w-4 text-emerald-500 shrink-0" />
+                : <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />}
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm font-medium ${ok ? "text-foreground" : "text-amber-800"}`}>{label}</p>
+                <p className="text-xs text-muted-foreground">{detail}</p>
+              </div>
+              {!ok && to && (
+                <NavLink to={to}>
+                  <button className="shrink-0 text-xs font-semibold text-primary underline whitespace-nowrap">
+                    Fix →
+                  </button>
+                </NavLink>
+              )}
+            </div>
+          );
+
+          return (
+            <Card className={allGood ? "border-emerald-300 bg-emerald-50/40" : "border-amber-300 bg-amber-50/40"}>
+              <CardHeader className="pb-2 pt-4">
+                <CardTitle className="text-base flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    {allGood
+                      ? <CheckCircle className="h-5 w-5 text-emerald-500" />
+                      : <AlertTriangle className="h-5 w-5 text-amber-500" />}
+                    Kill-Day Readiness — {format(new Date(), "EEEE d MMMM")}
+                  </span>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${
+                    allGood
+                      ? "text-emerald-700 bg-emerald-100 border-emerald-200"
+                      : "text-amber-700 bg-amber-100 border-amber-200"
+                  }`}>
+                    {allGood ? "Ready to kill ✓" : `${issueCount} action${issueCount !== 1 ? "s" : ""} needed`}
+                  </span>
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  {r.totalBookings} booking{r.totalBookings !== 1 ? "s" : ""} · {(metrics?.todayHead ?? 0).toLocaleString()} head · {metrics?.todaySuppliers} vendor{metrics?.todaySuppliers !== 1 ? "s" : ""}
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-3 pb-4">
+                <Row
+                  ok={r.confirmedBookings === r.totalBookings}
+                  label={r.confirmedBookings === r.totalBookings
+                    ? "All bookings confirmed"
+                    : `${r.totalBookings - r.confirmedBookings} booking${r.totalBookings - r.confirmedBookings !== 1 ? "s" : ""} not yet confirmed`}
+                  detail={`${r.confirmedBookings} of ${r.totalBookings} confirmed`}
+                  to="/bookings"
+                />
+                <Row
+                  ok={r.complianceChecked === r.totalBookings}
+                  label={r.complianceChecked === r.totalBookings
+                    ? "Compliance checks complete"
+                    : `${r.totalBookings - r.complianceChecked} booking${r.totalBookings - r.complianceChecked !== 1 ? "s" : ""} missing compliance check`}
+                  detail={`${r.complianceChecked} of ${r.totalBookings} checked — NVD, NLIS, PIC`}
+                  to="/compliance"
+                />
+                <Row
+                  ok={r.transportArranged === r.totalBookings}
+                  label={r.transportArranged === r.totalBookings
+                    ? "Transport confirmed for all bookings"
+                    : `${r.totalBookings - r.transportArranged} booking${r.totalBookings - r.transportArranged !== 1 ? "s" : ""} without confirmed transport`}
+                  detail={`${r.transportArranged} of ${r.totalBookings} transport arranged or not required`}
+                  to="/transport"
+                />
+                <Row
+                  ok={!r.hgpConflict}
+                  label={r.hgpConflict
+                    ? "HGP sequencing conflict — HGP-free must kill before treated"
+                    : "HGP kill order correct"}
+                  detail={r.hgpConflict
+                    ? "Check kill_order_seq — HGP-treated animals appearing before HGP-free"
+                    : "HGP-free animals sequenced before any treated animals"}
+                  to="/kill-plan"
+                />
+                {allGood && (
+                  <div className="pt-1 flex gap-2">
+                    <NavLink to="/kill-plan">
+                      <Button size="sm" variant="outline">View Kill Plan</Button>
+                    </NavLink>
+                    <NavLink to="/kill-reports">
+                      <Button size="sm">
+                        <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
+                        Today's Kill Report
+                      </Button>
+                    </NavLink>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground font-medium">TODAY — {format(new Date(), "EEEE d MMMM yyyy")}</p>
-                    {(metrics?.todayBookings ?? 0) === 0 ? (
-                      <p className="text-sm text-muted-foreground italic">No kill scheduled for today</p>
-                    ) : (
-                      <div className="flex flex-wrap items-center gap-3 mt-0.5">
-                        <span className="text-lg font-bold text-foreground">
-                          {(metrics?.todayHead ?? 0).toLocaleString()} head
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {metrics?.todayBookings} booking{metrics?.todayBookings !== 1 ? "s" : ""}
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {metrics?.todaySuppliers} vendor{metrics?.todaySuppliers !== 1 ? "s" : ""}
-                        </span>
-                        {(metrics?.todayConfirmed ?? 0) < (metrics?.todayBookings ?? 0) && (
-                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
-                            <AlertTriangle className="h-3 w-3" />
-                            {(metrics?.todayBookings ?? 0) - (metrics?.todayConfirmed ?? 0)} unconfirmed
-                          </span>
-                        )}
-                        {(metrics?.todayConfirmed ?? 0) === (metrics?.todayBookings ?? 0) && (metrics?.todayBookings ?? 0) > 0 && (
-                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
-                            <CheckCircle className="h-3 w-3" />
-                            All confirmed
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                {(metrics?.todayBookings ?? 0) > 0 && (
-                  <NavLink to="/kill-reports">
-                    <Button size="sm" className="shrink-0 whitespace-nowrap">
-                      <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
-                      Today's Kill Report
-                    </Button>
-                  </NavLink>
                 )}
+              </CardContent>
+            </Card>
+          );
+        })()}
+
+        {/* ── No kill today banner ── */}
+        {!loadingMetrics && !todayReadiness && (metrics?.todayBookings ?? 0) === 0 && (
+          <Card className="border-dashed border-muted-foreground/30">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center gap-3">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium">{format(new Date(), "EEEE d MMMM yyyy")}</p>
+                  <p className="text-sm text-muted-foreground italic">No kill scheduled for today</p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -391,14 +515,16 @@ const Index = () => {
             icon={Users}
             description="Total head booked across the next 7 kill dates"
           />
-          <MetricCard
-            title="Pending Transport"
-            value={loadingMetrics ? "—" : metrics?.pendingTransport ?? 0}
-            change={loadingMetrics ? undefined : metrics?.pendingTransport === 0 ? "All arranged" : "Awaiting arrangement"}
-            changeType={metrics?.pendingTransport === 0 ? "positive" : "neutral"}
-            icon={Truck}
-            description="Bookings without confirmed transport"
-          />
+          <NavLink to="/transport" className="block">
+            <MetricCard
+              title="Pending Transport"
+              value={loadingMetrics ? "—" : metrics?.pendingTransport ?? 0}
+              change={loadingMetrics ? undefined : metrics?.pendingTransport === 0 ? "All arranged" : "Awaiting arrangement — click to fix"}
+              changeType={metrics?.pendingTransport === 0 ? "positive" : "neutral"}
+              icon={Truck}
+              description="Bookings without confirmed transport"
+            />
+          </NavLink>
           <MetricCard
             title="Fill Rate"
             value={loadingMetrics ? "—" : metrics?.avgFillRate != null ? `${metrics.avgFillRate.toFixed(1)}%` : "No data"}
@@ -455,14 +581,16 @@ const Index = () => {
                   amberAbove: 80
                 } : undefined}
               />
-              <MetricCard
-                title="Missing Compliance Records"
-                value={loadingCompliance ? "—" : missingCompliance}
-                change={missingCompliance > 0 ? "Requires attention" : "All records complete"}
-                changeType={missingCompliance === 0 ? "positive" : "negative"}
-                icon={AlertTriangle}
-                description="Records with any missing status"
-              />
+              <NavLink to="/compliance" className="block">
+                <MetricCard
+                  title="Missing Compliance Records"
+                  value={loadingCompliance ? "—" : missingCompliance}
+                  change={missingCompliance > 0 ? "Click to fix" : "All records complete"}
+                  changeType={missingCompliance === 0 ? "positive" : "negative"}
+                  icon={AlertTriangle}
+                  description="Records with any missing status"
+                />
+              </NavLink>
               <MetricCard
                 title="Compliance Pending"
                 value={loadingCompliance ? "Loading..." : pendingCompliance === 0 ? "All clear ✅" : pendingCompliance}
@@ -612,6 +740,11 @@ const Index = () => {
                         }`}>
                           {daysLabel}
                         </span>
+                        <NavLink to={isTransport ? "/transport" : "/compliance"}>
+                          <button className="shrink-0 text-xs font-semibold text-primary underline whitespace-nowrap">
+                            Fix →
+                          </button>
+                        </NavLink>
                       </div>
                     );
                   })}
