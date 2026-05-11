@@ -333,12 +333,13 @@ export default function BuyerSupplierRequest() {
                     <SelectValue placeholder="Select HGP status" />
                   </SelectTrigger>
                   <SelectContent className="bg-popover z-50">
-                    <SelectItem value="hgp_free">HGP-Free — no hormone treatments</SelectItem>
-                    <SelectItem value="hgp_treated">HGP-Treated — implants used</SelectItem>
+                    <SelectItem value="nil">HGP-Free — no hormone treatments</SelectItem>
+                    <SelectItem value="implanted">HGP — implants used, withholding complete</SelectItem>
+                    <SelectItem value="under_withholding">HGP — currently in withholding period</SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.hgp_status && <p className="text-xs text-destructive">{errors.hgp_status}</p>}
-                {formData.hgp_status === "hgp_treated" && (
+                {(formData.hgp_status === "implanted" || formData.hgp_status === "under_withholding") && (
                   <div className="rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800 mt-1">
                     <strong>Note:</strong> HGP-treated animals must be killed after HGP-free animals on the same chain.
                     Your slot may be adjusted accordingly.

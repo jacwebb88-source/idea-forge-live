@@ -278,6 +278,22 @@ export default function BookingBoard() {
     toast({ title: "Request declined", description: `${booking.supplierName || "Booking"} request has been declined.`, variant: "destructive" });
   };
 
+  const approveRequest = async (e: React.MouseEvent, booking: BookingData) => {
+    e.stopPropagation();
+    const { error } = await supabase.from("bookings").update({ status: "confirmed" }).eq("id", booking.id);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    setBookings(prev => prev.map(b => b.id === booking.id ? { ...b, status: "confirmed" } : b));
+    toast({ title: "Booking request approved", description: `${booking.supplierName || "Booking"} · ${(booking.head_count || 0).toLocaleString()} head confirmed.` });
+  };
+
+  const declineRequest = async (e: React.MouseEvent, booking: BookingData) => {
+    e.stopPropagation();
+    const { error } = await supabase.from("bookings").update({ status: "cancelled" }).eq("id", booking.id);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    setBookings(prev => prev.map(b => b.id === booking.id ? { ...b, status: "cancelled" } : b));
+    toast({ title: "Request declined", description: `${booking.supplierName || "Booking"} request has been declined.`, variant: "destructive" });
+  };
+
   const saveEdit = async () => {
     if (!selectedBooking) return;
     setSaving(true);
