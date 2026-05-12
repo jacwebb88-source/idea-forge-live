@@ -10,11 +10,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, UserRole } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDistanceToNow, parseISO } from "date-fns";
+import { formatDistanceToNow, parseISO, startOfDay, subDays } from "date-fns";
 import {
   Users, Plus, CheckCircle, XCircle, Clock,
-  Eye, EyeOff, ShieldCheck, Copy, Mail,
+  Eye, EyeOff, ShieldCheck, Copy, TrendingUp,
 } from "lucide-react";
+
+type VisitorStats = {
+  total: number;
+  today: number;
+  thisWeek: number;
+};
 
 type UserRow = {
   id: string;
@@ -53,6 +59,8 @@ export default function UserAccess() {
   const [showPassword, setShowPassword]   = useState(false);
   const [createdCreds, setCreatedCreds]   = useState<{ email: string; password: string } | null>(null);
 
+  const [visitors, setVisitors] = useState<VisitorStats>({ total: 0, today: 0, thisWeek: 0 });
+
   const fetchUsers = async () => {
     setLoading(true);
     const { data } = await supabase
@@ -63,7 +71,19 @@ export default function UserAccess() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchUsers(); }, []);
+  const fetchVisitors = async () => {
+    const todayStr   = startOfDay(new Date()).toISOString();
+    const weekStr    = subDays(new Date(), 7).toISOString();
+    const { data: all }     = await supabase.from("visitor_sessions").select("id, first_seen");
+    const rows = (all as any[]) ?? [];
+    setVisitors({
+      total:    rows.length,
+      today:    rows.filter(r => r.first_seen >= todayStr).length,
+      thisWeek: rows.filter(r => r.first_seen >= weekStr).length,
+    });
+  };
+
+  useEffect(() => { fetchUsers(); fetchVisitors(); }, []);
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,7 +164,31 @@ export default function UserAccess() {
           </Button>
         </div>
 
-        {/* Summary strip */}
+        {/* Visitor stats */}
+        <Card className="border-emerald-200 bg-emerald-50/40">
+          <CardHeader className="pb-2 pt-4">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-emerald-600" />
+              Site visitors (anonymous)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pb-4">
+            <div className="grid grid-cols-3 gap-4">
+              {[
+                { label: "Today",      value: visitors.today },
+                { label: "This week",  value: visitors.thisWeek },
+                { label: "All time",   value: visitors.total },
+              ].map(m => (
+                <div key={m.label} className="text-center">
+                  <p className="text-3xl font-bold text-emerald-700">{m.value}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{m.label}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Account summary strip */}
         <div className="grid grid-cols-3 gap-4">
           {[
             { label: "Active accounts", value: activeCount, icon: Users, cls: "text-blue-600" },
