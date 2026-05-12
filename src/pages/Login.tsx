@@ -153,9 +153,6 @@ export default function Login() {
                     : <UserPlus className="h-4 w-4 mr-2" />}
                   Get started
                 </Button>
-                <p className="text-xs text-center text-muted-foreground">
-                  No credit card required — this is a demo
-                </p>
               </form>
             ) : (
               <form onSubmit={handleLogin} className="space-y-4">
