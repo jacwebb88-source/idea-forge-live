@@ -25,6 +25,7 @@ import IntakeStatus from "./pages/IntakeStatus";
 import Settings from "./pages/Settings";
 import ForwardPlan from "./pages/ForwardPlan";
 import BuyerPortal from "./pages/BuyerPortal";
+import SupplierPortal from "./pages/SupplierPortal";
 import UserAccess from "./pages/UserAccess";
 import NotFound from "./pages/NotFound";
 
@@ -64,6 +65,9 @@ const App = () => (
 
             {/* Buyer portal — buyers, ops can also view */}
             <Route path="/buyer-portal" element={<ProtectedRoute allowedRoles={["buyer","ops","management"]}><BuyerPortal /></ProtectedRoute>} />
+
+            {/* Supplier portal — suppliers, ops and management */}
+            <Route path="/supplier-portal" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><SupplierPortal /></ProtectedRoute>} />
 
             {/* Users & Access — ops and management only */}
             <Route path="/users" element={<ProtectedRoute allowedRoles={["ops","management"]}><UserAccess /></ProtectedRoute>} />
