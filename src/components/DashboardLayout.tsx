@@ -20,9 +20,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="flex items-center gap-4">
               <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-country rounded-lg flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold text-sm">A</span>
-                </div>
+                <img src="/muster-logo.png" alt="Muster" className="h-9 w-9 rounded-lg object-cover" />
                 <h1 className="text-xl font-semibold text-foreground">
                   Muster — Processor Console (Pilot)
                 </h1>

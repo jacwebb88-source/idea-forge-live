@@ -86,11 +86,10 @@ export function AppSidebar() {
   return (
     <Sidebar className={collapsed ? "w-14" : "w-64"} collapsible="icon">
       <SidebarContent className="bg-sidebar border-r border-sidebar-border">
-        <div className="p-4 border-b border-sidebar-border">
+        <div className="p-3 border-b border-sidebar-border flex items-center gap-2">
+          <img src="/muster-logo.png" alt="Muster" className="h-8 w-8 rounded-md object-cover shrink-0" />
           {!collapsed && (
-            <h2 className="text-lg font-semibold text-sidebar-foreground">
-              Muster
-            </h2>
+            <h2 className="text-lg font-semibold text-sidebar-foreground">Muster</h2>
           )}
         </div>
 

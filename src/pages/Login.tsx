@@ -70,8 +70,8 @@ export default function Login() {
     <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-5">
 
-        <div className="text-center space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">Muster</h1>
+        <div className="text-center space-y-3">
+          <img src="/muster-logo.png" alt="Muster" className="h-24 w-24 rounded-2xl object-cover mx-auto shadow-md" />
           <p className="text-muted-foreground text-sm">
             Livestock processing management
           </p>
