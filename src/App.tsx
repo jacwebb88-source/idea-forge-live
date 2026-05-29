@@ -35,6 +35,7 @@ import BidCalculator from "./pages/on-farm/BidCalculator";
 import ProcessorGrids from "./pages/on-farm/ProcessorGrids";
 import MarketIntelligence from "./pages/on-farm/MarketIntelligence";
 import LivestockFinance from "./pages/on-farm/LivestockFinance";
+import MobReport from "./pages/on-farm/MobReport";
 import PitchOverview from "./pages/on-farm/PitchOverview";
 import NotFound from "./pages/NotFound";
 
@@ -85,6 +86,7 @@ const App = () => (
             <Route path="/on-farm" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><OnFarm /></ProtectedRoute>} />
             <Route path="/on-farm/mobs/new" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><NewMob /></ProtectedRoute>} />
             <Route path="/on-farm/mobs/:id" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><MobDetail /></ProtectedRoute>} />
+            <Route path="/on-farm/mobs/:id/report" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><MobReport /></ProtectedRoute>} />
             <Route path="/on-farm/enterprise" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><Enterprise /></ProtectedRoute>} />
             <Route path="/on-farm/bid-calculator" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><BidCalculator /></ProtectedRoute>} />
             <Route path="/on-farm/grids" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><ProcessorGrids /></ProtectedRoute>} />

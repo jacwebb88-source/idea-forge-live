@@ -1,4 +1,14 @@
 import { useState } from "react";
+import {
+  LineChart as RechartsLineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMarketBenchmarks } from "@/components/on-farm/useMobs";
 import { useToast } from "@/hooks/use-toast";
-import { LineChart, Bell, Info, TrendingUp } from "lucide-react";
+import { LineChart, Bell, Info, TrendingUp, BarChart2, Map } from "lucide-react";
 
 function fmt$(n: number) { return `$${n.toLocaleString("en-AU", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`; }
 function fmtCpkg(n: number) { return `${n.toFixed(0)}¢/kg`; }
@@ -41,12 +51,34 @@ const AUCTIONS_PLUS_ROWS = [
   { category: "OTH 350–500 kg", range: "305–330", trend: "↑", trendColour: "text-green-600" },
 ];
 
+// Generate 12 weeks of mock historical prices
+const generatePriceHistory = (currentPrice: number, weeks: number = 12) => {
+  const data = [];
+  let price = currentPrice * 0.92; // start ~8% lower 12 weeks ago
+  for (let i = weeks; i >= 0; i--) {
+    const weekLabel = i === 0 ? "Now" : `${i}w ago`;
+    price = price + (Math.random() - 0.45) * 12; // slight upward drift
+    data.push({ week: weekLabel, price: Math.round(price) });
+  }
+  data[data.length - 1].price = currentPrice; // end at current
+  return data;
+};
+
 const CARD_COLOURS = [
   "bg-emerald-50 border-emerald-200 text-emerald-800",
   "bg-amber-50 border-amber-200 text-amber-800",
   "bg-sky-50 border-sky-200 text-sky-800",
   "bg-violet-50 border-violet-200 text-violet-800",
   "bg-orange-50 border-orange-200 text-orange-800",
+];
+
+const REGIONAL_ADJUSTMENTS = [
+  { region: "Roma QLD",        heavyAdj: +8,  feederAdj: +7 },
+  { region: "Dalby QLD",       heavyAdj: +4,  feederAdj: +5 },
+  { region: "Wodonga VIC",     heavyAdj: +2,  feederAdj: +1 },
+  { region: "Wagga NSW",       heavyAdj: +1,  feederAdj: 0  },
+  { region: "Naracoorte SA",   heavyAdj: -3,  feederAdj: -4 },
+  { region: "Kimberley WA",    heavyAdj: -12, feederAdj: -14 },
 ];
 
 export default function MarketIntelligence() {
@@ -112,6 +144,94 @@ export default function MarketIntelligence() {
             )}
           </div>
         </section>
+
+        {/* ── Price Trends ── */}
+        {(() => {
+          const heavyCurrent = latest("heavy_steer")?.cents_per_kg ?? 320;
+          const feederCurrent = latest("feeder_steer")?.cents_per_kg ?? 295;
+          const heavyHistory = generatePriceHistory(heavyCurrent);
+          const feederHistory = generatePriceHistory(feederCurrent);
+          // Merge into a single array keyed by week label
+          const merged = heavyHistory.map((h, i) => ({
+            week: h.week,
+            heavySteer: h.price,
+            feederSteer: feederHistory[i]?.price ?? feederCurrent,
+          }));
+          return (
+            <Card className="rounded-2xl">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <BarChart2 className="h-4 w-4 text-green-600" />
+                  <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Price Trends — 12 Week History</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 mb-4">
+                  <p className="text-xs text-amber-800">Simulated trend data — real weekly saleyard prices will flow in once MLA/NLRS integration is live.</p>
+                </div>
+                <ResponsiveContainer width="100%" height={220}>
+                  <RechartsLineChart data={merged} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="week" tick={{ fontSize: 10 }} interval={2} />
+                    <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `${v}¢`} domain={["auto", "auto"]} />
+                    <Tooltip formatter={(v: number, name: string) => [`${v}¢/kg`, name === "heavySteer" ? "Heavy Steer" : "Feeder Steer"]} />
+                    <Legend formatter={(value) => value === "heavySteer" ? "Heavy Steer" : "Feeder Steer"} />
+                    <Line type="monotone" dataKey="heavySteer" stroke="#16a34a" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="feederSteer" stroke="#2563eb" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                  </RechartsLineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          );
+        })()}
+
+        {/* ── Regional Saleyard Snapshot ── */}
+        {(() => {
+          const heavyBase = latest("heavy_steer")?.cents_per_kg ?? 320;
+          const feederBase = latest("feeder_steer")?.cents_per_kg ?? 295;
+          return (
+            <Card className="rounded-2xl">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <Map className="h-4 w-4 text-indigo-600" />
+                  <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Regional Saleyard Snapshot</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-xs text-muted-foreground uppercase tracking-wide">
+                        <th className="text-left py-2 pr-4">Region</th>
+                        <th className="text-right py-2 pr-4">Heavy Steer ¢/kg</th>
+                        <th className="text-right py-2 pr-4">Feeder Steer ¢/kg</th>
+                        <th className="text-right py-2">vs National</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {REGIONAL_ADJUSTMENTS.map((row) => {
+                        const heavy = heavyBase + row.heavyAdj;
+                        const feeder = feederBase + row.feederAdj;
+                        const avgAdj = (row.heavyAdj + row.feederAdj) / 2;
+                        return (
+                          <tr key={row.region}>
+                            <td className="py-2.5 pr-4 font-semibold">{row.region}</td>
+                            <td className="py-2.5 pr-4 text-right font-bold text-blue-700">{heavy}¢</td>
+                            <td className="py-2.5 pr-4 text-right font-bold text-green-700">{feeder}¢</td>
+                            <td className={`py-2.5 text-right font-semibold text-sm ${avgAdj > 0 ? "text-green-600" : avgAdj < 0 ? "text-red-500" : "text-muted-foreground"}`}>
+                              {avgAdj > 0 ? `+${avgAdj.toFixed(0)}¢` : avgAdj < 0 ? `${avgAdj.toFixed(0)}¢` : "—"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-xs text-muted-foreground mt-3">Regional adjustments are indicative estimates based on historical premiums/discounts vs national benchmark. Verify with local agents.</p>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
         {/* ── Category Price Guide ── */}
         <Card className="rounded-2xl">
