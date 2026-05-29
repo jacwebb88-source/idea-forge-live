@@ -13,7 +13,8 @@ import type { Mob, WeightRecord, MobCost } from "@/components/on-farm/types";
 import {
   Plus, Search, SlidersHorizontal, TrendingUp,
   DollarSign, Scale, AlertTriangle, Beef, Building2,
-  ChevronRight, ArrowUpRight,
+  ChevronRight, ArrowUpRight, LineChart, Calculator,
+  Grid3X3, Banknote, Wind, Presentation,
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 
@@ -128,13 +129,22 @@ export default function OnFarm() {
                 <h1 className="text-white text-2xl font-bold">Livestock Tracker</h1>
                 <p className="text-white/70 text-sm mt-0.5">Per-animal cost, weight, and exit decision</p>
               </div>
-              <Button
-                onClick={() => navigate("/on-farm/mobs/new")}
-                className="bg-white text-green-800 hover:bg-green-50 font-bold gap-1.5 shrink-0"
-              >
-                <Plus className="h-4 w-4" />
-                New Mob
-              </Button>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => navigate("/on-farm/pitch")}
+                  className="text-white/70 hover:text-white text-xs font-medium flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-white/20 hover:border-white/40 transition-colors"
+                >
+                  <Presentation className="h-3.5 w-3.5" />
+                  Platform Overview
+                </button>
+                <Button
+                  onClick={() => navigate("/on-farm/mobs/new")}
+                  className="bg-white text-green-800 hover:bg-green-50 font-bold gap-1.5"
+                >
+                  <Plus className="h-4 w-4" />
+                  New Mob
+                </Button>
+              </div>
             </div>
 
             {/* KPI row */}
@@ -194,6 +204,32 @@ export default function OnFarm() {
           </div>
           <ChevronRight className="h-5 w-5 text-amber-400 shrink-0" />
         </button>
+
+        {/* ── Tools & Intelligence strip ───────────────────────────────── */}
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Tools & Intelligence</p>
+          <div className="flex gap-3 overflow-x-auto scrollbar-none pb-1">
+            {[
+              { icon: LineChart, color: "text-blue-600", border: "border-l-blue-400", label: "Market Intelligence", desc: "Live benchmark prices", route: "/on-farm/market" },
+              { icon: Calculator, color: "text-amber-600", border: "border-l-amber-400", label: "Bid Calculator", desc: "Max bid per head", route: "/on-farm/bid-calculator" },
+              { icon: Grid3X3, color: "text-violet-600", border: "border-l-violet-400", label: "Processor Grids", desc: "Kill grid comparison", route: "/on-farm/grids" },
+              { icon: Banknote, color: "text-green-600", border: "border-l-green-400", label: "Finance", desc: "Finance cost modelling", route: "/on-farm/finance" },
+              { icon: Wind, color: "text-teal-600", border: "border-l-teal-400", label: "Carbon", desc: "ACCU & methane tracker", route: "/on-farm" },
+            ].map(tool => (
+              <button
+                key={tool.label}
+                onClick={() => navigate(tool.route)}
+                className={`shrink-0 flex items-center gap-3 bg-white border border-l-4 ${tool.border} rounded-xl px-4 py-3 hover:shadow-sm transition-all text-left min-w-[160px]`}
+              >
+                <tool.icon className={`h-4 w-4 ${tool.color} shrink-0`} />
+                <div>
+                  <p className="text-xs font-bold text-foreground whitespace-nowrap">{tool.label}</p>
+                  <p className="text-xs text-muted-foreground whitespace-nowrap">{tool.desc}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* ── Exit alerts ───────────────────────────────────────────────── */}
         {exiting.length > 0 && (

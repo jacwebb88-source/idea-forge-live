@@ -25,6 +25,7 @@ import {
   Grid3X3,
   LineChart,
   Banknote,
+  Presentation,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -71,6 +72,7 @@ const systemItems = [
   { title: "Processor Grids", url: "/on-farm/grids", icon: Grid3X3 },
   { title: "Market Intelligence", url: "/on-farm/market", icon: LineChart },
   { title: "Livestock Finance", url: "/on-farm/finance", icon: Banknote },
+  { title: "Platform Overview", url: "/on-farm/pitch", icon: Presentation },
   { title: "Users & Access", url: "/users", icon: UserCog },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
