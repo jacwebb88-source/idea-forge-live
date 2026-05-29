@@ -467,15 +467,24 @@ interface WeatherDay {
   tempMin: number;
 }
 
-function WeatherStrip({ feedSource }: { feedSource: string | null }) {
+function WeatherStrip({ feedSource, locationName }: { feedSource: string | null; locationName?: string | null }) {
   const [weather, setWeather] = useState<WeatherDay[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [resolvedLocation, setResolvedLocation] = useState<string>("Rockhampton");
 
   useEffect(() => {
-    fetch("https://api.open-meteo.com/v1/forecast?latitude=-23.38&longitude=150.51&daily=precipitation_sum,temperature_2m_max,temperature_2m_min&timezone=Australia%2FBrisbane&forecast_days=7")
-      .then(r => r.json())
-      .then(data => {
+    const DEFAULT_LAT = -23.38;
+    const DEFAULT_LON = 150.51;
+    const DEFAULT_LABEL = "Rockhampton";
+
+    const loadWeather = async (lat: number, lon: number, label: string) => {
+      setResolvedLocation(label);
+      try {
+        const res = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=precipitation_sum,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=7`
+        );
+        const data = await res.json();
         const days: WeatherDay[] = (data.daily.time as string[]).map((d: string, i: number) => ({
           date: d,
           precip: data.daily.precipitation_sum[i] ?? 0,
@@ -484,9 +493,29 @@ function WeatherStrip({ feedSource }: { feedSource: string | null }) {
         }));
         setWeather(days);
         setLoading(false);
-      })
-      .catch(() => { setError(true); setLoading(false); });
-  }, []);
+      } catch {
+        setError(true);
+        setLoading(false);
+      }
+    };
+
+    if (locationName && locationName.trim()) {
+      fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(locationName.trim())}&count=1&language=en&format=json`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.results && data.results.length > 0) {
+            const { latitude, longitude, name, admin1 } = data.results[0];
+            const label = admin1 ? `${name}, ${admin1}` : name;
+            loadWeather(latitude, longitude, label);
+          } else {
+            loadWeather(DEFAULT_LAT, DEFAULT_LON, DEFAULT_LABEL);
+          }
+        })
+        .catch(() => loadWeather(DEFAULT_LAT, DEFAULT_LON, DEFAULT_LABEL));
+    } else {
+      loadWeather(DEFAULT_LAT, DEFAULT_LON, DEFAULT_LABEL);
+    }
+  }, [locationName]);
 
   if (loading) return (
     <div className="rounded-xl border bg-sky-50 border-sky-200 px-4 py-3 animate-pulse">
@@ -503,7 +532,7 @@ function WeatherStrip({ feedSource }: { feedSource: string | null }) {
   return (
     <div className="rounded-xl border bg-sky-50 border-sky-200 px-4 py-3">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">7-day weather — Rockhampton region</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">7-day weather — {resolvedLocation}</p>
         <p className="text-xs text-sky-600/70">Open-Meteo forecast</p>
       </div>
 
@@ -585,7 +614,7 @@ function FeedPlanTab({ mob, feedPlan, feedPlans, totalCostPerHead, adg, currentW
   return (
     <div className="space-y-4">
       {/* Weather strip */}
-      <WeatherStrip feedSource={feedPlan.feed_source} />
+      <WeatherStrip feedSource={feedPlan.feed_source} locationName={mob.location_name} />
 
       {/* Current plan hero */}
       <div className={`rounded-2xl border-2 p-5 ${meta.bgColor}`}>
