@@ -60,6 +60,7 @@ const systemItems = [
   { title: "Intake Status", url: "/intake", icon: MessageSquare },
   { title: "Buyer Portal", url: "/buyer-portal", icon: ShoppingBag },
   { title: "Supplier Portal", url: "/supplier-portal", icon: Leaf },
+  { title: "On Farm", url: "/on-farm", icon: TrendingUp },
   { title: "Users & Access", url: "/users", icon: UserCog },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
