@@ -72,9 +72,12 @@ export default function UserAccess() {
   };
 
   const fetchVisitors = async () => {
-    const todayStr   = startOfDay(new Date()).toISOString();
-    const weekStr    = subDays(new Date(), 7).toISOString();
-    const { data: all }     = await supabase.from("visitor_sessions").select("id, first_seen");
+    const todayStr = startOfDay(new Date()).toISOString();
+    const weekStr  = subDays(new Date(), 7).toISOString();
+    const { data: all } = await supabase
+      .from("visitor_sessions")
+      .select("id, first_seen")
+      .eq("is_owner", false);
     const rows = (all as any[]) ?? [];
     setVisitors({
       total:    rows.length,
