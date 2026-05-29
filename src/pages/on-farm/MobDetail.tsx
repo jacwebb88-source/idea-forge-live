@@ -26,6 +26,7 @@ import {
   CheckCircle, XCircle, DollarSign, Beef, Edit3,
   ChevronRight, Layers, Wheat, Sparkles, RefreshCw,
   Leaf, Flame, CloudRain, Sun, Droplets,
+  Activity, Target, Award, BarChart3,
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 
@@ -200,6 +201,18 @@ export default function MobDetail() {
             })}
           </div>
         </div>
+
+        {/* ── Margin Clock ──────────────────────────────────────────────── */}
+        <MarginClock
+          mob={mob}
+          totalCostPerHead={totalCostPerHead}
+          currentWt={currentWt}
+          arrivalWt={arrivalWt}
+          adg={adg}
+          feedPlan={feedPlan}
+          processorGrids={processorGrids}
+          cat={cat}
+        />
 
         {/* ── Tabs ─────────────────────────────────────────────────────── */}
         <Tabs defaultValue="costs">
@@ -445,6 +458,116 @@ function EmptyState({ icon, message, action, cat }: any) {
       <p className={`${cat.text} opacity-60 text-sm max-w-xs mx-auto`}>{message}</p>
       {action && (
         <Button variant="outline" size="sm" className="mt-4" onClick={action.onClick}>{action.label}</Button>
+      )}
+    </div>
+  );
+}
+
+// ─── Mob Margin Clock ─────────────────────────────────────────────────────────
+
+function MarginClock({ mob, totalCostPerHead, currentWt, arrivalWt, adg, feedPlan, processorGrids, cat }: any) {
+  const DEFAULT_DRESSING = 54;
+  const FREIGHT = 80;
+  const MLA_LEVY = 5;
+
+  const bestGrid = processorGrids?.length > 0
+    ? [...processorGrids].sort((a: any, b: any) => b.price_cpkg_cw - a.price_cpkg_cw)[0]
+    : null;
+  const gridPrice = bestGrid?.price_cpkg_cw ?? 615;
+
+  const weightGained = currentWt && arrivalWt ? currentWt - arrivalWt : 0;
+  const costPerKgGain = weightGained > 2 && totalCostPerHead > 0 ? totalCostPerHead / weightGained : null;
+  const dailyFeedCost = feedPlan?.daily_feed_cost_per_head ?? 0;
+
+  const scenarios = [0, 7, 14, 21].map(days => {
+    const projWt = currentWt + (adg ?? 0) * days;
+    const totalCost = totalCostPerHead + dailyFeedCost * days;
+    const carcaseKg = projWt * (DEFAULT_DRESSING / 100);
+    const grossRevenue = (gridPrice / 100) * carcaseKg;
+    const netReturn = grossRevenue - FREIGHT - MLA_LEVY;
+    const marginPerHead = netReturn - totalCost;
+    return { days, projWt, totalCost, netReturn, marginPerHead };
+  });
+
+  const peakScenario = [...scenarios].sort((a, b) => b.marginPerHead - a.marginPerHead)[0];
+  const isAlreadyPeak = peakScenario.days === 0;
+
+  if (!currentWt || totalCostPerHead <= 0) return null;
+
+  return (
+    <div className="rounded-2xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-green-50 p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-xl bg-emerald-600 flex items-center justify-center">
+            <Activity className="h-4 w-4 text-white" />
+          </div>
+          <div>
+            <p className="font-bold text-sm text-emerald-900">Mob Margin Clock</p>
+            <p className="text-xs text-emerald-600">
+              {bestGrid ? `Best grid: ${bestGrid.processor_name} @ ${gridPrice}¢/kg CW` : `${gridPrice}¢/kg CW benchmark · ${DEFAULT_DRESSING}% dress`}
+            </p>
+          </div>
+        </div>
+        {costPerKgGain != null && (
+          <div className="text-right">
+            <p className="text-xs text-emerald-600 opacity-70">Cost/kg gain</p>
+            <p className="text-xl font-black text-emerald-900">${costPerKgGain.toFixed(2)}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Turnoff scenario comparison */}
+      <div className="grid grid-cols-4 gap-2 mb-3">
+        {scenarios.map(sc => {
+          const isBest = sc.days === peakScenario.days;
+          const isNeg = sc.marginPerHead < 0;
+          return (
+            <div
+              key={sc.days}
+              className={`rounded-xl p-2.5 text-center transition-all ${
+                isBest ? "bg-emerald-600 text-white shadow-md" :
+                isNeg ? "bg-red-50 border border-red-200" : "bg-white/70 border border-white"
+              }`}
+            >
+              <p className={`text-xs font-semibold ${isBest ? "text-white/80" : "text-muted-foreground"}`}>
+                {sc.days === 0 ? "Today" : `+${sc.days}d`}
+              </p>
+              <p className={`text-xs mt-0.5 ${isBest ? "text-white/70" : "text-muted-foreground"}`}>
+                {sc.projWt.toFixed(0)}kg
+              </p>
+              <p className={`font-black text-base leading-tight mt-1 ${
+                isBest ? "text-white" : isNeg ? "text-red-600" : "text-emerald-700"
+              }`}>
+                {sc.marginPerHead >= 0 ? "+" : ""}{fmt$(sc.marginPerHead)}
+              </p>
+              <p className={`text-xs ${isBest ? "text-white/60" : "text-muted-foreground"}`}>/head</p>
+              {isBest && <p className="text-xs text-white font-bold mt-0.5">★ Peak</p>}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Insight banner */}
+      <div className="flex items-start gap-2 bg-white/60 rounded-xl px-3 py-2.5">
+        <Target className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+        <p className="text-xs text-emerald-800 leading-relaxed">
+          {isAlreadyPeak
+            ? <><strong>Sell now for best margin.</strong> Each extra day adds ${dailyFeedCost.toFixed(2)}/head in feed cost at current ADG.</>
+            : <><strong>Margin peaks at +{peakScenario.days} days</strong> ({fmt$(peakScenario.marginPerHead)}/head). {
+                dailyFeedCost > 0 && adg && adg > 0
+                  ? `Daily feed cost of $${dailyFeedCost.toFixed(2)}/head is covered by ${adg.toFixed(2)}kg/day ADG.`
+                  : "Add a feed plan to refine this projection."
+              }</>
+          }
+        </p>
+      </div>
+
+      {/* Mob total at peak */}
+      {mob.head_count > 0 && (
+        <div className="mt-3 flex items-center justify-between border-t border-emerald-200/60 pt-3">
+          <p className="text-xs text-emerald-700 opacity-70">Mob total at peak · {mob.head_count} head</p>
+          <p className="text-xl font-black text-emerald-900">{fmt$(peakScenario.marginPerHead * mob.head_count)}</p>
+        </div>
       )}
     </div>
   );
@@ -1068,6 +1191,57 @@ function DecisionEngine({ mob, totalCostPerHead, latestWeightKg, latest, benchma
         Market prices from MLA/NLRS · All figures per head · Margins vs. total cost logged to date
       </p>
 
+      {/* ── Industry Benchmarks ───────────────────────────────────────── */}
+      <div className="rounded-xl border bg-muted/10 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3 flex items-center gap-1.5">
+          <BarChart3 className="h-3.5 w-3.5" /> How this mob compares — industry benchmarks
+        </p>
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            {
+              label: "ADG",
+              value: adg != null ? `${adg.toFixed(2)}` : "—",
+              unit: "kg/day",
+              industry: "1.20 kg/d",
+              better: adg != null && adg > 1.20,
+              hasData: adg != null,
+            },
+            {
+              label: "Cost/head",
+              value: totalCostPerHead > 0 ? fmt$(totalCostPerHead) : "—",
+              unit: "all-in",
+              industry: "$780/hd",
+              better: totalCostPerHead > 0 && totalCostPerHead < 780,
+              hasData: totalCostPerHead > 0,
+            },
+            {
+              label: "Dressing %",
+              value: `${dressingPct}%`,
+              unit: "assumed",
+              industry: "54% avg",
+              better: dressingPct >= 54,
+              hasData: true,
+            },
+          ].map(b => (
+            <div key={b.label} className="rounded-xl bg-white border px-3 py-3 text-center">
+              <p className="text-xs text-muted-foreground font-medium">{b.label}</p>
+              <p className="font-black text-xl leading-tight mt-0.5">{b.value}</p>
+              <p className="text-xs text-muted-foreground">{b.unit}</p>
+              {b.hasData && (
+                <div className={`text-xs mt-1.5 font-semibold px-2 py-0.5 rounded-full inline-block ${
+                  b.better ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+                }`}>
+                  {b.better ? "↑" : "↓"} ind. avg {b.industry}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground/50 mt-2.5 text-center">
+          Australian backgrounder/feedlot averages · indicative · benchmarks will update as more Muster users contribute data
+        </p>
+      </div>
+
       {/* ── AI Recommendation ─────────────────────────────────────────── */}
       <div className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-indigo-50 p-5">
         <div className="flex items-center justify-between mb-3">
@@ -1408,6 +1582,51 @@ function KillSheetTab({ mob, killRecords, killLoading, cat, latest, onAdd }: any
           </Card>
         );
       })}
+
+      {/* ── Processor Scorecard ──────────────────────────────────────── */}
+      {killRecords.length >= 2 && (() => {
+        const byProcessor: Record<string, { runs: number; payTotal: number; payCount: number }> = {};
+        killRecords.forEach((kr: any) => {
+          if (!byProcessor[kr.processor_name]) byProcessor[kr.processor_name] = { runs: 0, payTotal: 0, payCount: 0 };
+          byProcessor[kr.processor_name].runs++;
+          if (kr.total_payment && kr.head_count) {
+            byProcessor[kr.processor_name].payTotal += kr.total_payment / kr.head_count;
+            byProcessor[kr.processor_name].payCount++;
+          }
+        });
+        const ranked = Object.entries(byProcessor)
+          .map(([name, d]) => ({ name, avgPayment: d.payCount > 0 ? d.payTotal / d.payCount : 0, runs: d.runs }))
+          .sort((a, b) => b.avgPayment - a.avgPayment);
+
+        return (
+          <div className="rounded-xl border bg-muted/10 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3 flex items-center gap-1.5">
+              <Award className="h-3.5 w-3.5" /> Processor Scorecard — actual $/hd achieved
+            </p>
+            <div className="space-y-2">
+              {ranked.map((p, i) => (
+                <div
+                  key={p.name}
+                  className={`flex items-center justify-between rounded-lg px-3 py-2.5 ${
+                    i === 0 ? "bg-green-50 border border-green-200" : "bg-white border"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {i === 0 && <span className="text-xs font-bold bg-green-600 text-white px-1.5 py-0.5 rounded-full">Best</span>}
+                    <span className="text-sm font-medium">{p.name}</span>
+                    <span className="text-xs text-muted-foreground">{p.runs} kill{p.runs > 1 ? "s" : ""}</span>
+                  </div>
+                  <span className={`text-base font-bold ${i === 0 ? "text-green-700" : ""}`}>
+                    {p.avgPayment > 0 ? fmt$(p.avgPayment) : "—"}
+                    <span className="text-xs font-normal text-muted-foreground">/hd avg</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground/60 mt-2">Ranked by average actual payment per head across all kill runs</p>
+          </div>
+        );
+      })()}
 
       <Button variant="outline" size="sm" className="w-full rounded-xl" onClick={onAdd}>
         <Plus className="h-4 w-4 mr-2" /> Add Kill Record
