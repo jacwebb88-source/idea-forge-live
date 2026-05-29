@@ -125,3 +125,72 @@ export function useMarketBenchmarks() {
 
   return { benchmarks, latest };
 }
+
+export interface ProcessorGrid {
+  id: string;
+  processor_name: string;
+  species: string;
+  description: string | null;
+  weight_min_kg: number | null;
+  weight_max_kg: number | null;
+  grade: string | null;
+  fat_score: string | null;
+  price_cpkg_cw: number;
+  hgp_free_premium_cpkg: number;
+  msa_premium_cpkg: number;
+  effective_date: string;
+  notes: string | null;
+  created_at: string;
+}
+
+export function useProcessorGrids() {
+  const [grids, setGrids] = useState<ProcessorGrid[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchGrids = useCallback(async () => {
+    const { data } = await supabase
+      .from("processor_grids")
+      .select("*")
+      .order("price_cpkg_cw", { ascending: false });
+    setGrids((data as ProcessorGrid[]) ?? []);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchGrids(); }, [fetchGrids]);
+
+  return { grids, loading, refetch: fetchGrids };
+}
+
+export interface KillRecord {
+  id: string;
+  mob_id: string;
+  kill_date: string;
+  processor_name: string;
+  head_count: number;
+  avg_carcase_weight_kg: number | null;
+  grade: string | null;
+  fat_score: string | null;
+  price_cpkg_cw: number | null;
+  total_payment: number | null;
+  notes: string | null;
+  created_at: string;
+}
+
+export function useKillRecords(mobId: string) {
+  const [records, setRecords] = useState<KillRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchRecords = useCallback(async () => {
+    const { data } = await supabase
+      .from("kill_records")
+      .select("*")
+      .eq("mob_id", mobId)
+      .order("kill_date", { ascending: false });
+    setRecords((data as KillRecord[]) ?? []);
+    setLoading(false);
+  }, [mobId]);
+
+  useEffect(() => { fetchRecords(); }, [fetchRecords]);
+
+  return { records, loading, refetch: fetchRecords };
+}

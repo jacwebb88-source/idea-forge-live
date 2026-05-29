@@ -21,6 +21,8 @@ import {
   ShoppingBag,
   UserCog,
   Leaf,
+  Calculator,
+  Grid3X3,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -63,6 +65,8 @@ const systemItems = [
   { title: "Supplier Portal", url: "/supplier-portal", icon: Leaf },
   { title: "On Farm", url: "/on-farm", icon: TrendingUp },
   { title: "Livestock Enterprise", url: "/on-farm/enterprise", icon: Building2 },
+  { title: "Bid Calculator", url: "/on-farm/bid-calculator", icon: Calculator },
+  { title: "Processor Grids", url: "/on-farm/grids", icon: Grid3X3 },
   { title: "Users & Access", url: "/users", icon: UserCog },
   { title: "Settings", url: "/settings", icon: Settings },
 ];

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useMob, useMarketBenchmarks, useFeedPlan, type FeedPlan } from "@/components/on-farm/useMobs";
+import { useMob, useMarketBenchmarks, useFeedPlan, useProcessorGrids, useKillRecords, type FeedPlan } from "@/components/on-farm/useMobs";
 import { categoryToken, exitToken, programToken } from "@/components/on-farm/farmTokens";
 import {
   COST_TYPE_LABELS, COST_TYPE_GROUPS,
@@ -25,7 +25,7 @@ import {
   ArrowLeft, Plus, Scale, TrendingUp, Clock,
   CheckCircle, XCircle, DollarSign, Beef, Edit3,
   ChevronRight, Layers, Wheat, Sparkles, RefreshCw,
-  Leaf, Flame,
+  Leaf, Flame, CloudRain, Sun, Droplets,
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 
@@ -41,10 +41,14 @@ export default function MobDetail() {
   const { latest, benchmarks } = useMarketBenchmarks();
   const { current: feedPlan, plans: feedPlans, loading: feedLoading, refetch: refetchFeed } = useFeedPlan(id!);
 
+  const { grids: processorGrids } = useProcessorGrids();
+  const { records: killRecords, loading: killLoading, refetch: refetchKill } = useKillRecords(id!);
+
   const [showCostDialog, setShowCostDialog] = useState(false);
   const [showWeightDialog, setShowWeightDialog] = useState(false);
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [showFeedDialog, setShowFeedDialog] = useState(false);
+  const [showKillDialog, setShowKillDialog] = useState(false);
 
   if (loading) return (
     <DashboardLayout>
@@ -199,11 +203,12 @@ export default function MobDetail() {
 
         {/* ── Tabs ─────────────────────────────────────────────────────── */}
         <Tabs defaultValue="costs">
-          <TabsList className="grid grid-cols-4 w-full rounded-xl h-11">
+          <TabsList className="grid grid-cols-5 w-full rounded-xl h-11">
             <TabsTrigger value="costs" className="rounded-lg text-xs">Costs</TabsTrigger>
             <TabsTrigger value="weights" className="rounded-lg text-xs">Weight</TabsTrigger>
             <TabsTrigger value="feed" className="rounded-lg text-xs">Feed Plan</TabsTrigger>
             <TabsTrigger value="decision" className="rounded-lg text-xs">Decision</TabsTrigger>
+            <TabsTrigger value="kill" className="rounded-lg text-xs">Kill</TabsTrigger>
           </TabsList>
 
           {/* ─── COST LEDGER ─────────────────────────────────────────── */}
@@ -395,6 +400,16 @@ export default function MobDetail() {
               mob={mob} totalCostPerHead={totalCostPerHead}
               latestWeightKg={currentWt} latest={latest} benchmarks={benchmarks}
               feedPlan={feedPlan} adg={adg} cat={cat}
+              processorGrids={processorGrids}
+            />
+          </TabsContent>
+
+          {/* ─── KILL SHEET ──────────────────────────────────────────────── */}
+          <TabsContent value="kill" className="space-y-4 mt-4">
+            <KillSheetTab
+              mob={mob} killRecords={killRecords} killLoading={killLoading}
+              cat={cat} latest={latest}
+              onAdd={() => setShowKillDialog(true)}
             />
           </TabsContent>
         </Tabs>
@@ -405,6 +420,7 @@ export default function MobDetail() {
       <LogWeightDialog open={showWeightDialog} onClose={() => setShowWeightDialog(false)} mobId={mob.id} weights={weights} onSaved={() => { setShowWeightDialog(false); refetch(); }} toast={toast} cat={cat} />
       <StatusDialog open={showStatusDialog} onClose={() => setShowStatusDialog(false)} mobId={mob.id} currentStatus={mob.status} onSaved={() => { setShowStatusDialog(false); refetch(); }} toast={toast} />
       <EditFeedPlanDialog open={showFeedDialog} onClose={() => setShowFeedDialog(false)} mobId={mob.id} current={feedPlan} targetWt={mob.target_weight_kg} currentWt={currentWt} onSaved={() => { setShowFeedDialog(false); refetchFeed(); }} toast={toast} cat={cat} />
+      <AddKillRecordDialog open={showKillDialog} onClose={() => setShowKillDialog(false)} mobId={mob.id} onSaved={() => { setShowKillDialog(false); refetchKill(); }} toast={toast} cat={cat} />
     </DashboardLayout>
   );
 }
@@ -444,6 +460,93 @@ const FEED_SOURCE_META: Record<string, { icon: React.ReactNode; label: string; c
   mixed:  { icon: <TrendingUp className="h-4 w-4" />, label: "Mixed",       color: "text-slate-700",  bgColor: "bg-slate-50 border-slate-200" },
 };
 
+interface WeatherDay {
+  date: string;
+  precip: number;
+  tempMax: number;
+  tempMin: number;
+}
+
+function WeatherStrip({ feedSource }: { feedSource: string | null }) {
+  const [weather, setWeather] = useState<WeatherDay[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    fetch("https://api.open-meteo.com/v1/forecast?latitude=-23.38&longitude=150.51&daily=precipitation_sum,temperature_2m_max,temperature_2m_min&timezone=Australia%2FBrisbane&forecast_days=7")
+      .then(r => r.json())
+      .then(data => {
+        const days: WeatherDay[] = (data.daily.time as string[]).map((d: string, i: number) => ({
+          date: d,
+          precip: data.daily.precipitation_sum[i] ?? 0,
+          tempMax: data.daily.temperature_2m_max[i] ?? 0,
+          tempMin: data.daily.temperature_2m_min[i] ?? 0,
+        }));
+        setWeather(days);
+        setLoading(false);
+      })
+      .catch(() => { setError(true); setLoading(false); });
+  }, []);
+
+  if (loading) return (
+    <div className="rounded-xl border bg-sky-50 border-sky-200 px-4 py-3 animate-pulse">
+      <div className="h-4 bg-sky-200/40 rounded w-32 mb-2" />
+      <div className="flex gap-2">{[1,2,3,4,5,6,7].map(i => <div key={i} className="h-16 w-12 bg-sky-200/40 rounded-xl flex-1" />)}</div>
+    </div>
+  );
+
+  if (error || weather.length === 0) return null;
+
+  const totalRain = weather.reduce((sum, d) => sum + d.precip, 0);
+  const DAY_NAMES = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+  return (
+    <div className="rounded-xl border bg-sky-50 border-sky-200 px-4 py-3">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">7-day weather — Rockhampton region</p>
+        <p className="text-xs text-sky-600/70">Open-Meteo forecast</p>
+      </div>
+
+      <div className="grid grid-cols-7 gap-1 mb-3">
+        {weather.map((day) => {
+          const d = new Date(day.date + "T00:00:00");
+          const dayName = DAY_NAMES[d.getDay()];
+          const hasRain = day.precip > 2;
+          return (
+            <div key={day.date} className="flex flex-col items-center text-center bg-white/60 rounded-xl py-2 px-1">
+              <p className="text-xs font-semibold text-sky-700">{dayName}</p>
+              {hasRain
+                ? <CloudRain className="h-4 w-4 text-blue-500 my-1" />
+                : <Sun className="h-4 w-4 text-amber-500 my-1" />
+              }
+              <p className="text-xs font-bold text-sky-900">{day.tempMax.toFixed(0)}°</p>
+              <p className="text-xs text-sky-600/70">{day.tempMin.toFixed(0)}°</p>
+              {hasRain && <p className="text-xs text-blue-600 font-semibold mt-0.5">{day.precip.toFixed(1)}mm</p>}
+            </div>
+          );
+        })}
+      </div>
+
+      {totalRain > 20 && (
+        <div className="flex items-start gap-2 bg-green-100 border border-green-300 rounded-lg px-3 py-2">
+          <Droplets className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
+          <p className="text-xs text-green-800">
+            <strong>Good rainfall forecast ({totalRain.toFixed(0)}mm over 7 days)</strong> — pasture conditions improving. Consider extending grass program.
+          </p>
+        </div>
+      )}
+      {totalRain < 5 && feedSource === "grass" && (
+        <div className="flex items-start gap-2 bg-amber-100 border border-amber-300 rounded-lg px-3 py-2">
+          <Sun className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+          <p className="text-xs text-amber-800">
+            <strong>Dry outlook ({totalRain.toFixed(0)}mm forecast)</strong> — monitor pasture availability. Consider supplementary feeding.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function FeedPlanTab({ mob, feedPlan, feedPlans, totalCostPerHead, adg, currentWt, cat, onEdit }: any) {
   if (!feedPlan) return (
     <EmptyState
@@ -481,6 +584,9 @@ function FeedPlanTab({ mob, feedPlan, feedPlans, totalCostPerHead, adg, currentW
 
   return (
     <div className="space-y-4">
+      {/* Weather strip */}
+      <WeatherStrip feedSource={feedPlan.feed_source} />
+
       {/* Current plan hero */}
       <div className={`rounded-2xl border-2 p-5 ${meta.bgColor}`}>
         <div className="flex items-start justify-between mb-4">
@@ -710,7 +816,7 @@ function EditFeedPlanDialog({ open, onClose, mobId, current, targetWt, currentWt
 
 // ─── Decision Engine ──────────────────────────────────────────────────────────
 
-function DecisionEngine({ mob, totalCostPerHead, latestWeightKg, latest, benchmarks, feedPlan, adg, cat }: any) {
+function DecisionEngine({ mob, totalCostPerHead, latestWeightKg, latest, benchmarks, feedPlan, adg, cat, processorGrids }: any) {
   const [dressingPct, setDressingPct] = useState(58);
   const [freightOut, setFreightOut] = useState(80);
   const [agentCommExit, setAgentCommExit] = useState(4.5);
@@ -780,8 +886,7 @@ function DecisionEngine({ mob, totalCostPerHead, latestWeightKg, latest, benchma
   const carcaseKg = latestWeightKg * (dressingPct / 100);
   const hgpPrem = mob.hgp_free ? 50 : 0;
   const msaPrem = mob.msa_eligible ? 24 : 0;
-  const othGross = ((othVic + hgpPrem + msaPrem) / 100) * carcaseKg;
-  const othNet = othGross - freightOut - MLA;
+  const othVicFallback = othVic || 615;
 
   const exportOk = latestWeightKg >= 350 && latestWeightKg <= 550;
   const exportGross = exportOk ? ((benchmarkCpkg + liveExportPremium) / 100) * latestWeightKg : 0;
@@ -790,8 +895,39 @@ function DecisionEngine({ mob, totalCostPerHead, latestWeightKg, latest, benchma
   const breedingGross = saleyardGross + breedingPremium;
   const breedingNet = breedingGross - freightOut - MLA;
 
-  const killOwnGross = (othVic / 100) * carcaseKg * (1 + processorMarginPct / 100);
+  const killOwnGross = (othVicFallback / 100) * carcaseKg * (1 + processorMarginPct / 100);
   const killOwnNet = killOwnGross - MLA - 20;
+
+  // Build processor paths from grid data (top 3 by effective price including premiums)
+  const topProcessors: Array<{ key: string; label: string; sub: string; net: number; eligible: boolean; icon: React.ReactNode; isBestProcessor?: boolean }> =
+    (processorGrids?.length > 0
+      ? [...processorGrids]
+          .map((g: any) => {
+            const effectivePrice = g.price_cpkg_cw + (mob.hgp_free ? (g.hgp_free_premium_cpkg ?? 0) : 0) + (mob.msa_eligible ? (g.msa_premium_cpkg ?? 0) : 0);
+            const gross = (effectivePrice / 100) * carcaseKg;
+            const net = gross - freightOut - MLA;
+            return { g, effectivePrice, gross, net };
+          })
+          .sort((a, b) => b.effectivePrice - a.effectivePrice)
+          .slice(0, 3)
+          .map((item, idx) => ({
+            key: `processor_${item.g.id}`,
+            label: `OTH — ${item.g.processor_name}`,
+            sub: `${dressingPct}% dress → ${carcaseKg.toFixed(0)}kg CW · ${item.g.price_cpkg_cw}¢/kg${mob.hgp_free && item.g.hgp_free_premium_cpkg > 0 ? ` +${item.g.hgp_free_premium_cpkg}¢ HGP` : ""}${mob.msa_eligible && item.g.msa_premium_cpkg > 0 ? ` +${item.g.msa_premium_cpkg}¢ MSA` : ""} · ${item.g.description ?? ""}`,
+            net: item.net,
+            eligible: true,
+            icon: <Layers className="h-4 w-4" />,
+            isBestProcessor: idx === 0,
+          }))
+      : [{
+          key: "oth",
+          label: "OTH — Direct to Processor",
+          sub: `${dressingPct}% dress → ${carcaseKg.toFixed(0)}kg CW · ${othVicFallback}¢/kg${hgpPrem ? ` +${hgpPrem}¢ HGP` : ""}${msaPrem ? ` +${msaPrem}¢ MSA` : ""}`,
+          net: ((othVicFallback + hgpPrem + msaPrem) / 100) * carcaseKg - freightOut - MLA,
+          eligible: true,
+          icon: <Layers className="h-4 w-4" />,
+        }]
+    );
 
   const paths = [
     {
@@ -800,12 +936,7 @@ function DecisionEngine({ mob, totalCostPerHead, latestWeightKg, latest, benchma
       net: saleyardNet, eligible: true,
       icon: <ChevronRight className="h-4 w-4" />,
     },
-    {
-      key: "oth", label: "OTH — Direct to Processor",
-      sub: `${dressingPct}% dress → ${carcaseKg.toFixed(0)}kg CW · ${othVic}¢/kg${hgpPrem ? ` +${hgpPrem}¢ HGP` : ""}${msaPrem ? ` +${msaPrem}¢ MSA` : ""}`,
-      net: othNet, eligible: true,
-      icon: <Layers className="h-4 w-4" />,
-    },
+    ...topProcessors,
     {
       key: "live_export", label: "Live Export",
       sub: exportOk ? `+${liveExportPremium}¢/kg export premium · ESCAS + Halal required` : `Weight ${latestWeightKg.toFixed(0)}kg — need 350–550kg`,
@@ -873,6 +1004,9 @@ function DecisionEngine({ mob, totalCostPerHead, latestWeightKg, latest, benchma
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     {isBest && path.eligible && (
                       <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${cat.badge}`}>Best return</span>
+                    )}
+                    {(path as any).isBestProcessor && !isBest && (
+                      <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-green-100 text-green-800">Best processor</span>
                     )}
                     {!path.eligible && (
                       <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground">Not eligible</span>
@@ -1109,6 +1243,280 @@ function LogWeightDialog({ open, onClose, mobId, weights, onSaved, toast, cat }:
               className={`flex-1 rounded-xl h-12 bg-gradient-to-r ${cat.gradient} text-white hover:opacity-90 font-bold text-base`}
             >
               {saving ? "Saving…" : "Save Weight"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Kill Sheet Tab ───────────────────────────────────────────────────────────
+
+function KillSheetTab({ mob, killRecords, killLoading, cat, latest, onAdd }: any) {
+  const othVic = latest("oth_vic")?.cents_per_kg ?? 615;
+  const DRESSING = 58;
+
+  if (killLoading) return (
+    <div className="space-y-3 animate-pulse">
+      {[1,2].map(i => <div key={i} className="h-24 rounded-xl bg-muted/40" />)}
+    </div>
+  );
+
+  if (killRecords.length === 0) return (
+    <div className="space-y-4">
+      <EmptyState
+        icon={<Scale className="h-10 w-10 text-muted-foreground/20" />}
+        message="No kill records yet. Record a kill sheet to reconcile actual vs projected returns."
+        action={{ label: "Record kill sheet", onClick: onAdd }}
+        cat={cat}
+      />
+    </div>
+  );
+
+  const projCarcaseKg = mob.target_weight_kg ? mob.target_weight_kg * (DRESSING / 100) : null;
+  const projPayment = projCarcaseKg ? (othVic / 100) * projCarcaseKg : null;
+
+  return (
+    <div className="space-y-4">
+      {killRecords.map((kr: any) => {
+        const carcaseKg = kr.avg_carcase_weight_kg;
+        const carcaseVariance = projCarcaseKg && carcaseKg ? carcaseKg - projCarcaseKg : null;
+        const priceVariance = kr.price_cpkg_cw ? kr.price_cpkg_cw - othVic : null;
+        const paymentVariance = projPayment && kr.total_payment && kr.head_count
+          ? (kr.total_payment / kr.head_count) - projPayment
+          : null;
+        const totalProjected = projPayment ? projPayment * kr.head_count : null;
+        const totalVariance = totalProjected && kr.total_payment ? kr.total_payment - totalProjected : null;
+
+        return (
+          <Card key={kr.id} className="rounded-2xl overflow-hidden">
+            <div className={`px-5 py-4 border-b ${cat.bg} ${cat.border}`}>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className={`font-bold text-base ${cat.text}`}>{kr.processor_name}</p>
+                  <p className={`text-sm ${cat.text} opacity-70`}>
+                    Kill date: {format(new Date(kr.kill_date), "EEEE d MMMM yyyy")} · {kr.head_count} head
+                  </p>
+                </div>
+                <div className="text-right">
+                  {kr.total_payment != null && (
+                    <>
+                      <p className={`text-2xl font-black ${cat.text}`}>${kr.total_payment.toLocaleString("en-AU", { maximumFractionDigits: 0 })}</p>
+                      <p className={`text-xs ${cat.text} opacity-60`}>total payment</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <CardContent className="pt-4 space-y-3">
+              {/* Specs row */}
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: "Avg carcase wt", value: carcaseKg ? `${carcaseKg.toFixed(1)} kg` : "—" },
+                  { label: "Grade / Fat score", value: [kr.grade, kr.fat_score].filter(Boolean).join(" / ") || "—" },
+                  { label: "Price", value: kr.price_cpkg_cw ? `${kr.price_cpkg_cw.toFixed(0)}¢/kg CW` : "—" },
+                ].map(({ label, value }) => (
+                  <div key={label} className="text-center">
+                    <p className="text-xs text-muted-foreground font-medium">{label}</p>
+                    <p className="font-bold text-sm">{value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Variance comparison */}
+              {(carcaseVariance !== null || priceVariance !== null || totalVariance !== null) && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Actual vs Projected</p>
+                  <div className="space-y-2">
+                    {carcaseVariance !== null && (
+                      <VarianceRow
+                        label="Carcase weight"
+                        actual={`${carcaseKg?.toFixed(1)}kg`}
+                        projected={`${projCarcaseKg?.toFixed(1)}kg`}
+                        variance={carcaseVariance}
+                        unit="kg"
+                      />
+                    )}
+                    {priceVariance !== null && (
+                      <VarianceRow
+                        label="Price ¢/kg CW"
+                        actual={`${kr.price_cpkg_cw?.toFixed(0)}¢`}
+                        projected={`${othVic.toFixed(0)}¢ (OTH bench)`}
+                        variance={priceVariance}
+                        unit="¢"
+                      />
+                    )}
+                    {paymentVariance !== null && carcaseKg && (
+                      <VarianceRow
+                        label="Payment per head"
+                        actual={`$${(kr.total_payment / kr.head_count).toFixed(2)}`}
+                        projected={`$${projPayment?.toFixed(2)}`}
+                        variance={paymentVariance}
+                        unit="$/hd"
+                      />
+                    )}
+                    {totalVariance !== null && (
+                      <VarianceRow
+                        label="Total payment"
+                        actual={`$${kr.total_payment?.toLocaleString("en-AU", { maximumFractionDigits: 0 })}`}
+                        projected={`$${totalProjected?.toLocaleString("en-AU", { maximumFractionDigits: 0 })}`}
+                        variance={totalVariance}
+                        unit="$"
+                        bold
+                      />
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">Projected based on {mob.target_weight_kg}kg target × {DRESSING}% dress × {othVic}¢/kg OTH bench</p>
+                </div>
+              )}
+
+              {kr.notes && (
+                <p className="text-xs text-muted-foreground bg-muted/30 rounded-lg px-3 py-2">{kr.notes}</p>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })}
+
+      <Button variant="outline" size="sm" className="w-full rounded-xl" onClick={onAdd}>
+        <Plus className="h-4 w-4 mr-2" /> Add Kill Record
+      </Button>
+    </div>
+  );
+}
+
+function VarianceRow({ label, actual, projected, variance, unit, bold }: any) {
+  const isPos = variance >= 0;
+  return (
+    <div className={`rounded-lg px-3 py-2 flex items-center justify-between ${bold ? "bg-muted/30" : ""}`}>
+      <div>
+        <p className={`text-xs font-medium ${bold ? "font-bold" : ""}`}>{label}</p>
+        <p className="text-xs text-muted-foreground">actual: {actual} · projected: {projected}</p>
+      </div>
+      <span className={`text-sm font-bold ml-3 whitespace-nowrap ${isPos ? "text-green-600" : "text-red-600"}`}>
+        {isPos ? "+" : ""}{typeof variance === "number" ? variance.toFixed(unit === "$" || unit === "$/hd" ? 0 : 1) : variance}{unit}
+      </span>
+    </div>
+  );
+}
+
+// ─── Add Kill Record Dialog ───────────────────────────────────────────────────
+
+function AddKillRecordDialog({ open, onClose, mobId, onSaved, toast, cat }: any) {
+  const today = new Date().toISOString().split("T")[0];
+  const [form, setForm] = useState({
+    kill_date: today,
+    processor_name: "",
+    head_count: "",
+    avg_carcase_weight_kg: "",
+    grade: "A",
+    fat_score: "",
+    price_cpkg_cw: "",
+    total_payment: "",
+    notes: "",
+  });
+  const [saving, setSaving] = useState(false);
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+
+  // Auto-calc total payment
+  const autoPayment = form.avg_carcase_weight_kg && form.price_cpkg_cw && form.head_count
+    ? (parseFloat(form.price_cpkg_cw) / 100) * parseFloat(form.avg_carcase_weight_kg) * parseFloat(form.head_count)
+    : null;
+
+  async function save() {
+    if (!form.kill_date || !form.processor_name || !form.head_count) return;
+    setSaving(true);
+    const payment = form.total_payment ? parseFloat(form.total_payment) : autoPayment;
+    const { error } = await supabase.from("kill_records").insert({
+      mob_id: mobId,
+      kill_date: form.kill_date,
+      processor_name: form.processor_name,
+      head_count: parseInt(form.head_count),
+      avg_carcase_weight_kg: form.avg_carcase_weight_kg ? parseFloat(form.avg_carcase_weight_kg) : null,
+      grade: form.grade || null,
+      fat_score: form.fat_score || null,
+      price_cpkg_cw: form.price_cpkg_cw ? parseFloat(form.price_cpkg_cw) : null,
+      total_payment: payment,
+      notes: form.notes || null,
+    });
+    setSaving(false);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Kill record saved" });
+    onSaved();
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-sm rounded-2xl">
+        <DialogHeader><DialogTitle>Record Kill Sheet</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Kill Date</Label>
+              <Input type="date" value={form.kill_date} onChange={e => set("kill_date", e.target.value)} className="rounded-xl" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Head Count</Label>
+              <Input type="number" placeholder="0" value={form.head_count} onChange={e => set("head_count", e.target.value)} className="rounded-xl font-bold" />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Processor Name</Label>
+            <Input placeholder="e.g. JBS Australia" value={form.processor_name} onChange={e => set("processor_name", e.target.value)} className="rounded-xl" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Avg carcase weight (kg/head)</Label>
+              <Input type="number" step="0.1" placeholder="0.0" value={form.avg_carcase_weight_kg} onChange={e => set("avg_carcase_weight_kg", e.target.value)} className="rounded-xl" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Price (¢/kg CW)</Label>
+              <Input type="number" step="0.5" placeholder="620" value={form.price_cpkg_cw} onChange={e => set("price_cpkg_cw", e.target.value)} className="rounded-xl" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Grade</Label>
+              <Input placeholder="A" value={form.grade} onChange={e => set("grade", e.target.value)} className="rounded-xl" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Fat score</Label>
+              <Input placeholder="2-4" value={form.fat_score} onChange={e => set("fat_score", e.target.value)} className="rounded-xl" />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Total Payment ($)</Label>
+            <Input
+              type="number" step="0.01"
+              placeholder={autoPayment ? autoPayment.toFixed(2) : "0.00"}
+              value={form.total_payment}
+              onChange={e => set("total_payment", e.target.value)}
+              className="rounded-xl font-bold text-lg"
+            />
+            {autoPayment && !form.total_payment && (
+              <p className="text-xs text-muted-foreground">Auto-calculated: ${autoPayment.toFixed(2)}</p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Notes</Label>
+            <Input placeholder="Optional" value={form.notes} onChange={e => set("notes", e.target.value)} className="rounded-xl" />
+          </div>
+
+          <div className="flex gap-2 pt-1">
+            <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl">Cancel</Button>
+            <Button
+              onClick={save}
+              disabled={saving || !form.kill_date || !form.processor_name || !form.head_count}
+              className={`flex-1 rounded-xl bg-gradient-to-r ${cat.gradient} text-white hover:opacity-90 font-bold`}
+            >
+              {saving ? "Saving…" : "Save Record"}
             </Button>
           </div>
         </div>
