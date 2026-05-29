@@ -167,6 +167,7 @@ export default function OnFarm() {
           {/* Market strip */}
           <div className="bg-green-900/40 border-t border-white/10 px-6 py-3 flex gap-5 overflow-x-auto scrollbar-none">
             {[
+              { key: "eyci",         label: "EYCI" },
               { key: "feeder_steer", label: "Feeder Steer" },
               { key: "heavy_steer",  label: "Heavy Steer" },
               { key: "heavy_cow",    label: "Heavy Cow" },

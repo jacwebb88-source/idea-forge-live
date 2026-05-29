@@ -95,6 +95,7 @@ export default function PitchOverview() {
 
   const activeMobs = mobs.filter(m => m.status === "active");
   const totalHead = activeMobs.reduce((s, m) => s + m.head_count, 0);
+  const eyci = latest("eyci");
   const feeder = latest("feeder_steer");
   const heavySteer = latest("heavy_steer");
   const benchDate = benchmarks.length
@@ -225,8 +226,8 @@ export default function PitchOverview() {
             {[
               { label: "Mobs tracked", value: String(activeMobs.length), sub: "active" },
               { label: "Head under management", value: totalHead.toLocaleString(), sub: "total" },
-              { label: "Feeder steer benchmark", value: feeder ? `${feeder.cents_per_kg}¢/kg` : "—", sub: "MLA/NLRS" },
-              { label: "Heavy steer benchmark", value: heavySteer ? `${heavySteer.cents_per_kg}¢/kg` : "—", sub: benchDate ? `Updated ${benchDate}` : "—" },
+              { label: "EYCI (MLA)", value: eyci ? `${eyci.cents_per_kg}¢/kg CW` : "—", sub: "Eastern Young Cattle Indicator" },
+              { label: "Feeder steer", value: feeder ? `${feeder.cents_per_kg}¢/kg LW` : "—", sub: benchDate ? `MLA/NLRS · ${benchDate}` : "MLA/NLRS" },
             ].map(s => (
               <div key={s.label} className="bg-white rounded-xl border p-4 text-center shadow-sm">
                 <p className="text-2xl font-extrabold text-green-700">{s.value}</p>

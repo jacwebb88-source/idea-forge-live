@@ -1212,11 +1212,13 @@ function DecisionEngine({ mob, totalCostPerHead, latestWeightKg, latest, benchma
   const [aiRec, setAiRec] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
 
-  const heavySteerBench = latest("heavy_steer")?.cents_per_kg ?? 0;
-  const heavyCowBench = latest("heavy_cow")?.cents_per_kg ?? 0;
-  const feederBench = latest("feeder_steer")?.cents_per_kg ?? 0;
-  const othVic = latest("oth_vic")?.cents_per_kg ?? 0;
-  const grainPriceAudT = latest("grain_wheat_aud_t")?.cents_per_kg ?? 370;
+  const eyci             = latest("eyci")?.cents_per_kg ?? 0;
+  const heavySteerBench  = latest("heavy_steer")?.cents_per_kg ?? latest("heavy_steer_0t")?.cents_per_kg ?? 0;
+  const heavyCowBench    = latest("heavy_cow")?.cents_per_kg ?? 0;
+  const feederBench      = latest("feeder_steer")?.cents_per_kg ?? 0;
+  const othVic           = latest("oth_vic")?.cents_per_kg ?? 0;
+  const othQld           = latest("oth_qld")?.cents_per_kg ?? 0;
+  const grainPriceAudT   = latest("grain_wheat_aud_t")?.cents_per_kg ?? 370;
   const MLA = 5;
 
   async function generateRecommendation() {
@@ -1244,8 +1246,10 @@ function DecisionEngine({ mob, totalCostPerHead, latestWeightKg, latest, benchma
           feed_source: feedPlan?.feed_source ?? null,
         },
         market: {
+          eyci_cpkg: eyci,
           heavy_steer_bench_cpkg: heavySteerBench,
           oth_vic_cpkg: othVic,
+          oth_qld_cpkg: othQld,
           feeder_steer_cpkg: feederBench,
           grain_wheat_aud_t: grainPriceAudT,
         },
@@ -1422,7 +1426,7 @@ function DecisionEngine({ mob, totalCostPerHead, latestWeightKg, latest, benchma
       </div>
 
       <p className="text-xs text-muted-foreground text-center">
-        Market prices from MLA/NLRS · All figures per head · Margins vs. total cost logged to date
+        EYCI {eyci > 0 ? `${eyci}¢/kg CW` : "—"} · MLA/NLRS benchmarks · All figures per head · Margins vs. total cost logged to date
       </p>
 
       {/* ── Industry Benchmarks ───────────────────────────────────────── */}

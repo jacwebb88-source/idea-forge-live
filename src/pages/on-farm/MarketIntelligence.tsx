@@ -24,11 +24,24 @@ function fmtCpkg(n: number) { return `${n.toFixed(0)}¢/kg`; }
 
 function formatIndicatorName(key: string): string {
   const map: Record<string, string> = {
-    heavy_steer: "Heavy Steer",
-    heavy_cow: "Heavy Cow",
-    feeder_steer: "Feeder Steer",
-    oth_vic: "OTH Victoria",
+    eyci:              "EYCI — Eastern Young Cattle",
+    wyci:              "WYCI — Western Young Cattle",
+    nyci:              "NYCI — National Young Cattle",
+    feeder_steer:      "Feeder Steer",
+    heavy_steer:       "Heavy Steer (0 tooth)",
+    heavy_steer_0t:    "Heavy Steer (0 tooth)",
+    heavy_steer_2t:    "Heavy Steer (2 tooth)",
+    medium_steer:      "Medium Steer",
+    light_steer:       "Light Steer",
+    heavy_cow:         "Heavy Cow",
+    medium_cow:        "Medium Cow",
+    oth_vic:           "OTH Victoria",
+    oth_qld:           "OTH Queensland",
+    oth_nsw:           "OTH New South Wales",
+    oth_sa:            "OTH South Australia",
     grain_wheat_aud_t: "Wheat (AUD/t)",
+    grain_barley_aud_t:"Barley (AUD/t)",
+    hay_aud_t:         "Hay (AUD/t)",
   };
   return map[key] ?? key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
@@ -38,17 +51,18 @@ function isWheatIndicator(key: string) {
 }
 
 const CATEGORY_GUIDE = [
-  { name: "Feeder Steers", weightRange: "280–380 kg", minKg: 280, maxKg: 380, benchKey: "feeder_steer" },
-  { name: "Heavy Steers", weightRange: "400–550 kg", minKg: 400, maxKg: 550, benchKey: "heavy_steer" },
-  { name: "Heavy Cows", weightRange: "400–500 kg", minKg: 400, maxKg: 500, benchKey: "heavy_cow" },
-  { name: "OTH Cattle", weightRange: "350–550 kg", minKg: 350, maxKg: 550, benchKey: "oth_vic" },
+  { name: "EYCI Young Cattle", weightRange: "200–400 kg CW", minKg: 200, maxKg: 400, benchKey: "eyci", basis: "¢/kg CW" },
+  { name: "Feeder Steers", weightRange: "280–380 kg LW", minKg: 280, maxKg: 380, benchKey: "feeder_steer", basis: "¢/kg LW" },
+  { name: "Heavy Steers (0T)", weightRange: "400–550 kg LW", minKg: 400, maxKg: 550, benchKey: "heavy_steer_0t", basis: "¢/kg LW" },
+  { name: "Heavy Cows", weightRange: "400–500 kg LW", minKg: 400, maxKg: 500, benchKey: "heavy_cow", basis: "¢/kg LW" },
+  { name: "OTH VIC (Processor)", weightRange: "280–500 kg CW", minKg: 280, maxKg: 500, benchKey: "oth_vic", basis: "¢/kg CW" },
 ];
 
 const AUCTIONS_PLUS_ROWS = [
-  { category: "Feeder Steers 280–320 kg", range: "295–320", trend: "↑", trendColour: "text-green-600" },
-  { category: "Heavy Steers 400–450 kg", range: "310–340", trend: "→", trendColour: "text-amber-500" },
-  { category: "Heavy Cows 400–480 kg", range: "250–275", trend: "↓", trendColour: "text-red-500" },
-  { category: "OTH 350–500 kg", range: "305–330", trend: "↑", trendColour: "text-green-600" },
+  { category: "EYCI Young Cattle 200–400 kg CW", range: "680–710", trend: "↑", trendColour: "text-green-600" },
+  { category: "Feeder Steers 280–320 kg LW", range: "405–425", trend: "↑", trendColour: "text-green-600" },
+  { category: "Heavy Steers 400–500 kg LW", range: "335–355", trend: "→", trendColour: "text-amber-500" },
+  { category: "Heavy Cows 400–480 kg LW", range: "275–295", trend: "↓", trendColour: "text-red-500" },
 ];
 
 // Generate 12 weeks of mock historical prices
@@ -121,16 +135,16 @@ export default function MarketIntelligence() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {benchmarks && benchmarks.length > 0 ? (
               benchmarks.map((b, i) => {
-                const isWheat = isWheatIndicator(b.indicator_name);
+                const isWheat = isWheatIndicator(b.indicator);
                 const colourCls = CARD_COLOURS[i % CARD_COLOURS.length];
                 const formattedValue = isWheat
                   ? `$${b.cents_per_kg.toFixed(0)}/t`
                   : fmtCpkg(b.cents_per_kg);
                 return (
-                  <Card key={b.indicator_name} className={`rounded-2xl border ${colourCls}`}>
+                  <Card key={b.indicator} className={`rounded-2xl border ${colourCls}`}>
                     <CardContent className="pt-4 pb-4 px-4">
                       <p className="text-xs font-semibold uppercase tracking-wide opacity-70 mb-1">
-                        {formatIndicatorName(b.indicator_name)}
+                        {formatIndicatorName(b.indicator)}
                       </p>
                       <p className="text-2xl font-black leading-none">{formattedValue}</p>
                       <p className="text-xs opacity-60 mt-1.5">{b.benchmark_date}</p>
@@ -147,39 +161,46 @@ export default function MarketIntelligence() {
 
         {/* ── Price Trends ── */}
         {(() => {
-          const heavyCurrent = latest("heavy_steer")?.cents_per_kg ?? 320;
-          const feederCurrent = latest("feeder_steer")?.cents_per_kg ?? 295;
-          const heavyHistory = generatePriceHistory(heavyCurrent);
-          const feederHistory = generatePriceHistory(feederCurrent);
-          // Merge into a single array keyed by week label
-          const merged = heavyHistory.map((h, i) => ({
+          const eyciCurrent    = latest("eyci")?.cents_per_kg ?? 692;
+          const feederCurrent  = latest("feeder_steer")?.cents_per_kg ?? 415;
+          const heavyCurrent   = latest("heavy_steer")?.cents_per_kg ?? 345;
+          const eyciHistory    = generatePriceHistory(eyciCurrent);
+          const feederHistory  = generatePriceHistory(feederCurrent);
+          const heavyHistory   = generatePriceHistory(heavyCurrent);
+          const merged = eyciHistory.map((h, i) => ({
             week: h.week,
-            heavySteer: h.price,
+            eyci:        h.price,
             feederSteer: feederHistory[i]?.price ?? feederCurrent,
+            heavySteer:  heavyHistory[i]?.price  ?? heavyCurrent,
           }));
           return (
             <Card className="rounded-2xl">
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
                   <BarChart2 className="h-4 w-4 text-green-600" />
-                  <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Price Trends — 12 Week History</CardTitle>
+                  <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">MLA Price Trends — 12 Week History</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 mb-4">
-                  <p className="text-xs text-amber-800">Simulated trend data — real weekly saleyard prices will flow in once MLA/NLRS integration is live.</p>
+                  <p className="text-xs text-amber-800">⚠️ Simulated trend — real weekly MLA/NLRS prices will flow in once the data feed is live. Current endpoint values are accurate.</p>
                 </div>
-                <ResponsiveContainer width="100%" height={220}>
+                <ResponsiveContainer width="100%" height={240}>
                   <RechartsLineChart data={merged} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis dataKey="week" tick={{ fontSize: 10 }} interval={2} />
                     <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `${v}¢`} domain={["auto", "auto"]} />
-                    <Tooltip formatter={(v: number, name: string) => [`${v}¢/kg`, name === "heavySteer" ? "Heavy Steer" : "Feeder Steer"]} />
-                    <Legend formatter={(value) => value === "heavySteer" ? "Heavy Steer" : "Feeder Steer"} />
-                    <Line type="monotone" dataKey="heavySteer" stroke="#16a34a" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                    <Tooltip formatter={(v: number, name: string) => [
+                      `${v}¢/kg`,
+                      name === "eyci" ? "EYCI (¢/kg CW)" : name === "feederSteer" ? "Feeder Steer (¢/kg LW)" : "Heavy Steer (¢/kg LW)"
+                    ]} />
+                    <Legend formatter={(v) => v === "eyci" ? "EYCI" : v === "feederSteer" ? "Feeder Steer" : "Heavy Steer"} />
+                    <Line type="monotone" dataKey="eyci"        stroke="#7c3aed" strokeWidth={3} dot={false} activeDot={{ r: 5 }} />
                     <Line type="monotone" dataKey="feederSteer" stroke="#2563eb" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="heavySteer"  stroke="#16a34a" strokeWidth={2} dot={false} activeDot={{ r: 4 }} strokeDasharray="4 2" />
                   </RechartsLineChart>
                 </ResponsiveContainer>
+                <p className="text-xs text-muted-foreground/60 mt-2 text-center">EYCI = Eastern Young Cattle Indicator (MLA) · ¢/kg carcase weight · Primary Australian cattle price benchmark</p>
               </CardContent>
             </Card>
           );
@@ -245,8 +266,8 @@ export default function MarketIntelligence() {
                   <tr className="border-b text-xs text-muted-foreground uppercase tracking-wide">
                     <th className="text-left py-2 pr-4">Category</th>
                     <th className="text-left py-2 pr-4">Weight Range</th>
-                    <th className="text-right py-2 pr-4">Est. ¢/kg LW</th>
-                    <th className="text-right py-2">Est. $/head</th>
+                    <th className="text-right py-2 pr-4">Benchmark</th>
+                    <th className="text-right py-2">Est. $/head (mid)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -295,13 +316,13 @@ export default function MarketIntelligence() {
               {/* Price ladder */}
               <div className="space-y-1.5">
                 {benchmarks && benchmarks
-                  .filter((b) => !isWheatIndicator(b.indicator_name))
+                  .filter((b) => !isWheatIndicator(b.indicator))
                   .map((b, i) => {
                     const barWidth = Math.min(100, Math.max(10, (b.cents_per_kg / 400) * 100));
                     const barColours = ["bg-emerald-500", "bg-blue-500", "bg-amber-500", "bg-violet-500"];
                     return (
-                      <div key={b.indicator_name} className="flex items-center gap-3">
-                        <span className="text-xs text-muted-foreground w-28 shrink-0">{formatIndicatorName(b.indicator_name)}</span>
+                      <div key={b.indicator} className="flex items-center gap-3">
+                        <span className="text-xs text-muted-foreground w-28 shrink-0">{formatIndicatorName(b.indicator)}</span>
                         <div className="flex-1 bg-muted/30 rounded-full h-2 overflow-hidden">
                           <div
                             className={`h-2 rounded-full ${barColours[i % barColours.length]}`}
