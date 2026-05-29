@@ -30,6 +30,7 @@ import UserAccess from "./pages/UserAccess";
 import OnFarm from "./pages/on-farm/OnFarm";
 import NewMob from "./pages/on-farm/NewMob";
 import MobDetail from "./pages/on-farm/MobDetail";
+import Enterprise from "./pages/on-farm/Enterprise";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -79,6 +80,7 @@ const App = () => (
             <Route path="/on-farm" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><OnFarm /></ProtectedRoute>} />
             <Route path="/on-farm/mobs/new" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><NewMob /></ProtectedRoute>} />
             <Route path="/on-farm/mobs/:id" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><MobDetail /></ProtectedRoute>} />
+            <Route path="/on-farm/enterprise" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><Enterprise /></ProtectedRoute>} />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

@@ -16,6 +16,7 @@ import {
   FileText,
   History,
   TrendingUp,
+  Building2,
   LogOut,
   ShoppingBag,
   UserCog,
@@ -61,6 +62,7 @@ const systemItems = [
   { title: "Buyer Portal", url: "/buyer-portal", icon: ShoppingBag },
   { title: "Supplier Portal", url: "/supplier-portal", icon: Leaf },
   { title: "On Farm", url: "/on-farm", icon: TrendingUp },
+  { title: "Livestock Enterprise", url: "/on-farm/enterprise", icon: Building2 },
   { title: "Users & Access", url: "/users", icon: UserCog },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
