@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useMob, useMarketBenchmarks } from "@/components/on-farm/useMobs";
+import { useMob, useMarketBenchmarks, useFeedPlan, type FeedPlan } from "@/components/on-farm/useMobs";
 import { categoryToken, exitToken, programToken } from "@/components/on-farm/farmTokens";
 import {
   COST_TYPE_LABELS, COST_TYPE_GROUPS,
@@ -24,7 +24,8 @@ import {
 import {
   ArrowLeft, Plus, Scale, TrendingUp, Clock,
   CheckCircle, XCircle, DollarSign, Beef, Edit3,
-  ChevronRight, Layers,
+  ChevronRight, Layers, Wheat, Sparkles, RefreshCw,
+  Leaf, Flame,
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 
@@ -37,11 +38,13 @@ export default function MobDetail() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { mob, costs, weights, loading, refetch, totalCost, totalCostPerHead, latestWeight, adg, projectedTurnOffDate } = useMob(id!);
-  const { latest } = useMarketBenchmarks();
+  const { latest, benchmarks } = useMarketBenchmarks();
+  const { current: feedPlan, plans: feedPlans, loading: feedLoading, refetch: refetchFeed } = useFeedPlan(id!);
 
   const [showCostDialog, setShowCostDialog] = useState(false);
   const [showWeightDialog, setShowWeightDialog] = useState(false);
   const [showStatusDialog, setShowStatusDialog] = useState(false);
+  const [showFeedDialog, setShowFeedDialog] = useState(false);
 
   if (loading) return (
     <DashboardLayout>
@@ -196,10 +199,11 @@ export default function MobDetail() {
 
         {/* ── Tabs ─────────────────────────────────────────────────────── */}
         <Tabs defaultValue="costs">
-          <TabsList className="grid grid-cols-3 w-full rounded-xl h-11">
-            <TabsTrigger value="costs" className="rounded-lg text-sm">Cost Ledger</TabsTrigger>
-            <TabsTrigger value="weights" className="rounded-lg text-sm">Weight & ADG</TabsTrigger>
-            <TabsTrigger value="exit" className="rounded-lg text-sm">Exit</TabsTrigger>
+          <TabsList className="grid grid-cols-4 w-full rounded-xl h-11">
+            <TabsTrigger value="costs" className="rounded-lg text-xs">Costs</TabsTrigger>
+            <TabsTrigger value="weights" className="rounded-lg text-xs">Weight</TabsTrigger>
+            <TabsTrigger value="feed" className="rounded-lg text-xs">Feed Plan</TabsTrigger>
+            <TabsTrigger value="decision" className="rounded-lg text-xs">Decision</TabsTrigger>
           </TabsList>
 
           {/* ─── COST LEDGER ─────────────────────────────────────────── */}
@@ -375,11 +379,22 @@ export default function MobDetail() {
             </Button>
           </TabsContent>
 
-          {/* ─── EXIT DECISION ─────────────────────────────────────────── */}
-          <TabsContent value="exit" className="space-y-4 mt-4">
-            <ExitDecisionDashboard
+          {/* ─── FEED PLAN ───────────────────────────────────────────────── */}
+          <TabsContent value="feed" className="space-y-4 mt-4">
+            <FeedPlanTab
+              mob={mob} feedPlan={feedPlan} feedPlans={feedPlans}
+              totalCostPerHead={totalCostPerHead} adg={adg}
+              currentWt={currentWt} cat={cat}
+              onEdit={() => setShowFeedDialog(true)}
+            />
+          </TabsContent>
+
+          {/* ─── DECISION ENGINE ─────────────────────────────────────────── */}
+          <TabsContent value="decision" className="space-y-4 mt-4">
+            <DecisionEngine
               mob={mob} totalCostPerHead={totalCostPerHead}
-              latestWeightKg={currentWt} latest={latest} cat={cat}
+              latestWeightKg={currentWt} latest={latest} benchmarks={benchmarks}
+              feedPlan={feedPlan} adg={adg} cat={cat}
             />
           </TabsContent>
         </Tabs>
@@ -389,6 +404,7 @@ export default function MobDetail() {
       <AddCostDialog open={showCostDialog} onClose={() => setShowCostDialog(false)} mobId={mob.id} headCount={mob.head_count} onSaved={() => { setShowCostDialog(false); refetch(); }} toast={toast} cat={cat} />
       <LogWeightDialog open={showWeightDialog} onClose={() => setShowWeightDialog(false)} mobId={mob.id} weights={weights} onSaved={() => { setShowWeightDialog(false); refetch(); }} toast={toast} cat={cat} />
       <StatusDialog open={showStatusDialog} onClose={() => setShowStatusDialog(false)} mobId={mob.id} currentStatus={mob.status} onSaved={() => { setShowStatusDialog(false); refetch(); }} toast={toast} />
+      <EditFeedPlanDialog open={showFeedDialog} onClose={() => setShowFeedDialog(false)} mobId={mob.id} current={feedPlan} targetWt={mob.target_weight_kg} currentWt={currentWt} onSaved={() => { setShowFeedDialog(false); refetchFeed(); }} toast={toast} cat={cat} />
     </DashboardLayout>
   );
 }
@@ -418,21 +434,340 @@ function EmptyState({ icon, message, action, cat }: any) {
   );
 }
 
-// ─── Exit Decision Dashboard ──────────────────────────────────────────────────
+// ─── Feed Plan Tab ────────────────────────────────────────────────────────────
 
-function ExitDecisionDashboard({ mob, totalCostPerHead, latestWeightKg, latest, cat }: any) {
+const FEED_SOURCE_META: Record<string, { icon: React.ReactNode; label: string; color: string; bgColor: string }> = {
+  grass:  { icon: <Leaf className="h-4 w-4" />,  label: "Grass / Pasture",  color: "text-green-700",  bgColor: "bg-green-50 border-green-200" },
+  grain:  { icon: <Wheat className="h-4 w-4" />, label: "Grain",            color: "text-amber-700",  bgColor: "bg-amber-50 border-amber-200" },
+  silage: { icon: <Layers className="h-4 w-4" />,label: "Silage",           color: "text-emerald-700",bgColor: "bg-emerald-50 border-emerald-200" },
+  hay:    { icon: <Flame className="h-4 w-4" />, label: "Hay",              color: "text-orange-700", bgColor: "bg-orange-50 border-orange-200" },
+  mixed:  { icon: <TrendingUp className="h-4 w-4" />, label: "Mixed",       color: "text-slate-700",  bgColor: "bg-slate-50 border-slate-200" },
+};
+
+function FeedPlanTab({ mob, feedPlan, feedPlans, totalCostPerHead, adg, currentWt, cat, onEdit }: any) {
+  if (!feedPlan) return (
+    <EmptyState
+      icon={<Wheat className="h-10 w-10 text-muted-foreground/20" />}
+      message="No feed plan set. Add one to track ration costs and model different finishing scenarios."
+      action={{ label: "Set feed plan", onClick: onEdit }}
+      cat={cat}
+    />
+  );
+
+  const meta = FEED_SOURCE_META[feedPlan.feed_source] ?? FEED_SOURCE_META.mixed;
+  const daysRunning = Math.max(1, differenceInDays(new Date(), new Date(feedPlan.start_date)));
+  const feedCostToDate = feedPlan.daily_feed_cost_per_head * daysRunning;
+  const daysToTarget = feedPlan.projected_ready_date
+    ? differenceInDays(new Date(feedPlan.projected_ready_date), new Date())
+    : mob.target_weight_kg && feedPlan.expected_adg_kg_day > 0 && currentWt
+      ? Math.round((mob.target_weight_kg - currentWt) / feedPlan.expected_adg_kg_day)
+      : null;
+  const feedCostToFinish = daysToTarget != null && daysToTarget > 0
+    ? feedPlan.daily_feed_cost_per_head * daysToTarget
+    : 0;
+
+  const scenarios = [
+    { source: "grass",  adg: 0.9,  dailyCost: 1.20, label: "Pasture only" },
+    { source: "mixed",  adg: 1.3,  dailyCost: 2.80, label: "Grass + supplement" },
+    { source: "grain",  adg: 1.8,  dailyCost: 4.80, label: "Full grain ration" },
+    { source: "silage", adg: 1.1,  dailyCost: 2.20, label: "Silage ration" },
+  ].map(sc => {
+    const days = mob.target_weight_kg && currentWt && sc.adg > 0
+      ? Math.round((mob.target_weight_kg - currentWt) / sc.adg)
+      : null;
+    const totalFeedCost = days ? sc.dailyCost * days : null;
+    return { ...sc, days, totalFeedCost };
+  });
+
+  return (
+    <div className="space-y-4">
+      {/* Current plan hero */}
+      <div className={`rounded-2xl border-2 p-5 ${meta.bgColor}`}>
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${meta.bgColor} border ${meta.color}`}>
+              {meta.icon}
+            </div>
+            <div>
+              <p className={`text-xs font-semibold uppercase tracking-wide ${meta.color} opacity-70`}>Current feed plan</p>
+              <p className={`font-bold text-lg ${meta.color}`}>{meta.label}</p>
+              {feedPlan.ration_type && <p className={`text-xs ${meta.color} opacity-70`}>{feedPlan.ration_type}</p>}
+            </div>
+          </div>
+          <button
+            onClick={onEdit}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-full border ${meta.color} ${meta.bgColor} hover:opacity-80 transition-opacity`}
+          >
+            Edit plan
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="text-center">
+            <p className={`text-xs ${meta.color} opacity-60 font-medium`}>Daily cost/head</p>
+            <p className={`text-2xl font-bold ${meta.color}`}>${feedPlan.daily_feed_cost_per_head.toFixed(2)}</p>
+          </div>
+          <div className="text-center">
+            <p className={`text-xs ${meta.color} opacity-60 font-medium`}>Expected ADG</p>
+            <p className={`text-2xl font-bold ${meta.color}`}>{feedPlan.expected_adg_kg_day.toFixed(2)}<span className="text-sm font-normal">kg/d</span></p>
+          </div>
+          <div className="text-center">
+            <p className={`text-xs ${meta.color} opacity-60 font-medium`}>Feed cost to date</p>
+            <p className={`text-2xl font-bold ${meta.color}`}>${feedCostToDate.toFixed(0)}</p>
+          </div>
+          <div className="text-center">
+            <p className={`text-xs ${meta.color} opacity-60 font-medium`}>Days remaining</p>
+            <p className={`text-2xl font-bold ${meta.color}`}>{daysToTarget != null && daysToTarget > 0 ? daysToTarget : "—"}</p>
+          </div>
+        </div>
+
+        {feedCostToFinish > 0 && (
+          <div className={`mt-4 pt-4 border-t border-current/10 flex items-center justify-between`}>
+            <span className={`text-sm ${meta.color} opacity-70`}>Estimated feed cost to finish target weight</span>
+            <span className={`text-lg font-bold ${meta.color}`}>${feedCostToFinish.toFixed(0)}/head</span>
+          </div>
+        )}
+      </div>
+
+      {/* Scenario comparison */}
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Scenario comparison — cost to reach target weight</p>
+        <div className="space-y-2">
+          {scenarios.map(sc => {
+            const scMeta = FEED_SOURCE_META[sc.source];
+            const isCurrent = sc.source === feedPlan.feed_source;
+            return (
+              <div
+                key={sc.source}
+                className={`rounded-xl border px-4 py-3 flex items-center justify-between ${isCurrent ? `${scMeta.bgColor} border-2` : "bg-white border-muted"}`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className={scMeta.color}>{scMeta.icon}</span>
+                  <div>
+                    <p className={`font-semibold text-sm ${isCurrent ? scMeta.color : "text-foreground"}`}>
+                      {sc.label}
+                      {isCurrent && <span className="ml-2 text-xs font-normal opacity-60">(current)</span>}
+                    </p>
+                    <p className="text-xs text-muted-foreground">${sc.dailyCost.toFixed(2)}/hd/day · {sc.adg.toFixed(1)}kg ADG · {sc.days ?? "?"} days to target</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className={`font-bold text-lg ${isCurrent ? scMeta.color : "text-foreground"}`}>
+                    {sc.totalFeedCost != null ? `$${sc.totalFeedCost.toFixed(0)}` : "—"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">feed cost</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Plan history */}
+      {feedPlans.length > 1 && (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Plan history</p>
+          <div className="space-y-1.5">
+            {feedPlans.filter((_: FeedPlan, i: number) => i > 0).map((p: FeedPlan) => (
+              <div key={p.id} className="rounded-lg border bg-muted/20 px-3 py-2 flex items-center justify-between text-xs text-muted-foreground">
+                <span>{FEED_SOURCE_META[p.feed_source]?.label ?? p.feed_source} · {p.ration_type ?? "—"}</span>
+                <span>{format(new Date(p.start_date), "d MMM yy")}{p.end_date ? ` → ${format(new Date(p.end_date), "d MMM yy")}` : ""}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Edit Feed Plan Dialog ────────────────────────────────────────────────────
+
+function EditFeedPlanDialog({ open, onClose, mobId, current, targetWt, currentWt, onSaved, toast, cat }: any) {
+  const [form, setForm] = useState({
+    feed_source: current?.feed_source ?? "grass",
+    ration_type: current?.ration_type ?? "",
+    daily_feed_cost_per_head: String(current?.daily_feed_cost_per_head ?? ""),
+    expected_adg_kg_day: String(current?.expected_adg_kg_day ?? ""),
+    start_date: current?.start_date ?? new Date().toISOString().split("T")[0],
+    notes: current?.notes ?? "",
+  });
+  const [saving, setSaving] = useState(false);
+  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+
+  const adgVal = parseFloat(form.expected_adg_kg_day);
+  const costVal = parseFloat(form.daily_feed_cost_per_head);
+  const daysToTarget = targetWt && currentWt && adgVal > 0
+    ? Math.round((targetWt - currentWt) / adgVal) : null;
+  const projectedReadyDate = daysToTarget != null
+    ? (() => { const d = new Date(); d.setDate(d.getDate() + daysToTarget); return d.toISOString().split("T")[0]; })()
+    : null;
+  const projectedExitWt = adgVal > 0 && daysToTarget != null && currentWt
+    ? currentWt + adgVal * daysToTarget : null;
+
+  async function save() {
+    if (!form.feed_source || !form.daily_feed_cost_per_head || !form.expected_adg_kg_day) return;
+    setSaving(true);
+    // Mark all previous plans as not current
+    await supabase.from("feed_plans").update({ is_current: false }).eq("mob_id", mobId);
+    // Insert new plan
+    const { error } = await supabase.from("feed_plans").insert({
+      mob_id: mobId,
+      feed_source: form.feed_source,
+      ration_type: form.ration_type || null,
+      daily_feed_cost_per_head: costVal,
+      expected_adg_kg_day: adgVal,
+      start_date: form.start_date,
+      projected_ready_date: projectedReadyDate,
+      projected_exit_weight_kg: projectedExitWt,
+      is_current: true,
+      notes: form.notes || null,
+    });
+    setSaving(false);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Feed plan updated" });
+    onSaved();
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-sm rounded-2xl">
+        <DialogHeader><DialogTitle className="text-lg">Edit Feed Plan</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Feed Source</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {(["grass","grain","silage","hay","mixed"] as const).map(src => {
+                const m = FEED_SOURCE_META[src];
+                return (
+                  <button
+                    key={src}
+                    onClick={() => set("feed_source", src)}
+                    className={`rounded-xl border-2 py-2 text-xs font-semibold flex flex-col items-center gap-1 transition-all ${form.feed_source === src ? `${m.bgColor} ${m.color}` : "border-muted text-muted-foreground"}`}
+                  >
+                    {m.icon}{m.label.split(" ")[0]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Ration description</Label>
+            <Input placeholder="e.g. High energy grain ration, MSA grass fed…" value={form.ration_type} onChange={e => set("ration_type", e.target.value)} className="rounded-xl" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Daily cost/head ($)</Label>
+              <Input type="number" step="0.10" placeholder="0.00" value={form.daily_feed_cost_per_head} onChange={e => set("daily_feed_cost_per_head", e.target.value)} className="rounded-xl font-bold" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Expected ADG (kg/day)</Label>
+              <Input type="number" step="0.05" placeholder="0.0" value={form.expected_adg_kg_day} onChange={e => set("expected_adg_kg_day", e.target.value)} className="rounded-xl font-bold" />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Plan start date</Label>
+            <Input type="date" value={form.start_date} onChange={e => set("start_date", e.target.value)} className="rounded-xl" />
+          </div>
+
+          {daysToTarget != null && adgVal > 0 && (
+            <div className={`rounded-xl ${cat.bg} border ${cat.border} px-4 py-3 text-xs`}>
+              <div className="flex justify-between">
+                <span className={`${cat.text} opacity-60`}>Days to target ({targetWt}kg)</span>
+                <span className={`${cat.text} font-bold`}>{daysToTarget} days</span>
+              </div>
+              <div className="flex justify-between mt-1">
+                <span className={`${cat.text} opacity-60`}>Feed cost to finish</span>
+                <span className={`${cat.text} font-bold`}>${(costVal * daysToTarget).toFixed(0)}/head</span>
+              </div>
+              {projectedReadyDate && (
+                <div className="flex justify-between mt-1">
+                  <span className={`${cat.text} opacity-60`}>Projected ready date</span>
+                  <span className={`${cat.text} font-bold`}>{format(new Date(projectedReadyDate), "d MMM yyyy")}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex gap-2 pt-1">
+            <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl">Cancel</Button>
+            <Button
+              onClick={save}
+              disabled={saving || !form.daily_feed_cost_per_head || !form.expected_adg_kg_day}
+              className={`flex-1 rounded-xl bg-gradient-to-r ${cat.gradient} text-white hover:opacity-90 font-bold`}
+            >
+              {saving ? "Saving…" : "Save Plan"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Decision Engine ──────────────────────────────────────────────────────────
+
+function DecisionEngine({ mob, totalCostPerHead, latestWeightKg, latest, benchmarks, feedPlan, adg, cat }: any) {
   const [dressingPct, setDressingPct] = useState(58);
   const [freightOut, setFreightOut] = useState(80);
   const [agentCommExit, setAgentCommExit] = useState(4.5);
   const [liveExportPremium, setLiveExportPremium] = useState(25);
   const [breedingPremium, setBreedingPremium] = useState(100);
   const [processorMarginPct, setProcessorMarginPct] = useState(10);
+  const [aiRec, setAiRec] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const heavySteerBench = latest("heavy_steer")?.cents_per_kg ?? 0;
   const heavyCowBench = latest("heavy_cow")?.cents_per_kg ?? 0;
   const feederBench = latest("feeder_steer")?.cents_per_kg ?? 0;
   const othVic = latest("oth_vic")?.cents_per_kg ?? 0;
+  const grainPriceAudT = latest("grain_wheat_aud_t")?.cents_per_kg ?? 370;
   const MLA = 5;
+
+  async function generateRecommendation() {
+    setAiLoading(true);
+    setAiRec(null);
+    try {
+      const payload = {
+        mob: {
+          name: mob.mob_name,
+          category: mob.category,
+          head_count: mob.head_count,
+          breed: mob.breed_type,
+          days_on_feed: differenceInDays(new Date(), new Date(mob.purchase_date)),
+          current_weight_kg: latestWeightKg,
+          target_weight_kg: mob.target_weight_kg,
+          adg_kg_day: adg,
+          hgp_free: mob.hgp_free,
+          msa_eligible: mob.msa_eligible,
+          program_type: mob.program_type,
+          target_exit_path: mob.target_exit_path,
+        },
+        costs: {
+          total_cost_per_head: totalCostPerHead,
+          daily_feed_cost: feedPlan?.daily_feed_cost_per_head ?? null,
+          feed_source: feedPlan?.feed_source ?? null,
+        },
+        market: {
+          heavy_steer_bench_cpkg: heavySteerBench,
+          oth_vic_cpkg: othVic,
+          feeder_steer_cpkg: feederBench,
+          grain_wheat_aud_t: grainPriceAudT,
+        },
+        dressing_pct: dressingPct,
+        freight_out: freightOut,
+      };
+      const { data, error } = await supabase.functions.invoke("livestock-recommendation", { body: payload });
+      if (error) throw error;
+      setAiRec(data?.recommendation ?? "No recommendation returned.");
+    } catch (e: any) {
+      setAiRec("Unable to generate recommendation — " + (e?.message ?? "unknown error"));
+    }
+    setAiLoading(false);
+  }
 
   const benchmarkCpkg = ["boner_cow","cull_cow"].includes(mob.category) ? heavyCowBench
     : ["weaner","backgrounder","trade"].includes(mob.category) ? feederBench
@@ -569,6 +904,45 @@ function ExitDecisionDashboard({ mob, totalCostPerHead, latestWeightKg, latest, 
       <p className="text-xs text-muted-foreground text-center">
         Market prices from MLA/NLRS · All figures per head · Margins vs. total cost logged to date
       </p>
+
+      {/* ── AI Recommendation ─────────────────────────────────────────── */}
+      <div className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-indigo-50 p-5">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-xl bg-violet-600 flex items-center justify-center">
+              <Sparkles className="h-4 w-4 text-white" />
+            </div>
+            <div>
+              <p className="font-bold text-sm text-violet-900">AI Decision Recommendation</p>
+              <p className="text-xs text-violet-600">Powered by Claude · analyses mob, costs & markets</p>
+            </div>
+          </div>
+          <button
+            onClick={generateRecommendation}
+            disabled={aiLoading}
+            className="flex items-center gap-1.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-60 text-white text-xs font-bold px-3 py-1.5 rounded-full transition-colors"
+          >
+            {aiLoading ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+            {aiLoading ? "Analysing…" : aiRec ? "Regenerate" : "Get recommendation"}
+          </button>
+        </div>
+
+        {aiRec ? (
+          <div className="bg-white/70 rounded-xl p-4 text-sm text-violet-900 leading-relaxed whitespace-pre-wrap">
+            {aiRec}
+          </div>
+        ) : !aiLoading && (
+          <p className="text-xs text-violet-500 text-center py-2">
+            Tap "Get recommendation" to analyse this mob against current market conditions and costs.
+          </p>
+        )}
+        {aiLoading && (
+          <div className="flex items-center justify-center gap-2 py-4 text-violet-600 text-sm">
+            <RefreshCw className="h-4 w-4 animate-spin" />
+            Analysing mob data, costs, and market conditions…
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -72,6 +72,42 @@ export function useMob(id: string) {
   };
 }
 
+export interface FeedPlan {
+  id: string;
+  mob_id: string;
+  ration_type: string | null;
+  feed_source: string;
+  daily_feed_cost_per_head: number;
+  expected_adg_kg_day: number;
+  start_date: string;
+  end_date: string | null;
+  projected_exit_weight_kg: number | null;
+  projected_ready_date: string | null;
+  is_current: boolean;
+  notes: string | null;
+  created_at: string;
+}
+
+export function useFeedPlan(mobId: string) {
+  const [plans, setPlans] = useState<FeedPlan[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchPlans = useCallback(async () => {
+    const { data } = await supabase
+      .from("feed_plans")
+      .select("*")
+      .eq("mob_id", mobId)
+      .order("start_date", { ascending: false });
+    setPlans((data as FeedPlan[]) ?? []);
+    setLoading(false);
+  }, [mobId]);
+
+  useEffect(() => { fetchPlans(); }, [fetchPlans]);
+
+  const current = plans.find(p => p.is_current) ?? plans[0] ?? null;
+  return { plans, current, loading, refetch: fetchPlans };
+}
+
 export function useMarketBenchmarks() {
   const [benchmarks, setBenchmarks] = useState<MarketBenchmark[]>([]);
 
