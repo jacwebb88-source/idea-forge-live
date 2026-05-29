@@ -13,35 +13,24 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useMob, useMarketBenchmarks } from "@/components/on-farm/useMobs";
+import { categoryToken, exitToken, programToken } from "@/components/on-farm/farmTokens";
 import {
-  CATEGORY_LABELS, PROGRAM_LABELS, EXIT_PATH_LABELS, COST_TYPE_LABELS, COST_TYPE_GROUPS,
+  COST_TYPE_LABELS, COST_TYPE_GROUPS,
   type CostType, type ExitPath,
 } from "@/components/on-farm/types";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import {
-  ArrowLeft, Plus, DollarSign, Scale, TrendingUp,
-  CheckCircle, XCircle, Clock, Beef, Edit3,
+  ArrowLeft, Plus, Scale, TrendingUp, Clock,
+  CheckCircle, XCircle, DollarSign, Beef, Edit3,
+  ChevronRight, Layers,
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function fmt$(n: number) { return `$${n.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
+function fmt$(n: number) { return `$${n.toLocaleString("en-AU", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`; }
 function fmtKg(n: number) { return `${n.toFixed(1)} kg`; }
-
-function statusBadge(s: string) {
-  const map: Record<string, string> = {
-    active: "bg-green-100 text-green-700",
-    sold: "bg-blue-100 text-blue-700",
-    slaughtered: "bg-slate-100 text-slate-700",
-    transferred: "bg-amber-100 text-amber-700",
-  };
-  return map[s] ?? "bg-gray-100 text-gray-700";
-}
-
-// ─── Main ─────────────────────────────────────────────────────────────────────
+function fmt$fine(n: number) { return `$${n.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
 
 export default function MobDetail() {
   const { id } = useParams<{ id: string }>();
@@ -54,447 +43,531 @@ export default function MobDetail() {
   const [showWeightDialog, setShowWeightDialog] = useState(false);
   const [showStatusDialog, setShowStatusDialog] = useState(false);
 
-  if (loading) return <DashboardLayout><div className="p-8 text-center text-muted-foreground">Loading…</div></DashboardLayout>;
+  if (loading) return (
+    <DashboardLayout>
+      <div className="space-y-3 animate-pulse p-4">
+        <div className="h-48 rounded-2xl bg-muted/40" />
+        <div className="h-24 rounded-xl bg-muted/40" />
+        <div className="h-64 rounded-xl bg-muted/40" />
+      </div>
+    </DashboardLayout>
+  );
   if (!mob) return <DashboardLayout><div className="p-8 text-center text-muted-foreground">Mob not found.</div></DashboardLayout>;
 
+  const cat = categoryToken(mob.category);
+  const exit = exitToken(mob.target_exit_path);
+  const prog = programToken(mob.program_type);
   const dof = differenceInDays(new Date(), new Date(mob.purchase_date));
+  const daysToExit = mob.target_exit_date ? differenceInDays(new Date(mob.target_exit_date), new Date()) : null;
+  const currentWt = latestWeight?.avg_weight_kg ?? mob.arrival_weight_avg_kg ?? mob.purchase_weight_avg_kg ?? 0;
+  const arrivalWt = mob.arrival_weight_avg_kg ?? mob.purchase_weight_avg_kg ?? 0;
+  const targetWt = mob.target_weight_kg ?? 0;
+  const wtPct = targetWt && arrivalWt ? Math.min(100, Math.round(((currentWt - arrivalWt) / (targetWt - arrivalWt)) * 100)) : 0;
 
   return (
     <DashboardLayout>
-      <div className="space-y-5">
-        {/* Back + header */}
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/on-farm")} className="gap-1 text-muted-foreground">
-            <ArrowLeft className="h-4 w-4" /> On Farm
+      <div className="space-y-5 pb-10">
+
+        {/* ── Hero header with category colour ─────────────────────────── */}
+        <div className={`rounded-2xl overflow-hidden bg-gradient-to-br ${cat.gradient} relative`}>
+          <div className="absolute inset-0 opacity-10"
+            style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }}
+          />
+          <div className="relative px-5 pt-5 pb-5">
+            {/* Back + status */}
+            <div className="flex items-center justify-between mb-4">
+              <button
+                onClick={() => navigate("/on-farm")}
+                className="flex items-center gap-1.5 text-white/70 hover:text-white text-sm font-medium transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" /> On Farm
+              </button>
+              <button
+                onClick={() => setShowStatusDialog(true)}
+                className="bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-full border border-white/20 transition-colors flex items-center gap-1.5"
+              >
+                <Edit3 className="h-3 w-3" />
+                {mob.status.charAt(0).toUpperCase() + mob.status.slice(1)}
+              </button>
+            </div>
+
+            {/* Mob identity */}
+            <div className="mb-1">
+              <p className="text-white/60 text-xs uppercase tracking-wider font-medium">{cat.label}</p>
+              <h1 className="text-white text-2xl font-bold leading-tight">{mob.mob_name}</h1>
+              <p className="text-white/70 text-sm mt-0.5">
+                {mob.head_count} head
+                {mob.breed_type ? ` · ${mob.breed_type}` : ""}
+                {mob.location_name ? ` · ${mob.location_name}` : ""}
+              </p>
+            </div>
+
+            {/* Big 4 stats */}
+            <div className="grid grid-cols-4 gap-3 mt-4">
+              <StatBox label="Days on feed" value={String(dof)} />
+              <StatBox label="Avg weight" value={currentWt > 0 ? `${currentWt.toFixed(0)}kg` : "—"} />
+              <StatBox label="ADG" value={adg != null && adg > 0 ? `${adg.toFixed(2)}kg` : "—"} />
+              <StatBox label="Cost/head" value={totalCostPerHead > 0 ? fmt$(totalCostPerHead) : "—"} />
+            </div>
+
+            {/* Weight progress bar */}
+            {targetWt > 0 && arrivalWt > 0 && (
+              <div className="mt-4">
+                <div className="flex justify-between text-white/70 text-xs mb-1.5">
+                  <span>Weight to target: {currentWt.toFixed(0)}kg → {targetWt}kg</span>
+                  <span>{wtPct}%</span>
+                </div>
+                <div className="h-2.5 bg-white/20 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${wtPct >= 100 ? "bg-green-400" : "bg-white"}`}
+                    style={{ width: `${Math.max(3, wtPct)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Exit + program badges */}
+            <div className="flex flex-wrap gap-2 mt-4">
+              {prog && <span className="bg-white/20 text-white text-xs px-2.5 py-1 rounded-full font-medium">{prog.label}</span>}
+              {exit && <span className="bg-white/20 text-white text-xs px-2.5 py-1 rounded-full font-medium">{exit.label}</span>}
+              {mob.hgp_free && <span className="bg-white/20 text-white text-xs px-2.5 py-1 rounded-full font-medium">HGP Free</span>}
+              {mob.msa_eligible && <span className="bg-white/20 text-white text-xs px-2.5 py-1 rounded-full font-medium">MSA Eligible</span>}
+              {mob.halal_certified && <span className="bg-white/20 text-white text-xs px-2.5 py-1 rounded-full font-medium">Halal</span>}
+            </div>
+          </div>
+
+          {/* Exit countdown */}
+          {daysToExit !== null && (
+            <div className={`px-5 py-3 border-t border-white/10 flex items-center justify-between ${daysToExit <= 7 ? "bg-amber-500/30" : "bg-black/20"}`}>
+              <span className="text-white/80 text-sm">
+                {mob.target_exit_path === "oth" ? "Kill date" : "Exit date"}:&nbsp;
+                <strong className="text-white">{format(new Date(mob.target_exit_date!), "EEEE d MMMM yyyy")}</strong>
+              </span>
+              <span className={`text-sm font-bold ${daysToExit <= 0 ? "text-red-300" : daysToExit <= 7 ? "text-amber-300" : "text-white/70"}`}>
+                {daysToExit <= 0 ? "Overdue" : `${daysToExit} days`}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* ── Quick action buttons ──────────────────────────────────────── */}
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            onClick={() => setShowWeightDialog(true)}
+            className={`h-14 rounded-xl text-sm font-bold gap-2 bg-gradient-to-r ${cat.gradient} text-white hover:opacity-90 shadow-sm`}
+          >
+            <Scale className="h-5 w-5" />
+            Log Weight
+          </Button>
+          <Button
+            onClick={() => setShowCostDialog(true)}
+            variant="outline"
+            className="h-14 rounded-xl text-sm font-bold gap-2 border-2"
+          >
+            <DollarSign className="h-5 w-5" />
+            Add Cost
           </Button>
         </div>
 
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl font-bold flex items-center gap-2">
-                <Beef className="h-5 w-5 text-primary" />
-                {mob.mob_name}
-              </h1>
-              <Badge className={`text-xs ${statusBadge(mob.status)}`}>{mob.status}</Badge>
-              <Badge className="text-xs bg-muted text-muted-foreground">{CATEGORY_LABELS[mob.category]}</Badge>
-            </div>
-            <p className="text-sm text-muted-foreground mt-1">
-              {mob.head_count} head
-              {mob.location_name && ` · ${mob.location_name}`}
-              {mob.program_type && ` · ${PROGRAM_LABELS[mob.program_type as keyof typeof PROGRAM_LABELS]}`}
-              {` · ${dof} days on feed`}
-            </p>
+        {/* ── Compliance flags ──────────────────────────────────────────── */}
+        <div className={`rounded-xl border ${cat.border} ${cat.bg} px-4 py-3`}>
+          <p className={`text-xs font-semibold uppercase tracking-wide ${cat.text} opacity-70 mb-2`}>Compliance status</p>
+          <div className="flex flex-wrap gap-3">
+            {[
+              { key: "nlis_confirmed", label: "NLIS" },
+              { key: "nvd_received", label: "NVD" },
+              { key: "hgp_free", label: "HGP Free" },
+              { key: "msa_eligible", label: "MSA" },
+              { key: "halal_certified", label: "Halal" },
+            ].map(({ key, label }) => {
+              const ok = mob[key as keyof typeof mob] as boolean;
+              return (
+                <div key={key} className={`flex items-center gap-1.5 text-sm font-medium ${ok ? cat.text : "text-muted-foreground opacity-50"}`}>
+                  {ok
+                    ? <CheckCircle className={`h-4 w-4 ${cat.icon}`} />
+                    : <XCircle className="h-4 w-4 text-muted-foreground/40" />
+                  }
+                  {label}
+                </div>
+              );
+            })}
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setShowStatusDialog(true)} className="gap-1">
-              <Edit3 className="h-3.5 w-3.5" /> Status
-            </Button>
-          </div>
         </div>
 
-        {/* Summary KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <KpiTile icon={<DollarSign className="h-4 w-4 text-amber-600" />} label="Total Cost" value={fmt$(totalCost)} sub={`${fmt$(totalCostPerHead)}/head`} color="bg-amber-50" />
-          <KpiTile icon={<Scale className="h-4 w-4 text-blue-600" />} label="Current Weight" value={latestWeight ? fmtKg(latestWeight.avg_weight_kg) : "—"} sub={latestWeight ? format(new Date(latestWeight.weigh_date), "d MMM") : "No weigh yet"} color="bg-blue-50" />
-          <KpiTile icon={<TrendingUp className="h-4 w-4 text-green-600" />} label="Avg Daily Gain" value={adg != null ? `${adg.toFixed(3)} kg/d` : "—"} sub={weights.length > 1 ? `${weights.length} weigh events` : "Need ≥2 weighs"} color="bg-green-50" />
-          <KpiTile icon={<Clock className="h-4 w-4 text-purple-600" />} label="Projected Exit" value={projectedTurnOffDate ? format(projectedTurnOffDate, "d MMM yy") : mob.target_exit_date ? format(new Date(mob.target_exit_date), "d MMM yy") : "—"} sub={mob.target_weight_kg ? `Target ${fmtKg(mob.target_weight_kg)}` : "No target set"} color="bg-purple-50" />
-        </div>
-
-        {/* Compliance flags */}
-        <div className="flex flex-wrap gap-2">
-          {[
-            { key: "hgp_free", label: "HGP Free" },
-            { key: "msa_eligible", label: "MSA Eligible" },
-            { key: "halal_certified", label: "Halal" },
-            { key: "nlis_confirmed", label: "NLIS ✓" },
-            { key: "nvd_received", label: "NVD ✓" },
-          ].map(({ key, label }) => {
-            const ok = mob[key as keyof typeof mob] as boolean;
-            return (
-              <span key={key} className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium ${ok ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-400"}`}>
-                {ok ? <CheckCircle className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
-                {label}
-              </span>
-            );
-          })}
-        </div>
-
-        {/* Tabs */}
+        {/* ── Tabs ─────────────────────────────────────────────────────── */}
         <Tabs defaultValue="costs">
-          <TabsList className="grid grid-cols-3 w-full max-w-lg">
-            <TabsTrigger value="costs">Cost Ledger</TabsTrigger>
-            <TabsTrigger value="weights">Weight & ADG</TabsTrigger>
-            <TabsTrigger value="exit">Exit Decision</TabsTrigger>
+          <TabsList className="grid grid-cols-3 w-full rounded-xl h-11">
+            <TabsTrigger value="costs" className="rounded-lg text-sm">Cost Ledger</TabsTrigger>
+            <TabsTrigger value="weights" className="rounded-lg text-sm">Weight & ADG</TabsTrigger>
+            <TabsTrigger value="exit" className="rounded-lg text-sm">Exit</TabsTrigger>
           </TabsList>
 
           {/* ─── COST LEDGER ─────────────────────────────────────────── */}
           <TabsContent value="costs" className="space-y-4 mt-4">
-            <div className="flex justify-between items-center">
-              <h2 className="font-semibold">Cost Ledger</h2>
-              <Button size="sm" onClick={() => setShowCostDialog(true)} className="gap-1">
-                <Plus className="h-4 w-4" /> Add Cost
-              </Button>
-            </div>
-
-            {costs.length === 0 ? (
-              <Card><CardContent className="py-8 text-center text-muted-foreground text-sm">No costs logged yet.</CardContent></Card>
-            ) : (
-              <Card>
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b bg-muted/30 text-xs text-muted-foreground">
-                          <th className="text-left px-4 py-2.5">Date</th>
-                          <th className="text-left px-4 py-2.5">Type</th>
-                          <th className="text-left px-4 py-2.5">Description</th>
-                          <th className="text-right px-4 py-2.5">Total</th>
-                          <th className="text-right px-4 py-2.5">Per Head</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {costs.map(c => (
-                          <tr key={c.id} className="hover:bg-muted/20">
-                            <td className="px-4 py-2.5 text-muted-foreground whitespace-nowrap">{format(new Date(c.cost_date), "d MMM yy")}</td>
-                            <td className="px-4 py-2.5">
-                              <span className="bg-muted text-xs px-2 py-0.5 rounded">
-                                {COST_TYPE_LABELS[c.cost_type as CostType]}
-                              </span>
-                            </td>
-                            <td className="px-4 py-2.5 text-muted-foreground">{c.description ?? "—"}</td>
-                            <td className="px-4 py-2.5 text-right font-medium">{fmt$(c.amount_total)}</td>
-                            <td className="px-4 py-2.5 text-right text-muted-foreground">{c.per_head ? fmt$(c.per_head) : "—"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr className="border-t bg-muted/20 font-semibold">
-                          <td colSpan={3} className="px-4 py-3 text-sm">Total</td>
-                          <td className="px-4 py-3 text-right">{fmt$(totalCost)}</td>
-                          <td className="px-4 py-3 text-right">{fmt$(totalCostPerHead)}</td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Cost breakdown by group */}
+            {/* Summary tiles */}
             {costs.length > 0 && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {COST_TYPE_GROUPS.map(group => {
                   const groupTotal = costs
                     .filter(c => group.types.includes(c.cost_type as CostType))
                     .reduce((s, c) => s + c.amount_total, 0);
+                  if (groupTotal === 0) return null;
                   return (
-                    <div key={group.label} className="bg-muted/30 border rounded-lg px-4 py-3">
-                      <p className="text-xs text-muted-foreground">{group.label}</p>
-                      <p className="text-base font-bold">{fmt$(groupTotal)}</p>
-                      <p className="text-xs text-muted-foreground">{fmt$(groupTotal / mob.head_count)}/head</p>
+                    <div key={group.label} className={`rounded-xl border ${cat.border} ${cat.bg} px-4 py-3`}>
+                      <p className={`text-xs ${cat.text} opacity-60 font-medium`}>{group.label}</p>
+                      <p className={`text-xl font-bold ${cat.text}`}>{fmt$(groupTotal)}</p>
+                      <p className={`text-xs ${cat.text} opacity-50`}>{fmt$(groupTotal / mob.head_count)}/head</p>
                     </div>
                   );
                 })}
               </div>
             )}
+
+            {/* Total */}
+            {costs.length > 0 && (
+              <div className="rounded-xl bg-foreground text-background px-5 py-4 flex items-center justify-between">
+                <div>
+                  <p className="text-xs opacity-60 font-medium uppercase tracking-wide">Total cost to date</p>
+                  <p className="text-3xl font-bold">{fmt$(totalCost)}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs opacity-60">Per head</p>
+                  <p className="text-2xl font-bold">{fmt$(totalCostPerHead)}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Ledger table */}
+            {costs.length === 0 ? (
+              <EmptyState
+                icon={<DollarSign className="h-10 w-10 text-muted-foreground/20" />}
+                message="No costs logged yet."
+                action={{ label: "Add first cost", onClick: () => setShowCostDialog(true) }}
+                cat={cat}
+              />
+            ) : (
+              <Card className="overflow-hidden rounded-xl">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/20 text-xs text-muted-foreground">
+                        <th className="text-left px-4 py-3">Date</th>
+                        <th className="text-left px-4 py-3">Type</th>
+                        <th className="text-left px-4 py-3 hidden md:table-cell">Description</th>
+                        <th className="text-right px-4 py-3">Total</th>
+                        <th className="text-right px-4 py-3">/Head</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {costs.map(c => (
+                        <tr key={c.id} className="hover:bg-muted/10">
+                          <td className="px-4 py-3 text-muted-foreground whitespace-nowrap text-xs">{format(new Date(c.cost_date), "d MMM yy")}</td>
+                          <td className="px-4 py-3">
+                            <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${cat.badge}`}>
+                              {COST_TYPE_LABELS[c.cost_type as CostType]}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground text-xs hidden md:table-cell max-w-48 truncate">{c.description ?? ""}</td>
+                          <td className="px-4 py-3 text-right font-bold">{fmt$fine(c.amount_total)}</td>
+                          <td className="px-4 py-3 text-right text-muted-foreground text-xs">{c.per_head ? fmt$fine(c.per_head) : "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            )}
+
+            <Button variant="outline" size="sm" className="w-full rounded-xl" onClick={() => setShowCostDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" /> Add cost
+            </Button>
           </TabsContent>
 
-          {/* ─── WEIGHT & ADG ────────────────────────────────────────── */}
+          {/* ─── WEIGHT & ADG ─────────────────────────────────────────── */}
           <TabsContent value="weights" className="space-y-4 mt-4">
-            <div className="flex justify-between items-center">
-              <h2 className="font-semibold">Weight History</h2>
-              <Button size="sm" onClick={() => setShowWeightDialog(true)} className="gap-1">
-                <Plus className="h-4 w-4" /> Log Weight
-              </Button>
-            </div>
-
             {weights.length === 0 ? (
-              <Card><CardContent className="py-8 text-center text-muted-foreground text-sm">No weight records yet. Log the first weigh to start tracking ADG.</CardContent></Card>
+              <EmptyState
+                icon={<Scale className="h-10 w-10 text-muted-foreground/20" />}
+                message="No weight records yet. Log the first weigh to start tracking ADG and projecting your exit date."
+                action={{ label: "Log first weight", onClick: () => setShowWeightDialog(true) }}
+                cat={cat}
+              />
             ) : (
               <>
-                <Card>
-                  <CardContent className="pt-4">
-                    <ResponsiveContainer width="100%" height={220}>
+                {/* ADG + projection strip */}
+                {adg != null && (
+                  <div className={`rounded-xl border ${cat.border} ${cat.bg} grid grid-cols-2 md:grid-cols-4 divide-x divide-black/10`}>
+                    {[
+                      { label: "Current ADG", value: `${adg.toFixed(3)} kg/day` },
+                      { label: "Current weight", value: latestWeight ? fmtKg(latestWeight.avg_weight_kg) : "—" },
+                      { label: "Kg to target", value: targetWt && currentWt ? `${Math.max(0, targetWt - currentWt).toFixed(1)} kg` : "—" },
+                      { label: "Projected exit", value: projectedTurnOffDate ? format(projectedTurnOffDate, "d MMM yy") : "—" },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="px-4 py-3 text-center">
+                        <p className={`text-xs ${cat.text} opacity-60 font-medium`}>{label}</p>
+                        <p className={`font-bold text-lg ${cat.text}`}>{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Weight chart */}
+                <Card className="rounded-xl overflow-hidden">
+                  <CardContent className="pt-4 pb-2">
+                    <ResponsiveContainer width="100%" height={200}>
                       <LineChart data={weights.map(w => ({
                         date: format(new Date(w.weigh_date), "d MMM"),
                         weight: w.avg_weight_kg,
-                        adg: w.adg_since_last ? parseFloat(w.adg_since_last.toFixed(3)) : null,
                       }))}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                         <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                        <YAxis tick={{ fontSize: 11 }} unit=" kg" />
-                        <Tooltip formatter={(v: number, n: string) => [n === "weight" ? `${v} kg` : `${v} kg/d`, n === "weight" ? "Avg weight" : "ADG"]} />
-                        <Line type="monotone" dataKey="weight" stroke="#16a34a" strokeWidth={2} dot={{ r: 4 }} />
+                        <YAxis tick={{ fontSize: 11 }} unit="kg" domain={["auto","auto"]} />
+                        <Tooltip formatter={(v: number) => [`${v} kg`, "Avg weight"]} />
+                        <Line
+                          type="monotone" dataKey="weight" stroke="#15803d"
+                          strokeWidth={3} dot={{ r: 5, fill: "#15803d" }}
+                          activeDot={{ r: 7 }}
+                        />
                       </LineChart>
                     </ResponsiveContainer>
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardContent className="p-0">
+                {/* Weight log */}
+                <Card className="rounded-xl overflow-hidden">
+                  <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b bg-muted/30 text-xs text-muted-foreground">
-                          <th className="text-left px-4 py-2.5">Date</th>
-                          <th className="text-right px-4 py-2.5">Avg Weight</th>
-                          <th className="text-right px-4 py-2.5">ADG since last</th>
-                          <th className="text-left px-4 py-2.5">Method</th>
-                          <th className="text-left px-4 py-2.5">Notes</th>
+                        <tr className="border-b bg-muted/20 text-xs text-muted-foreground">
+                          <th className="text-left px-4 py-3">Date</th>
+                          <th className="text-right px-4 py-3">Avg Weight</th>
+                          <th className="text-right px-4 py-3">ADG</th>
+                          <th className="text-left px-4 py-3 hidden md:table-cell">Method</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {[...weights].reverse().map((w, i) => (
-                          <tr key={w.id} className="hover:bg-muted/20">
-                            <td className="px-4 py-2.5 whitespace-nowrap">{format(new Date(w.weigh_date), "d MMM yyyy")}</td>
-                            <td className="px-4 py-2.5 text-right font-medium">{fmtKg(w.avg_weight_kg)}</td>
-                            <td className="px-4 py-2.5 text-right text-muted-foreground">
-                              {w.adg_since_last ? `${w.adg_since_last.toFixed(3)} kg/d` : "—"}
+                        {[...weights].reverse().map(w => (
+                          <tr key={w.id} className="hover:bg-muted/10">
+                            <td className="px-4 py-3 font-medium">{format(new Date(w.weigh_date), "d MMM yyyy")}</td>
+                            <td className="px-4 py-3 text-right font-bold text-lg">{fmtKg(w.avg_weight_kg)}</td>
+                            <td className="px-4 py-3 text-right">
+                              {w.adg_since_last ? (
+                                <span className={`font-bold ${w.adg_since_last >= 1.5 ? "text-green-600" : w.adg_since_last >= 0.8 ? "text-amber-600" : "text-red-600"}`}>
+                                  {w.adg_since_last.toFixed(3)} kg/d
+                                </span>
+                              ) : <span className="text-muted-foreground">—</span>}
                             </td>
-                            <td className="px-4 py-2.5 capitalize text-muted-foreground">{w.method ?? "weighbridge"}</td>
-                            <td className="px-4 py-2.5 text-muted-foreground">{w.notes ?? ""}</td>
+                            <td className="px-4 py-3 text-muted-foreground capitalize hidden md:table-cell text-xs">{w.method ?? "weighbridge"}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
-                  </CardContent>
+                  </div>
                 </Card>
-
-                {/* Projections */}
-                {adg != null && mob.target_weight_kg && latestWeight && (
-                  <Card className="border-green-200 bg-green-50/30">
-                    <CardContent className="pt-4 space-y-2">
-                      <h3 className="font-semibold text-sm">Projections</h3>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-                        <div>
-                          <p className="text-muted-foreground text-xs">Current ADG</p>
-                          <p className="font-bold">{adg.toFixed(3)} kg/day</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground text-xs">Kg to target</p>
-                          <p className="font-bold">{(mob.target_weight_kg - latestWeight.avg_weight_kg).toFixed(1)} kg</p>
-                        </div>
-                        {projectedTurnOffDate && (
-                          <div>
-                            <p className="text-muted-foreground text-xs">Projected turn-off</p>
-                            <p className="font-bold">{format(projectedTurnOffDate, "d MMM yyyy")}</p>
-                          </div>
-                        )}
-                        <div>
-                          <p className="text-muted-foreground text-xs">Days to target (at current ADG)</p>
-                          <p className="font-bold">
-                            {adg > 0 ? Math.round((mob.target_weight_kg - latestWeight.avg_weight_kg) / adg) : "∞"} days
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground text-xs">Cost of gain so far</p>
-                          <p className="font-bold">
-                            {mob.arrival_weight_avg_kg && latestWeight.avg_weight_kg > mob.arrival_weight_avg_kg
-                              ? fmt$((totalCostPerHead) / (latestWeight.avg_weight_kg - mob.arrival_weight_avg_kg)) + "/kg"
-                              : "—"}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
               </>
             )}
+
+            <Button
+              onClick={() => setShowWeightDialog(true)}
+              className={`w-full h-12 rounded-xl font-bold gap-2 bg-gradient-to-r ${cat.gradient} text-white hover:opacity-90`}
+            >
+              <Scale className="h-5 w-5" /> Log Weight
+            </Button>
           </TabsContent>
 
-          {/* ─── EXIT DECISION ───────────────────────────────────────── */}
+          {/* ─── EXIT DECISION ─────────────────────────────────────────── */}
           <TabsContent value="exit" className="space-y-4 mt-4">
-            <div>
-              <h2 className="font-semibold">Exit Decision Dashboard</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Comparing all exit paths at current weight and market prices. Total cost to date included.
-              </p>
-            </div>
-
-            <ExitDecisionDashboard mob={mob} totalCostPerHead={totalCostPerHead} latestWeightKg={latestWeight?.avg_weight_kg ?? mob.arrival_weight_avg_kg ?? mob.purchase_weight_avg_kg ?? 0} latest={latest} />
+            <ExitDecisionDashboard
+              mob={mob} totalCostPerHead={totalCostPerHead}
+              latestWeightKg={currentWt} latest={latest} cat={cat}
+            />
           </TabsContent>
         </Tabs>
       </div>
 
       {/* Dialogs */}
-      <AddCostDialog open={showCostDialog} onClose={() => setShowCostDialog(false)} mobId={mob.id} headCount={mob.head_count} onSaved={() => { setShowCostDialog(false); refetch(); }} toast={toast} />
-      <LogWeightDialog open={showWeightDialog} onClose={() => setShowWeightDialog(false)} mobId={mob.id} weights={weights} onSaved={() => { setShowWeightDialog(false); refetch(); }} toast={toast} />
+      <AddCostDialog open={showCostDialog} onClose={() => setShowCostDialog(false)} mobId={mob.id} headCount={mob.head_count} onSaved={() => { setShowCostDialog(false); refetch(); }} toast={toast} cat={cat} />
+      <LogWeightDialog open={showWeightDialog} onClose={() => setShowWeightDialog(false)} mobId={mob.id} weights={weights} onSaved={() => { setShowWeightDialog(false); refetch(); }} toast={toast} cat={cat} />
       <StatusDialog open={showStatusDialog} onClose={() => setShowStatusDialog(false)} mobId={mob.id} currentStatus={mob.status} onSaved={() => { setShowStatusDialog(false); refetch(); }} toast={toast} />
     </DashboardLayout>
   );
 }
 
-// ─── KPI Tile ─────────────────────────────────────────────────────────────────
+// ─── Stat box ─────────────────────────────────────────────────────────────────
 
-function KpiTile({ icon, label, value, sub, color }: { icon: React.ReactNode; label: string; value: string; sub: string; color: string }) {
+function StatBox({ label, value }: { label: string; value: string }) {
   return (
-    <Card>
-      <CardContent className="pt-4">
-        <div className="flex items-start gap-3">
-          <div className={`h-8 w-8 rounded-full ${color} flex items-center justify-center shrink-0`}>{icon}</div>
-          <div className="min-w-0">
-            <p className="text-xs text-muted-foreground">{label}</p>
-            <p className="text-lg font-bold leading-tight truncate">{value}</p>
-            <p className="text-xs text-muted-foreground">{sub}</p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="bg-white/15 backdrop-blur rounded-xl px-3 py-2.5 text-center">
+      <p className="text-white/60 text-xs">{label}</p>
+      <p className="text-white font-bold text-xl leading-tight">{value}</p>
+    </div>
+  );
+}
+
+// ─── Empty state ──────────────────────────────────────────────────────────────
+
+function EmptyState({ icon, message, action, cat }: any) {
+  return (
+    <div className={`rounded-xl border-2 border-dashed ${cat.border} ${cat.bg} py-12 text-center`}>
+      <div className="flex justify-center mb-3">{icon}</div>
+      <p className={`${cat.text} opacity-60 text-sm max-w-xs mx-auto`}>{message}</p>
+      {action && (
+        <Button variant="outline" size="sm" className="mt-4" onClick={action.onClick}>{action.label}</Button>
+      )}
+    </div>
   );
 }
 
 // ─── Exit Decision Dashboard ──────────────────────────────────────────────────
 
-function ExitDecisionDashboard({ mob, totalCostPerHead, latestWeightKg, latest }: {
-  mob: any; totalCostPerHead: number; latestWeightKg: number; latest: (k: string) => any;
-}) {
+function ExitDecisionDashboard({ mob, totalCostPerHead, latestWeightKg, latest, cat }: any) {
   const [dressingPct, setDressingPct] = useState(58);
-  const [saleyardDiscount, setSaleyardDiscount] = useState(0);
-  const [mlaLevyExit, setMlaLevyExit] = useState(5);
-  const [agentCommExit, setAgentCommExit] = useState(4.5);
   const [freightOut, setFreightOut] = useState(80);
+  const [agentCommExit, setAgentCommExit] = useState(4.5);
   const [liveExportPremium, setLiveExportPremium] = useState(25);
   const [breedingPremium, setBreedingPremium] = useState(100);
   const [processorMarginPct, setProcessorMarginPct] = useState(10);
 
-  const feederBench = latest("feeder_steer")?.cents_per_kg ?? 0;
   const heavySteerBench = latest("heavy_steer")?.cents_per_kg ?? 0;
   const heavyCowBench = latest("heavy_cow")?.cents_per_kg ?? 0;
+  const feederBench = latest("feeder_steer")?.cents_per_kg ?? 0;
+  const othVic = latest("oth_vic")?.cents_per_kg ?? 0;
+  const MLA = 5;
 
-  const benchmarkForCategory = () => {
-    if (["weaner", "backgrounder", "trade"].includes(mob.category)) return feederBench;
-    if (["boner_cow", "cull_cow"].includes(mob.category)) return heavyCowBench;
-    return heavySteerBench;
-  };
+  const benchmarkCpkg = ["boner_cow","cull_cow"].includes(mob.category) ? heavyCowBench
+    : ["weaner","backgrounder","trade"].includes(mob.category) ? feederBench
+    : heavySteerBench;
 
-  const saleyardCentsPerKg = benchmarkForCategory() - saleyardDiscount;
-  const othCentsPerKg = (() => {
-    const stateKey = "oth_vic"; // default; could be user-selected
-    return latest(stateKey)?.cents_per_kg ?? 0;
-  })();
+  const saleyardGross = (benchmarkCpkg / 100) * latestWeightKg;
+  const saleyardSellCosts = freightOut + saleyardGross * (agentCommExit / 100) + 18 + MLA;
+  const saleyardNet = saleyardGross - saleyardSellCosts;
 
-  // Path A — Saleyard
-  const saleyardGross = (saleyardCentsPerKg / 100) * latestWeightKg;
-  const saleyardCosts = freightOut + (latestWeightKg * saleyardCentsPerKg / 100) * (agentCommExit / 100) + 18 + mlaLevyExit;
-  const saleyardNet = saleyardGross - saleyardCosts;
-  const saleyardMargin = saleyardNet - totalCostPerHead;
-
-  // Path B — OTH
   const carcaseKg = latestWeightKg * (dressingPct / 100);
-  const hgpPremium = mob.hgp_free ? 50 : 0;
-  const msaPremium = mob.msa_eligible ? 24 : 0;
-  const othGross = (othCentsPerKg / 100 + (hgpPremium + msaPremium) / 100) * carcaseKg;
-  const othCosts = freightOut + mlaLevyExit;
-  const othNet = othGross - othCosts;
-  const othMargin = othNet - totalCostPerHead;
+  const hgpPrem = mob.hgp_free ? 50 : 0;
+  const msaPrem = mob.msa_eligible ? 24 : 0;
+  const othGross = ((othVic + hgpPrem + msaPrem) / 100) * carcaseKg;
+  const othNet = othGross - freightOut - MLA;
 
-  // Path C — Live export
-  const liveExportEligible = latestWeightKg >= 350 && latestWeightKg <= 550;
-  const liveExportGross = liveExportEligible ? (saleyardCentsPerKg + liveExportPremium) / 100 * latestWeightKg : 0;
-  const liveExportCosts = liveExportEligible ? freightOut + 40 + mlaLevyExit : 0; // +$40 compliance/cert est.
-  const liveExportNet = liveExportGross - liveExportCosts;
-  const liveExportMargin = liveExportNet - totalCostPerHead;
+  const exportOk = latestWeightKg >= 350 && latestWeightKg <= 550;
+  const exportGross = exportOk ? ((benchmarkCpkg + liveExportPremium) / 100) * latestWeightKg : 0;
+  const exportNet = exportOk ? exportGross - freightOut - 40 - MLA : 0;
 
-  // Path D — Breeding stock
   const breedingGross = saleyardGross + breedingPremium;
-  const breedingCosts = freightOut + mlaLevyExit;
-  const breedingNet = breedingGross - breedingCosts;
-  const breedingMargin = breedingNet - totalCostPerHead;
+  const breedingNet = breedingGross - freightOut - MLA;
 
-  // Path E — Kill own
-  const killOwnGross = (othCentsPerKg / 100) * carcaseKg * (1 + processorMarginPct / 100);
-  const killOwnCosts = mlaLevyExit + 20; // processing/compliance
-  const killOwnNet = killOwnGross - killOwnCosts;
-  const killOwnMargin = killOwnNet - totalCostPerHead;
+  const killOwnGross = (othVic / 100) * carcaseKg * (1 + processorMarginPct / 100);
+  const killOwnNet = killOwnGross - MLA - 20;
 
   const paths = [
-    { key: "saleyard" as ExitPath, label: "A — Sell Store (Saleyard)", gross: saleyardGross, costs: saleyardCosts, net: saleyardNet, margin: saleyardMargin, eligible: true, notes: `${saleyardCentsPerKg}¢/kg lwt · ${latestWeightKg.toFixed(0)}kg` },
-    { key: "oth" as ExitPath, label: "B — OTH (Direct to Processor)", gross: othGross, costs: othCosts, net: othNet, margin: othMargin, eligible: true, notes: `${dressingPct}% dress → ${carcaseKg.toFixed(0)}kg CW · ${othCentsPerKg}¢/kg dw${hgpPremium ? ` +${hgpPremium}¢ HGP` : ""}${msaPremium ? ` +${msaPremium}¢ MSA` : ""}` },
-    { key: "live_export" as ExitPath, label: "C — Live Export", gross: liveExportGross, costs: liveExportCosts, net: liveExportNet, margin: liveExportMargin, eligible: liveExportEligible, notes: liveExportEligible ? `+${liveExportPremium}¢/kg premium · ESCAS + Halal required` : `Not eligible — weight ${latestWeightKg.toFixed(0)}kg (need 350–550kg)` },
-    { key: "breeding" as ExitPath, label: "D — Sell as Breeding Stock", gross: breedingGross, costs: breedingCosts, net: breedingNet, margin: breedingMargin, eligible: true, notes: `+$${breedingPremium}/head premium over store price` },
-    { key: "kill_own" as ExitPath, label: "E — Kill Own (Boning Room)", gross: killOwnGross, costs: killOwnCosts, net: killOwnNet, margin: killOwnMargin, eligible: true, notes: `Capture ~${processorMarginPct}% processor margin · ${carcaseKg.toFixed(0)}kg CW` },
-  ].sort((a, b) => (b.eligible ? b.margin : -99999) - (a.eligible ? a.margin : -99999));
+    {
+      key: "saleyard", label: "Sell Store — Saleyard",
+      sub: `${benchmarkCpkg}¢/kg lwt · ${latestWeightKg.toFixed(0)}kg`,
+      net: saleyardNet, eligible: true,
+      icon: <ChevronRight className="h-4 w-4" />,
+    },
+    {
+      key: "oth", label: "OTH — Direct to Processor",
+      sub: `${dressingPct}% dress → ${carcaseKg.toFixed(0)}kg CW · ${othVic}¢/kg${hgpPrem ? ` +${hgpPrem}¢ HGP` : ""}${msaPrem ? ` +${msaPrem}¢ MSA` : ""}`,
+      net: othNet, eligible: true,
+      icon: <Layers className="h-4 w-4" />,
+    },
+    {
+      key: "live_export", label: "Live Export",
+      sub: exportOk ? `+${liveExportPremium}¢/kg export premium · ESCAS + Halal required` : `Weight ${latestWeightKg.toFixed(0)}kg — need 350–550kg`,
+      net: exportNet, eligible: exportOk,
+      icon: <TrendingUp className="h-4 w-4" />,
+    },
+    {
+      key: "breeding", label: "Sell as Breeding Stock",
+      sub: `+$${breedingPremium}/head premium over store price`,
+      net: breedingNet, eligible: true,
+      icon: <Beef className="h-4 w-4" />,
+    },
+    {
+      key: "kill_own", label: "Kill Own (Boning Room)",
+      sub: `Capture ~${processorMarginPct}% processor margin · ${carcaseKg.toFixed(0)}kg CW`,
+      net: killOwnNet, eligible: true,
+      icon: <Scale className="h-4 w-4" />,
+    },
+  ].sort((a, b) => (b.eligible ? b.net : -99999) - (a.eligible ? a.net : -99999));
 
   const best = paths.find(p => p.eligible);
 
   return (
     <div className="space-y-4">
       {/* Assumptions */}
-      <Card className="border-dashed">
-        <CardHeader className="pb-2"><CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Adjust Assumptions</CardTitle></CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-            <div className="space-y-1">
-              <Label className="text-xs">Dressing % (OTH)</Label>
-              <Input type="number" step="0.5" min="50" max="65" value={dressingPct} onChange={e => setDressingPct(+e.target.value)} className="h-8 text-sm" />
+      <div className={`rounded-xl border ${cat.border} ${cat.bg} px-4 py-4`}>
+        <p className={`text-xs font-semibold uppercase tracking-wide ${cat.text} opacity-60 mb-3`}>Adjust assumptions</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {[
+            { label: "Dressing % (OTH)", value: dressingPct, set: setDressingPct, step: 0.5 },
+            { label: "Freight out ($/hd)", value: freightOut, set: setFreightOut, step: 5 },
+            { label: "Agent comm exit (%)", value: agentCommExit, set: setAgentCommExit, step: 0.5 },
+            { label: "Export premium (¢/kg)", value: liveExportPremium, set: setLiveExportPremium, step: 5 },
+            { label: "Breeding premium ($/hd)", value: breedingPremium, set: setBreedingPremium, step: 50 },
+            { label: "Processor margin % (kill own)", value: processorMarginPct, set: setProcessorMarginPct, step: 1 },
+          ].map(({ label, value, set, step }) => (
+            <div key={label} className="space-y-1">
+              <Label className={`text-xs ${cat.text} opacity-60`}>{label}</Label>
+              <Input
+                type="number" step={step} value={value}
+                onChange={e => set(+e.target.value)}
+                className="h-9 text-sm rounded-lg"
+              />
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Freight out ($/head)</Label>
-              <Input type="number" step="5" value={freightOut} onChange={e => setFreightOut(+e.target.value)} className="h-8 text-sm" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Agent comm exit (%)</Label>
-              <Input type="number" step="0.1" value={agentCommExit} onChange={e => setAgentCommExit(+e.target.value)} className="h-8 text-sm" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Saleyard discount (¢/kg)</Label>
-              <Input type="number" step="1" value={saleyardDiscount} onChange={e => setSaleyardDiscount(+e.target.value)} className="h-8 text-sm" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Live export premium (¢/kg)</Label>
-              <Input type="number" step="5" value={liveExportPremium} onChange={e => setLiveExportPremium(+e.target.value)} className="h-8 text-sm" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Breeding premium ($/head)</Label>
-              <Input type="number" step="50" value={breedingPremium} onChange={e => setBreedingPremium(+e.target.value)} className="h-8 text-sm" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Processor margin % (kill own)</Label>
-              <Input type="number" step="1" value={processorMarginPct} onChange={e => setProcessorMarginPct(+e.target.value)} className="h-8 text-sm" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          ))}
+        </div>
+      </div>
 
       {/* Path cards */}
       <div className="space-y-3">
-        {paths.map((path, idx) => (
-          <Card key={path.key} className={`${!path.eligible ? "opacity-50" : ""} ${path.key === best?.key ? "border-green-400 bg-green-50/30" : ""}`}>
-            <CardContent className="pt-4">
-              <div className="flex items-start justify-between gap-4 flex-wrap">
+        {paths.map(path => {
+          const margin = path.net - totalCostPerHead;
+          const isBest = path.key === best?.key;
+          return (
+            <div
+              key={path.key}
+              className={`rounded-xl border-2 p-4 transition-all ${
+                !path.eligible ? "opacity-40 border-muted" :
+                isBest ? `${cat.border} ${cat.bg}` :
+                "border-muted bg-white"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {path.key === best?.key && <Badge className="bg-green-100 text-green-700 text-xs">Best return</Badge>}
-                    {!path.eligible && <Badge variant="outline" className="text-xs">Not eligible</Badge>}
-                    <span className="font-semibold text-sm">{path.label}</span>
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    {isBest && path.eligible && (
+                      <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${cat.badge}`}>Best return</span>
+                    )}
+                    {!path.eligible && (
+                      <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground">Not eligible</span>
+                    )}
+                    <span className="font-bold text-sm">{path.label}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{path.notes}</p>
+                  <p className="text-xs text-muted-foreground">{path.sub}</p>
                   {path.eligible && (
-                    <div className="flex gap-4 mt-2 text-xs flex-wrap">
-                      <span className="text-muted-foreground">Gross: <span className="text-foreground font-medium">${path.gross.toFixed(2)}</span></span>
-                      <span className="text-muted-foreground">Selling costs: <span className="text-foreground font-medium">${path.costs.toFixed(2)}</span></span>
-                      <span className="text-muted-foreground">Net: <span className="text-foreground font-medium">${path.net.toFixed(2)}</span></span>
-                    </div>
+                    <p className="text-xs text-muted-foreground mt-1.5">
+                      Net return: <strong className="text-foreground">{fmt$fine(path.net)}/head</strong>
+                    </p>
                   )}
                 </div>
                 {path.eligible && (
                   <div className="text-right shrink-0">
-                    <p className="text-xs text-muted-foreground">Margin vs cost</p>
-                    <p className={`text-xl font-bold ${path.margin >= 0 ? "text-green-600" : "text-red-600"}`}>
-                      {path.margin >= 0 ? "+" : ""}{path.margin.toFixed(2)}
+                    <p className="text-xs text-muted-foreground">vs cost</p>
+                    <p className={`text-2xl font-bold leading-tight ${margin >= 0 ? "text-green-600" : "text-red-600"}`}>
+                      {margin >= 0 ? "+" : ""}{fmt$(margin)}
                     </p>
-                    <p className="text-xs text-muted-foreground">$/head</p>
+                    <p className="text-xs text-muted-foreground">/head</p>
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        ))}
+            </div>
+          );
+        })}
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        Market prices from MLA/NLRS. Margins show net return minus all costs logged to date. Adjust assumptions above to model different scenarios.
-        All figures per head.
+      <p className="text-xs text-muted-foreground text-center">
+        Market prices from MLA/NLRS · All figures per head · Margins vs. total cost logged to date
       </p>
     </div>
   );
@@ -502,11 +575,10 @@ function ExitDecisionDashboard({ mob, totalCostPerHead, latestWeightKg, latest }
 
 // ─── Add Cost Dialog ──────────────────────────────────────────────────────────
 
-function AddCostDialog({ open, onClose, mobId, headCount, onSaved, toast }: any) {
+function AddCostDialog({ open, onClose, mobId, headCount, onSaved, toast, cat }: any) {
   const [form, setForm] = useState({ cost_date: new Date().toISOString().split("T")[0], cost_type: "", description: "", amount_total: "", notes: "" });
   const [saving, setSaving] = useState(false);
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
-
   const perHead = form.amount_total && headCount ? (parseFloat(form.amount_total) / headCount).toFixed(2) : "";
 
   async function save() {
@@ -527,49 +599,51 @@ function AddCostDialog({ open, onClose, mobId, headCount, onSaved, toast }: any)
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle>Add Cost</DialogTitle></DialogHeader>
+      <DialogContent className="max-w-sm rounded-2xl">
+        <DialogHeader><DialogTitle className="text-lg">Add Cost</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Date</Label>
-              <Input type="date" value={form.cost_date} onChange={e => set("cost_date", e.target.value)} />
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Date</Label>
+              <Input type="date" value={form.cost_date} onChange={e => set("cost_date", e.target.value)} className="rounded-xl" />
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Amount ($total)</Label>
-              <Input type="number" step="0.01" placeholder="e.g. 480.00" value={form.amount_total} onChange={e => set("amount_total", e.target.value)} />
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Total amount ($)</Label>
+              <Input type="number" step="0.01" placeholder="0.00" value={form.amount_total} onChange={e => set("amount_total", e.target.value)} className="rounded-xl text-lg font-bold" />
             </div>
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Cost Type</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Cost Type</Label>
             <Select value={form.cost_type} onValueChange={v => set("cost_type", v)}>
-              <SelectTrigger><SelectValue placeholder="Select type…" /></SelectTrigger>
+              <SelectTrigger className="rounded-xl"><SelectValue placeholder="Select type…" /></SelectTrigger>
               <SelectContent>
                 {COST_TYPE_GROUPS.map(group => (
                   <div key={group.label}>
-                    <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase">{group.label}</div>
+                    <div className="px-2 py-1.5 text-xs font-bold text-muted-foreground uppercase">{group.label}</div>
                     {group.types.map(t => <SelectItem key={t} value={t}>{COST_TYPE_LABELS[t]}</SelectItem>)}
                   </div>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Description</Label>
-            <Input placeholder="Optional detail" value={form.description} onChange={e => set("description", e.target.value)} />
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Description</Label>
+            <Input placeholder="Optional detail" value={form.description} onChange={e => set("description", e.target.value)} className="rounded-xl" />
           </div>
           {perHead && (
-            <p className="text-xs text-muted-foreground bg-muted/40 rounded px-3 py-1.5">
-              = <strong>${perHead}/head</strong> across {headCount} head
-            </p>
+            <div className={`rounded-xl ${cat.bg} border ${cat.border} px-4 py-2.5 text-sm`}>
+              <span className={`${cat.text} opacity-60`}>= </span>
+              <span className={`${cat.text} font-bold text-base`}>${perHead}/head</span>
+              <span className={`${cat.text} opacity-60`}> across {headCount} head</span>
+            </div>
           )}
-          <div className="space-y-1">
-            <Label className="text-xs">Notes</Label>
-            <Textarea rows={2} value={form.notes} onChange={e => set("notes", e.target.value)} />
-          </div>
           <div className="flex gap-2 pt-1">
-            <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
-            <Button onClick={save} disabled={saving || !form.cost_type || !form.amount_total} className="flex-1">
+            <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl">Cancel</Button>
+            <Button
+              onClick={save}
+              disabled={saving || !form.cost_type || !form.amount_total}
+              className={`flex-1 rounded-xl bg-gradient-to-r ${cat.gradient} text-white hover:opacity-90 font-bold`}
+            >
               {saving ? "Saving…" : "Add Cost"}
             </Button>
           </div>
@@ -581,11 +655,10 @@ function AddCostDialog({ open, onClose, mobId, headCount, onSaved, toast }: any)
 
 // ─── Log Weight Dialog ────────────────────────────────────────────────────────
 
-function LogWeightDialog({ open, onClose, mobId, weights, onSaved, toast }: any) {
+function LogWeightDialog({ open, onClose, mobId, weights, onSaved, toast, cat }: any) {
   const [form, setForm] = useState({ weigh_date: new Date().toISOString().split("T")[0], avg_weight_kg: "", method: "weighbridge", notes: "" });
   const [saving, setSaving] = useState(false);
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
-
   const prev = weights.length ? weights[weights.length - 1] : null;
   const adg = prev && form.avg_weight_kg ? (() => {
     const days = Math.max(1, differenceInDays(new Date(form.weigh_date), new Date(prev.weigh_date)));
@@ -610,44 +683,58 @@ function LogWeightDialog({ open, onClose, mobId, weights, onSaved, toast }: any)
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader><DialogTitle>Log Weight</DialogTitle></DialogHeader>
-        <div className="space-y-3">
+      <DialogContent className="max-w-sm rounded-2xl">
+        <DialogHeader><DialogTitle className="text-lg">Log Weight</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          {/* Big weight input */}
+          <div className={`rounded-2xl bg-gradient-to-br ${cat.gradient} p-5 text-center`}>
+            <p className="text-white/70 text-sm mb-2">Average weight (kg/head)</p>
+            <input
+              type="number" step="0.1"
+              placeholder="000.0"
+              value={form.avg_weight_kg}
+              onChange={e => set("avg_weight_kg", e.target.value)}
+              className="bg-transparent text-white text-5xl font-bold text-center w-full outline-none placeholder:text-white/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              autoFocus
+            />
+            <p className="text-white/50 text-xs mt-1">kg per head</p>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Weigh Date</Label>
-              <Input type="date" value={form.weigh_date} onChange={e => set("weigh_date", e.target.value)} />
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Weigh Date</Label>
+              <Input type="date" value={form.weigh_date} onChange={e => set("weigh_date", e.target.value)} className="rounded-xl" />
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Avg weight (kg/head)</Label>
-              <Input type="number" step="0.1" placeholder="e.g. 385.5" value={form.avg_weight_kg} onChange={e => set("avg_weight_kg", e.target.value)} />
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Method</Label>
+              <Select value={form.method} onValueChange={v => set("method", v)}>
+                <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="weighbridge">Weighbridge</SelectItem>
+                  <SelectItem value="estimate">Visual estimate</SelectItem>
+                  <SelectItem value="scan">EID auto-weigh</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Method</Label>
-            <Select value={form.method} onValueChange={v => set("method", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="weighbridge">Weighbridge</SelectItem>
-                <SelectItem value="estimate">Visual estimate</SelectItem>
-                <SelectItem value="scan">EID scan / auto-weigh</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+
           {prev && adg && (
-            <div className="bg-muted/40 rounded px-3 py-2 text-xs space-y-0.5">
-              <p>Previous weigh: <strong>{prev.avg_weight_kg} kg</strong> on {format(new Date(prev.weigh_date), "d MMM")}</p>
-              <p>ADG since last weigh: <strong>{adg} kg/day</strong></p>
+            <div className={`rounded-xl ${cat.bg} border ${cat.border} px-4 py-3`}>
+              <div className="flex justify-between text-sm">
+                <span className={`${cat.text} opacity-60`}>Prev: {prev.avg_weight_kg}kg ({format(new Date(prev.weigh_date), "d MMM")})</span>
+                <span className={`${cat.text} font-bold`}>{adg} kg/day ADG</span>
+              </div>
             </div>
           )}
-          <div className="space-y-1">
-            <Label className="text-xs">Notes</Label>
-            <Input placeholder="Optional" value={form.notes} onChange={e => set("notes", e.target.value)} />
-          </div>
-          <div className="flex gap-2 pt-1">
-            <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
-            <Button onClick={save} disabled={saving || !form.avg_weight_kg} className="flex-1">
-              {saving ? "Saving…" : "Log Weight"}
+
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl h-12">Cancel</Button>
+            <Button
+              onClick={save}
+              disabled={saving || !form.avg_weight_kg}
+              className={`flex-1 rounded-xl h-12 bg-gradient-to-r ${cat.gradient} text-white hover:opacity-90 font-bold text-base`}
+            >
+              {saving ? "Saving…" : "Save Weight"}
             </Button>
           </div>
         </div>
@@ -673,21 +760,21 @@ function StatusDialog({ open, onClose, mobId, currentStatus, onSaved, toast }: a
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-xs">
+      <DialogContent className="max-w-xs rounded-2xl">
         <DialogHeader><DialogTitle>Update Mob Status</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="sold">Sold</SelectItem>
-              <SelectItem value="slaughtered">Slaughtered</SelectItem>
-              <SelectItem value="transferred">Transferred</SelectItem>
-            </SelectContent>
-          </Select>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
-            <Button onClick={save} disabled={saving} className="flex-1">{saving ? "Saving…" : "Update"}</Button>
+          {(["active","sold","slaughtered","transferred"] as const).map(s => (
+            <button
+              key={s}
+              onClick={() => setStatus(s)}
+              className={`w-full text-left px-4 py-3 rounded-xl border-2 font-semibold capitalize transition-all ${status === s ? "border-foreground bg-foreground text-background" : "border-muted hover:bg-muted/40"}`}
+            >
+              {s}
+            </button>
+          ))}
+          <div className="flex gap-2 pt-1">
+            <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl">Cancel</Button>
+            <Button onClick={save} disabled={saving} className="flex-1 rounded-xl">{saving ? "Saving…" : "Update"}</Button>
           </div>
         </div>
       </DialogContent>
