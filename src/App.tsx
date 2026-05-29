@@ -33,6 +33,8 @@ import MobDetail from "./pages/on-farm/MobDetail";
 import Enterprise from "./pages/on-farm/Enterprise";
 import BidCalculator from "./pages/on-farm/BidCalculator";
 import ProcessorGrids from "./pages/on-farm/ProcessorGrids";
+import MarketIntelligence from "./pages/on-farm/MarketIntelligence";
+import LivestockFinance from "./pages/on-farm/LivestockFinance";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -85,6 +87,8 @@ const App = () => (
             <Route path="/on-farm/enterprise" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><Enterprise /></ProtectedRoute>} />
             <Route path="/on-farm/bid-calculator" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><BidCalculator /></ProtectedRoute>} />
             <Route path="/on-farm/grids" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><ProcessorGrids /></ProtectedRoute>} />
+            <Route path="/on-farm/market" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><MarketIntelligence /></ProtectedRoute>} />
+            <Route path="/on-farm/finance" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><LivestockFinance /></ProtectedRoute>} />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

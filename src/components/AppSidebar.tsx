@@ -23,6 +23,8 @@ import {
   Leaf,
   Calculator,
   Grid3X3,
+  LineChart,
+  Banknote,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -67,6 +69,8 @@ const systemItems = [
   { title: "Livestock Enterprise", url: "/on-farm/enterprise", icon: Building2 },
   { title: "Bid Calculator", url: "/on-farm/bid-calculator", icon: Calculator },
   { title: "Processor Grids", url: "/on-farm/grids", icon: Grid3X3 },
+  { title: "Market Intelligence", url: "/on-farm/market", icon: LineChart },
+  { title: "Livestock Finance", url: "/on-farm/finance", icon: Banknote },
   { title: "Users & Access", url: "/users", icon: UserCog },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
