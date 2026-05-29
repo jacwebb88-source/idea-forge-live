@@ -27,6 +27,7 @@ import {
   ChevronRight, Layers, Wheat, Sparkles, RefreshCw,
   Leaf, Flame, CloudRain, Sun, Droplets,
   Activity, Target, Award, BarChart3,
+  Satellite, Wind, X, Thermometer, Zap,
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 
@@ -202,6 +203,9 @@ export default function MobDetail() {
           </div>
         </div>
 
+        {/* ── Weather-triggered alert ───────────────────────────────────── */}
+        <WeatherAlert mob={mob} feedPlan={feedPlan} adg={adg} totalCostPerHead={totalCostPerHead} />
+
         {/* ── Margin Clock ──────────────────────────────────────────────── */}
         <MarginClock
           mob={mob}
@@ -216,12 +220,13 @@ export default function MobDetail() {
 
         {/* ── Tabs ─────────────────────────────────────────────────────── */}
         <Tabs defaultValue="costs">
-          <TabsList className="grid grid-cols-5 w-full rounded-xl h-11">
+          <TabsList className="grid grid-cols-6 w-full rounded-xl h-11">
             <TabsTrigger value="costs" className="rounded-lg text-xs">Costs</TabsTrigger>
             <TabsTrigger value="weights" className="rounded-lg text-xs">Weight</TabsTrigger>
-            <TabsTrigger value="feed" className="rounded-lg text-xs">Feed Plan</TabsTrigger>
+            <TabsTrigger value="feed" className="rounded-lg text-xs">Feed</TabsTrigger>
             <TabsTrigger value="decision" className="rounded-lg text-xs">Decision</TabsTrigger>
             <TabsTrigger value="kill" className="rounded-lg text-xs">Kill</TabsTrigger>
+            <TabsTrigger value="carbon" className="rounded-lg text-xs">Carbon</TabsTrigger>
           </TabsList>
 
           {/* ─── COST LEDGER ─────────────────────────────────────────── */}
@@ -425,6 +430,11 @@ export default function MobDetail() {
               onAdd={() => setShowKillDialog(true)}
             />
           </TabsContent>
+
+          {/* ─── CARBON & METHANE ────────────────────────────────────────── */}
+          <TabsContent value="carbon" className="space-y-4 mt-4">
+            <CarbonTab mob={mob} dof={dof} feedPlan={feedPlan} cat={cat} />
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -459,6 +469,204 @@ function EmptyState({ icon, message, action, cat }: any) {
       {action && (
         <Button variant="outline" size="sm" className="mt-4" onClick={action.onClick}>{action.label}</Button>
       )}
+    </div>
+  );
+}
+
+// ─── Weather-Triggered Turnoff Alert ─────────────────────────────────────────
+
+type AlertType = "heat" | "rain" | "dry" | null;
+
+function WeatherAlert({ mob, feedPlan, adg, totalCostPerHead }: any) {
+  const [alertType, setAlertType] = useState<AlertType>(null);
+  const [alertText, setAlertText] = useState("");
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    const loc = mob.location_name;
+    if (!loc) return;
+    const analyze = async () => {
+      try {
+        let lat = -23.38, lon = 150.51;
+        const geo = await fetch(
+          `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(loc)}&count=1&language=en&format=json`
+        ).then(r => r.json());
+        if (geo.results?.[0]) { lat = geo.results[0].latitude; lon = geo.results[0].longitude; }
+
+        const w = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=precipitation_sum,temperature_2m_max&timezone=auto&forecast_days=7`
+        ).then(r => r.json());
+
+        const temps: number[] = w.daily.temperature_2m_max;
+        const precips: number[] = w.daily.precipitation_sum;
+        const totalRain = precips.reduce((s, p) => s + (p ?? 0), 0);
+        const hotDays = temps.filter(t => t > 35).length;
+        const feedSource = feedPlan?.feed_source;
+
+        if (hotDays >= 3) {
+          setAlertType("heat");
+          setAlertText(`${hotDays} days above 35°C forecast for ${loc} — heat stress reduces ADG by 15–25%. Consider advancing your turnoff booking.`);
+        } else if (totalRain >= 20 && feedSource === "grass") {
+          setAlertType("rain");
+          setAlertText(`${totalRain.toFixed(0)}mm forecast over 7 days — excellent pasture conditions near ${loc}. Consider extending your grass program.`);
+        } else if (totalRain < 5 && feedSource === "grass" && totalCostPerHead > 0) {
+          setAlertType("dry");
+          setAlertText(`Only ${totalRain.toFixed(1)}mm forecast over 7 days — dry outlook near ${loc}. Monitor pasture availability and consider booking turnoff or moving to supplementary feeding.`);
+        }
+      } catch { /* silent */ }
+    };
+    analyze();
+  }, [mob.location_name, feedPlan?.feed_source, totalCostPerHead]);
+
+  if (!alertType || dismissed) return null;
+
+  const styles: Record<NonNullable<AlertType>, { bg: string; border: string; text: string; iconEl: React.ReactNode; label: string }> = {
+    heat:  { bg: "bg-red-50",    border: "border-red-300",    text: "text-red-800",    iconEl: <Thermometer className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />, label: "Heat stress alert" },
+    rain:  { bg: "bg-green-50",  border: "border-green-300",  text: "text-green-800",  iconEl: <CloudRain className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />, label: "Good rain forecast" },
+    dry:   { bg: "bg-amber-50",  border: "border-amber-300",  text: "text-amber-800",  iconEl: <Sun className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />, label: "Dry outlook" },
+  };
+  const s = styles[alertType];
+
+  return (
+    <div className={`rounded-xl border-2 ${s.bg} ${s.border} px-4 py-3 flex items-start justify-between gap-3`}>
+      <div className="flex items-start gap-2.5">
+        {s.iconEl}
+        <div>
+          <p className={`text-xs font-bold uppercase tracking-wide ${s.text} mb-0.5`}>{s.label}</p>
+          <p className={`text-sm ${s.text}`}>{alertText}</p>
+        </div>
+      </div>
+      <button onClick={() => setDismissed(true)} className={`${s.text} opacity-40 hover:opacity-70 shrink-0 mt-0.5`}>
+        <X className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
+// ─── Carbon & Methane Tracker ─────────────────────────────────────────────────
+
+const RATION_CH4_FACTOR: Record<string, number> = {
+  grass: 1.10, hay: 1.05, silage: 0.95, mixed: 1.00, grain: 0.80,
+};
+const BASE_CH4_KG_HEAD_YEAR = 86;   // IPCC Tier 2 beef cattle
+const GWP100_CH4 = 27.9;            // AR6 IPCC
+const ACCU_PRICE = 35;              // AUD/tonne CO2-e (approx current)
+const BOVAER_COST_PER_HEAD_DAY = 0.20;
+const BOVAER_REDUCTION = 0.30;
+
+function CarbonTab({ mob, dof, feedPlan, cat }: any) {
+  const rFactor = RATION_CH4_FACTOR[feedPlan?.feed_source ?? "mixed"];
+  const ch4PerHeadYear = BASE_CH4_KG_HEAD_YEAR * rFactor;
+  const ch4Total_kg = (dof / 365) * ch4PerHeadYear * mob.head_count;
+  const co2e_tonnes = (ch4Total_kg * GWP100_CH4) / 1000;
+  const accuValue = co2e_tonnes * ACCU_PRICE;
+
+  const isGrainFed = feedPlan?.feed_source === "grain" || feedPlan?.feed_source === "mixed";
+  const bovaerCost = BOVAER_COST_PER_HEAD_DAY * dof * mob.head_count;
+  const bovaerCH4Saved = ch4Total_kg * BOVAER_REDUCTION;
+  const bovaerCO2eSaved = (bovaerCH4Saved * GWP100_CH4) / 1000;
+  const bovaerACCUValue = bovaerCO2eSaved * ACCU_PRICE;
+  const bovaerROI = bovaerACCUValue - bovaerCost;
+
+  const perHeadCH4 = ch4Total_kg / mob.head_count;
+
+  return (
+    <div className="space-y-4">
+      {/* Emission summary */}
+      <div className="rounded-2xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="h-8 w-8 rounded-xl bg-emerald-700 flex items-center justify-center">
+            <Wind className="h-4 w-4 text-white" />
+          </div>
+          <div>
+            <p className="font-bold text-sm text-emerald-900">Carbon & Methane Estimate</p>
+            <p className="text-xs text-emerald-600">IPCC Tier 2 · {feedPlan?.feed_source ?? "mixed"} ration · {dof} days on feed</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          {[
+            { label: "Total CH₄ emitted", value: `${ch4Total_kg.toFixed(0)} kg`, sub: `${perHeadCH4.toFixed(1)} kg/head` },
+            { label: "CO₂-e (GWP100)", value: `${co2e_tonnes.toFixed(2)} t`, sub: "AR6 factor: 27.9" },
+            { label: "ACCU indicative value", value: `$${accuValue.toFixed(0)}`, sub: `~$35/t CO₂-e` },
+            { label: "Per head carbon cost", value: `$${(accuValue / mob.head_count).toFixed(2)}`, sub: "voluntary market" },
+          ].map(item => (
+            <div key={item.label} className="bg-white/60 rounded-xl px-3 py-2.5">
+              <p className="text-xs text-emerald-700 opacity-70 font-medium">{item.label}</p>
+              <p className="font-black text-lg text-emerald-900">{item.value}</p>
+              <p className="text-xs text-emerald-600 opacity-60">{item.sub}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="bg-emerald-800/10 rounded-xl px-3 py-2.5 text-xs text-emerald-800">
+          <strong>About these numbers:</strong> Based on IPCC Tier 2 enteric methane emission factors for beef cattle (86 kg CH₄/head/year baseline), adjusted for ration type. Australian Carbon Credit Units (ACCUs) priced at ~$35/tonne CO₂-e.
+        </div>
+      </div>
+
+      {/* Bovaer / 3-NOP modelling */}
+      <div className={`rounded-2xl border-2 p-5 ${isGrainFed ? "border-violet-200 bg-violet-50" : "border-muted bg-muted/20"}`}>
+        <div className="flex items-center gap-2 mb-3">
+          <Zap className={`h-5 w-5 ${isGrainFed ? "text-violet-600" : "text-muted-foreground"}`} />
+          <div>
+            <p className={`font-bold text-sm ${isGrainFed ? "text-violet-900" : "text-muted-foreground"}`}>Bovaer / 3-NOP Methane Additive</p>
+            <p className={`text-xs ${isGrainFed ? "text-violet-600" : "text-muted-foreground"}`}>
+              {isGrainFed ? "Applicable to your current ration — modelling active" : "Best suited to grain/mixed rations — set feed plan to model"}
+            </p>
+          </div>
+        </div>
+
+        {isGrainFed && (
+          <div className="space-y-2">
+            {[
+              { label: "Methane reduction", value: `${(bovaerCH4Saved).toFixed(0)} kg CH₄ saved`, sub: "30% reduction (DSM/Bovaer trial data)" },
+              { label: "CO₂-e saved", value: `${bovaerCO2eSaved.toFixed(2)} tonnes`, sub: "ACCU-eligible under ERF" },
+              { label: "ACCU value of savings", value: `$${bovaerACCUValue.toFixed(0)}`, sub: "@$35/t" },
+              { label: "Bovaer additive cost", value: `$${bovaerCost.toFixed(0)}`, sub: `~$${BOVAER_COST_PER_HEAD_DAY}/head/day × ${dof} days × ${mob.head_count} head` },
+              { label: "Net ROI", value: `${bovaerROI >= 0 ? "+" : ""}$${bovaerROI.toFixed(0)}`, sub: bovaerROI >= 0 ? "ACCU value exceeds additive cost" : "Additive cost currently exceeds ACCU value at $35/t", positive: bovaerROI >= 0 },
+            ].map(item => (
+              <div key={item.label} className="flex items-center justify-between bg-white/60 rounded-lg px-3 py-2">
+                <div>
+                  <p className="text-xs font-medium text-violet-900">{item.label}</p>
+                  <p className="text-xs text-violet-600 opacity-60">{item.sub}</p>
+                </div>
+                <p className={`font-bold text-sm ${item.positive === false ? "text-red-600" : item.positive ? "text-green-600" : "text-violet-900"}`}>
+                  {item.value}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!isGrainFed && (
+          <p className="text-xs text-muted-foreground">
+            Bovaer is currently approved for use in cattle on grain/mixed rations in Australia. Update your feed plan to grain or mixed to model the ROI of adding Bovaer to your ration.
+          </p>
+        )}
+      </div>
+
+      {/* Processor sustainability context */}
+      <div className="rounded-xl border bg-muted/10 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 flex items-center gap-1.5">
+          <Satellite className="h-3.5 w-3.5" /> Processor net-zero context
+        </p>
+        <div className="space-y-2 text-xs text-muted-foreground">
+          {[
+            { name: "JBS Australia", target: "Net zero by 2040", premium: "Actively piloting Bovaer + carbon measurement programs" },
+            { name: "NH Foods (Oakey)", target: "Carbon neutral by 2030", premium: "MSA + sustainability premiums in development" },
+            { name: "Teys Australia", target: "Net zero by 2030", premium: "BMS genetics program with sustainability overlay" },
+          ].map(p => (
+            <div key={p.name} className="flex items-start justify-between rounded-lg bg-white border px-3 py-2 gap-3">
+              <div>
+                <p className="font-semibold text-foreground">{p.name}</p>
+                <p className="text-muted-foreground">{p.premium}</p>
+              </div>
+              <span className="text-green-600 font-medium whitespace-nowrap shrink-0">{p.target}</span>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground/50 mt-2">Verified carbon documentation will increasingly command premiums from these processors — Muster will help you generate it automatically.</p>
+      </div>
     </div>
   );
 }
@@ -819,6 +1027,32 @@ function FeedPlanTab({ mob, feedPlan, feedPlans, totalCostPerHead, adg, currentW
             );
           })}
         </div>
+      </div>
+
+      {/* Satellite Pasture Intelligence */}
+      <div className="rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-50/50 p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Satellite className="h-4 w-4 text-emerald-600" />
+          <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Satellite Pasture Intelligence</p>
+          <span className="text-xs bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-full font-semibold">Coming soon</span>
+        </div>
+        <p className="text-xs text-emerald-700 mb-3 leading-relaxed">
+          Daily satellite biomass readings for {mob.location_name ? `paddocks near ${mob.location_name}` : "your paddocks"} will appear here — showing estimated days of carry remaining, projected supplementary feeding trigger date, and automatic cost model update when pasture falls below threshold.
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { label: "Pasture biomass", value: "— kg DM/ha", sub: "Daily satellite reading" },
+            { label: "Days of carry", value: "— days", sub: "At current stocking rate" },
+            { label: "Supp. trigger", value: "— days", sub: "Below 1,200 kg DM/ha" },
+          ].map(item => (
+            <div key={item.label} className="bg-white/60 rounded-lg px-2 py-2 text-center">
+              <p className="text-xs text-muted-foreground">{item.label}</p>
+              <p className="font-bold text-sm text-muted-foreground/60">{item.value}</p>
+              <p className="text-xs text-muted-foreground/40">{item.sub}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-emerald-600/60 mt-2">Data source: DPIRD Pastures from Space · Pasture.io · Planet Labs</p>
       </div>
 
       {/* Plan history */}
