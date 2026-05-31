@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,7 +30,7 @@ import {
   Plus, Building2, MapPin, Users, TrendingUp, AlertTriangle,
   ChevronDown, ChevronRight, Scale, DollarSign, Activity,
   CheckCircle, LayoutGrid, Layers, Bell,
-  Wallet,
+  Wallet, Calendar,
 } from "lucide-react";
 import { format, differenceInDays, addDays } from "date-fns";
 import { PieChart as RechartsPie, Pie, Cell, Tooltip as RechartsTooltip } from "recharts";
@@ -67,6 +67,112 @@ export default function Enterprise() {
   const [showPenDialog, setShowPenDialog] = useState(false);
   const [expandedProperty, setExpandedProperty] = useState<string | null>(null);
 
+  // Onboarding wizard
+  const showWizard = properties.length === 0 && !propsLoading;
+  const [wizardStep, setWizardStep] = useState(1);
+  const [wizardData, setWizardData] = useState({
+    // Step 1
+    business_name: "", abn: "", contact_name: "", contact_phone: "", contact_email: "",
+    state: "", production_types: [] as string[],
+    // Step 2
+    prop_name: "", prop_type: "" as PropertyType | "", prop_state: "",
+    prop_capacity: "", prop_nfas: false,
+    // Step 3
+    target_feed_cost: "", target_adg: "", target_dressing_pct: "54",
+    target_grid_price: "", typical_program: "",
+  });
+  const setWd = (k: string, v: string | boolean | string[]) =>
+    setWizardData(d => ({ ...d, [k]: v }));
+
+  // Enterprise settings
+  const [settings, setSettings] = useState({
+    business_name: "", abn: "", contact_name: "", contact_phone: "", contact_email: "",
+    state: "", production_types: [] as string[],
+    target_feed_cost_per_head_day: "", target_adg: "", target_dressing_pct: "54",
+    target_grid_price_cpkg: "", typical_program: "",
+  });
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const setSetting = (k: string, v: string | string[]) =>
+    setSettings(s => ({ ...s, [k]: v }));
+
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        const { data, error } = await supabase
+          .from("enterprise_settings" as any)
+          .select("*")
+          .eq("id", "default")
+          .maybeSingle();
+        if (error || !data) return;
+        const d = data as any;
+        setSettings({
+          business_name: d.business_name ?? "",
+          abn: d.abn ?? "",
+          contact_name: d.contact_name ?? "",
+          contact_phone: d.contact_phone ?? "",
+          contact_email: d.contact_email ?? "",
+          state: d.state ?? "",
+          production_types: d.production_types ?? [],
+          target_feed_cost_per_head_day: d.target_feed_cost_per_head_day != null ? String(d.target_feed_cost_per_head_day) : "",
+          target_adg: d.target_adg != null ? String(d.target_adg) : "",
+          target_dressing_pct: d.target_dressing_pct != null ? String(d.target_dressing_pct) : "54",
+          target_grid_price_cpkg: d.target_grid_price_cpkg != null ? String(d.target_grid_price_cpkg) : "",
+          typical_program: d.typical_program ?? "",
+        });
+      } catch (_) {
+        // table may not exist yet
+      }
+    }
+    loadSettings();
+  }, []);
+
+  async function saveSettings() {
+    setSettingsSaving(true);
+    try {
+      await supabase.from("enterprise_settings" as any).upsert({
+        id: "default",
+        business_name: settings.business_name || null,
+        abn: settings.abn || null,
+        contact_name: settings.contact_name || null,
+        contact_phone: settings.contact_phone || null,
+        contact_email: settings.contact_email || null,
+        state: settings.state || null,
+        production_types: settings.production_types.length ? settings.production_types : null,
+        target_feed_cost_per_head_day: settings.target_feed_cost_per_head_day ? parseFloat(settings.target_feed_cost_per_head_day) : null,
+        target_adg: settings.target_adg ? parseFloat(settings.target_adg) : null,
+        target_dressing_pct: settings.target_dressing_pct ? parseFloat(settings.target_dressing_pct) : null,
+        target_grid_price_cpkg: settings.target_grid_price_cpkg ? parseFloat(settings.target_grid_price_cpkg) : null,
+        typical_program: settings.typical_program || null,
+      } as any);
+      toast({ title: "Settings saved" });
+    } catch (_) {
+      toast({ title: "Could not save — table may not exist yet", variant: "destructive" });
+    }
+    setSettingsSaving(false);
+  }
+
+  async function saveWizardSettings() {
+    try {
+      await supabase.from("enterprise_settings" as any).upsert({
+        id: "default",
+        business_name: wizardData.business_name || null,
+        abn: wizardData.abn || null,
+        contact_name: wizardData.contact_name || null,
+        contact_phone: wizardData.contact_phone || null,
+        contact_email: wizardData.contact_email || null,
+        state: wizardData.state || null,
+        production_types: wizardData.production_types.length ? wizardData.production_types : null,
+        target_feed_cost_per_head_day: wizardData.target_feed_cost ? parseFloat(wizardData.target_feed_cost) : null,
+        target_adg: wizardData.target_adg ? parseFloat(wizardData.target_adg) : null,
+        target_dressing_pct: wizardData.target_dressing_pct ? parseFloat(wizardData.target_dressing_pct) : null,
+        target_grid_price_cpkg: wizardData.target_grid_price ? parseFloat(wizardData.target_grid_price) : null,
+        typical_program: wizardData.typical_program || null,
+      } as any);
+    } catch (_) {
+      // fail silently
+    }
+  }
+
   // Aggregate stats
   const totalCapacity = properties.reduce((s, p) => s + (p.capacity_head ?? 0), 0);
   const totalCurrentHead = properties.reduce((s, p) => s + (p.current_head ?? 0), 0);
@@ -89,6 +195,56 @@ export default function Enterprise() {
     return s + (m.head_count * dof * dailyCost);
   }, 0);
   const estimatedGrossMargin = estimatedValueOnFeed - totalFeedCostToDate - activeMobs.reduce((s, m) => s + (m.total_purchase_cost ?? 0), 0);
+
+  // Enhanced KPIs
+  const dressingPct = parseFloat(settings.target_dressing_pct || "54") / 100 || 0.54;
+  const mobsWithWeightGain = activeMobs.filter(m =>
+    m.current_avg_weight_kg && m.purchase_weight_kg && m.current_avg_weight_kg > m.purchase_weight_kg
+  );
+  const avgCostOfGain: string = (() => {
+    if (!mobsWithWeightGain.length) return "—";
+    const vals = mobsWithWeightGain.map(m => {
+      const dof = differenceInDays(new Date(), new Date(m.purchase_date));
+      const feedCost = m.head_count * dof * 6; // $6/hd/day
+      const gainKg = m.head_count * ((m.current_avg_weight_kg ?? 0) - (m.purchase_weight_kg ?? 0));
+      return gainKg > 0 ? (feedCost / gainKg) * 100 : null; // ¢/kg
+    }).filter((v): v is number => v !== null);
+    if (!vals.length) return "—";
+    return `${(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(0)}¢/kg`;
+  })();
+  const avgADG: string = (() => {
+    const vals = activeMobs.map(m => {
+      const dof = differenceInDays(new Date(), new Date(m.purchase_date));
+      if (!dof || !m.current_avg_weight_kg || !m.purchase_weight_kg) return null;
+      return (m.current_avg_weight_kg - m.purchase_weight_kg) / dof;
+    }).filter((v): v is number => v !== null);
+    if (!vals.length) return "—";
+    return `${(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(3)} kg/d`;
+  })();
+  const breakEvenGrid: string = (() => {
+    if (!activeMobs.length) return "—";
+    const vals = activeMobs.map(m => {
+      const dof = differenceInDays(new Date(), new Date(m.purchase_date));
+      const totalCostPerHead = ((m.total_purchase_cost ?? 0) + m.head_count * dof * 6) / m.head_count;
+      const currentWeight = m.current_avg_weight_kg ?? m.purchase_weight_kg ?? 0;
+      if (!currentWeight) return null;
+      const cwKg = currentWeight * dressingPct;
+      return cwKg > 0 ? (totalCostPerHead / cwKg) * 100 : null; // ¢/kg CW
+    }).filter((v): v is number => v !== null);
+    if (!vals.length) return "—";
+    return `${(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(0)}¢/kg`;
+  })();
+  const estDaysToExit: string = (() => {
+    const targetAdg = parseFloat(settings.target_adg || "0") || 1.2;
+    const vals = activeMobs.map(m => {
+      const currentWeight = m.current_avg_weight_kg ?? m.purchase_weight_kg ?? 0;
+      const targetWeight = 450; // fallback target weight kg
+      if (!currentWeight || currentWeight >= targetWeight) return null;
+      return (targetWeight - currentWeight) / targetAdg;
+    }).filter((v): v is number => v !== null);
+    if (!vals.length) return "—";
+    return `${Math.round(vals.reduce((a, b) => a + b, 0) / vals.length)}d`;
+  })();
 
   // Alerts
   const alerts: { level: "warning" | "info"; text: string }[] = [];
@@ -163,13 +319,213 @@ export default function Enterprise() {
           <KpiCard icon={<Activity className="h-4 w-4 text-amber-600" />} label="Pens Ready to Ship" value={String(readyPens.length)} sub={`${activePens.length} pens active · ${wk4Head} head ≤4 wks`} color="bg-amber-50" />
         </div>
 
+        {/* ── Second KPI row ───────────────────────────────────────── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <KpiCard icon={<DollarSign className="h-4 w-4 text-green-600" />} label="Cost of Gain" value={avgCostOfGain} sub="avg across active mobs" color="bg-green-50" />
+          <KpiCard icon={<TrendingUp className="h-4 w-4 text-blue-600" />} label="Avg ADG" value={avgADG} sub="daily gain across mobs" color="bg-blue-50" />
+          <KpiCard icon={<Scale className="h-4 w-4 text-purple-600" />} label="Break-even Grid" value={breakEvenGrid} sub="min ¢/kg CW to cover costs" color="bg-purple-50" />
+          <KpiCard icon={<Calendar className="h-4 w-4 text-amber-600" />} label="Est. Days to Exit" value={estDaysToExit} sub="avg days to target weight" color="bg-amber-50" />
+        </div>
+
+        {/* ── Onboarding wizard ────────────────────────────────────── */}
+        {showWizard && (
+          <Card className="border-primary/20 shadow-md">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="flex gap-1.5">
+                  {[1,2,3,4].map(n => (
+                    <div key={n} className={`h-2 w-2 rounded-full transition-colors ${n <= wizardStep ? "bg-primary" : "bg-muted"}`} />
+                  ))}
+                </div>
+                <CardTitle className="text-base">
+                  {wizardStep === 1 && "Step 1 of 4 — Business setup"}
+                  {wizardStep === 2 && "Step 2 of 4 — Add your first property"}
+                  {wizardStep === 3 && "Step 3 of 4 — Set your targets"}
+                  {wizardStep === 4 && "Step 4 of 4 — You're ready to go"}
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {wizardStep === 1 && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2 space-y-1">
+                    <Label className="text-xs">Business / Operation name <span className="text-destructive">*</span></Label>
+                    <Input placeholder="e.g. Killarook Pastoral Co." value={wizardData.business_name} onChange={e => setWd("business_name", e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">ABN (optional)</Label>
+                    <Input placeholder="e.g. 12 345 678 901" value={wizardData.abn} onChange={e => setWd("abn", e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">State</Label>
+                    <Select value={wizardData.state} onValueChange={v => setWd("state", v)}>
+                      <SelectTrigger><SelectValue placeholder="State…" /></SelectTrigger>
+                      <SelectContent>
+                        {STATE_OPTIONS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Primary contact name</Label>
+                    <Input placeholder="e.g. John Smith" value={wizardData.contact_name} onChange={e => setWd("contact_name", e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Phone</Label>
+                    <Input placeholder="0400 000 000" value={wizardData.contact_phone} onChange={e => setWd("contact_phone", e.target.value)} />
+                  </div>
+                  <div className="col-span-2 space-y-1">
+                    <Label className="text-xs">Email</Label>
+                    <Input type="email" placeholder="name@example.com" value={wizardData.contact_email} onChange={e => setWd("contact_email", e.target.value)} />
+                  </div>
+                  <div className="col-span-2 space-y-2">
+                    <Label className="text-xs">Primary production type (select all that apply)</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {["Grassfed", "Lotfed", "Backgrounding", "Trading"].map(type => (
+                        <div key={type} className="flex items-center gap-2">
+                          <Checkbox
+                            id={`pt-${type}`}
+                            checked={wizardData.production_types.includes(type)}
+                            onCheckedChange={checked => {
+                              const cur = wizardData.production_types;
+                              setWd("production_types", checked ? [...cur, type] : cur.filter(t => t !== type));
+                            }}
+                          />
+                          <Label htmlFor={`pt-${type}`} className="text-sm font-normal cursor-pointer">{type}</Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="col-span-2 flex justify-end">
+                    <Button onClick={() => setWizardStep(2)} disabled={!wizardData.business_name}>Next →</Button>
+                  </div>
+                </div>
+              )}
+
+              {wizardStep === 2 && (
+                <div className="grid grid-cols-2 gap-3">
+                  <p className="col-span-2 text-sm text-muted-foreground">Add your first property or station. You can add more later.</p>
+                  <div className="col-span-2 space-y-1">
+                    <Label className="text-xs">Property name <span className="text-destructive">*</span></Label>
+                    <Input placeholder="e.g. Killarook Feedlot" value={wizardData.prop_name} onChange={e => setWd("prop_name", e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Type <span className="text-destructive">*</span></Label>
+                    <Select value={wizardData.prop_type} onValueChange={v => setWd("prop_type", v)}>
+                      <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(PROPERTY_TYPE_LABELS).map(([v, l]) => (
+                          <SelectItem key={v} value={v}>{l}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">State</Label>
+                    <Select value={wizardData.prop_state} onValueChange={v => setWd("prop_state", v)}>
+                      <SelectTrigger><SelectValue placeholder="State…" /></SelectTrigger>
+                      <SelectContent>
+                        {STATE_OPTIONS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Max capacity (head)</Label>
+                    <Input type="number" placeholder="e.g. 5000" value={wizardData.prop_capacity} onChange={e => setWd("prop_capacity", e.target.value)} />
+                  </div>
+                  <div className="space-y-1 flex flex-col justify-end">
+                    <div className="flex items-center gap-2 pb-2">
+                      <Checkbox id="w-nfas" checked={wizardData.prop_nfas} onCheckedChange={v => setWd("prop_nfas", !!v)} />
+                      <Label htmlFor="w-nfas" className="text-sm font-normal cursor-pointer">NFAS Accredited</Label>
+                    </div>
+                  </div>
+                  <div className="col-span-2 flex justify-between">
+                    <Button variant="outline" onClick={() => setWizardStep(1)}>← Back</Button>
+                    <Button
+                      disabled={!wizardData.prop_name || !wizardData.prop_type}
+                      onClick={async () => {
+                        const { error } = await supabase.from("properties").insert({
+                          name: wizardData.prop_name,
+                          property_type: wizardData.prop_type,
+                          state: wizardData.prop_state || null,
+                          capacity_head: wizardData.prop_capacity ? parseInt(wizardData.prop_capacity) : null,
+                          nfas_accredited: wizardData.prop_nfas,
+                        });
+                        if (!error) { refetchProps(); }
+                        setWizardStep(3);
+                      }}
+                    >
+                      Save & next →
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {wizardStep === 3 && (
+                <div className="grid grid-cols-2 gap-3">
+                  <p className="col-span-2 text-sm text-muted-foreground">These targets are used to calculate KPIs and break-even prices across your enterprise.</p>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Target feed cost ($/hd/day)</Label>
+                    <Input type="number" step="0.01" placeholder="e.g. 6.00" value={wizardData.target_feed_cost} onChange={e => setWd("target_feed_cost", e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Target ADG (kg/day)</Label>
+                    <Input type="number" step="0.01" placeholder="e.g. 1.80" value={wizardData.target_adg} onChange={e => setWd("target_adg", e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Target dressing %</Label>
+                    <Input type="number" step="0.1" placeholder="54" value={wizardData.target_dressing_pct} onChange={e => setWd("target_dressing_pct", e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Target grid price (¢/kg CW)</Label>
+                    <Input type="number" step="1" placeholder="e.g. 750" value={wizardData.target_grid_price} onChange={e => setWd("target_grid_price", e.target.value)} />
+                  </div>
+                  <div className="col-span-2 space-y-1">
+                    <Label className="text-xs">Typical kill program</Label>
+                    <Select value={wizardData.typical_program} onValueChange={v => setWd("typical_program", v)}>
+                      <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="70_day">70 day</SelectItem>
+                        <SelectItem value="100_day">100 day</SelectItem>
+                        <SelectItem value="150_day">150 day</SelectItem>
+                        <SelectItem value="grassfed">Grassfed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="col-span-2 flex justify-between">
+                    <Button variant="outline" onClick={() => setWizardStep(2)}>← Back</Button>
+                    <Button onClick={async () => { await saveWizardSettings(); setWizardStep(4); }}>Save targets →</Button>
+                  </div>
+                </div>
+              )}
+
+              {wizardStep === 4 && (
+                <div className="space-y-4">
+                  <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-4 space-y-2">
+                    <p className="font-semibold text-green-800 flex items-center gap-2"><CheckCircle className="h-4 w-4" /> You're set up!</p>
+                    {wizardData.business_name && <p className="text-sm text-green-700">Business: <strong>{wizardData.business_name}</strong></p>}
+                    {wizardData.prop_name && <p className="text-sm text-green-700">First property: <strong>{wizardData.prop_name}</strong> ({PROPERTY_TYPE_LABELS[wizardData.prop_type as PropertyType] ?? wizardData.prop_type})</p>}
+                    {wizardData.target_adg && <p className="text-sm text-green-700">Target ADG: <strong>{wizardData.target_adg} kg/day</strong></p>}
+                    {wizardData.target_grid_price && <p className="text-sm text-green-700">Target grid: <strong>{wizardData.target_grid_price}¢/kg CW</strong></p>}
+                    {wizardData.typical_program && <p className="text-sm text-green-700">Program: <strong>{wizardData.typical_program.replace("_", " ")}</strong></p>}
+                  </div>
+                  <p className="text-sm text-muted-foreground">You can update these settings anytime in the Settings tab.</p>
+                  <Button className="w-full" onClick={() => refetchProps()}>
+                    Go to my enterprise →
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Tabs */}
         <Tabs defaultValue="portfolio">
-          <TabsList className="grid grid-cols-4 w-full max-w-2xl">
+          <TabsList className="grid grid-cols-5 w-full max-w-2xl">
             <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
             <TabsTrigger value="pens">Pens</TabsTrigger>
             <TabsTrigger value="pipeline">Kill Pipeline</TabsTrigger>
             <TabsTrigger value="financials">Financials</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
           {/* ─── PROPERTY PORTFOLIO ───────────────────────────────────── */}
@@ -652,6 +1008,110 @@ export default function Enterprise() {
                 message="No active mobs yet. Add mobs via On Farm to see financial projections here."
               />
             )}
+          </TabsContent>
+
+          {/* ─── SETTINGS ─────────────────────────────────────────────── */}
+          <TabsContent value="settings" className="mt-4 space-y-4">
+            <div>
+              <h2 className="font-semibold">Enterprise Settings</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Business details and targets used for KPI calculations across your enterprise.
+              </p>
+            </div>
+            <Card>
+              <CardContent className="pt-5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Business Details</p>
+                  </div>
+                  <div className="col-span-2 space-y-1">
+                    <Label className="text-xs">Business / Operation name</Label>
+                    <Input placeholder="e.g. Killarook Pastoral Co." value={settings.business_name} onChange={e => setSetting("business_name", e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">ABN</Label>
+                    <Input placeholder="e.g. 12 345 678 901" value={settings.abn} onChange={e => setSetting("abn", e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">State</Label>
+                    <Select value={settings.state} onValueChange={v => setSetting("state", v)}>
+                      <SelectTrigger><SelectValue placeholder="State…" /></SelectTrigger>
+                      <SelectContent>
+                        {STATE_OPTIONS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Primary contact</Label>
+                    <Input placeholder="Name" value={settings.contact_name} onChange={e => setSetting("contact_name", e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Phone</Label>
+                    <Input placeholder="0400 000 000" value={settings.contact_phone} onChange={e => setSetting("contact_phone", e.target.value)} />
+                  </div>
+                  <div className="col-span-2 space-y-1">
+                    <Label className="text-xs">Email</Label>
+                    <Input type="email" placeholder="name@example.com" value={settings.contact_email} onChange={e => setSetting("contact_email", e.target.value)} />
+                  </div>
+                  <div className="col-span-2 space-y-2">
+                    <Label className="text-xs">Production types</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {["Grassfed", "Lotfed", "Backgrounding", "Trading"].map(type => (
+                        <div key={type} className="flex items-center gap-2">
+                          <Checkbox
+                            id={`st-${type}`}
+                            checked={settings.production_types.includes(type)}
+                            onCheckedChange={checked => {
+                              const cur = settings.production_types;
+                              setSetting("production_types", checked ? [...cur, type] : cur.filter(t => t !== type));
+                            }}
+                          />
+                          <Label htmlFor={`st-${type}`} className="text-sm font-normal cursor-pointer">{type}</Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="col-span-2 pt-2">
+                    <Separator className="mb-4" />
+                    <p className="text-xs font-semibold text-muted-foreground uppercase mb-3">Performance Targets</p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Target feed cost ($/hd/day)</Label>
+                    <Input type="number" step="0.01" placeholder="e.g. 6.00" value={settings.target_feed_cost_per_head_day} onChange={e => setSetting("target_feed_cost_per_head_day", e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Target ADG (kg/day)</Label>
+                    <Input type="number" step="0.01" placeholder="e.g. 1.80" value={settings.target_adg} onChange={e => setSetting("target_adg", e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Target dressing %</Label>
+                    <Input type="number" step="0.1" placeholder="54" value={settings.target_dressing_pct} onChange={e => setSetting("target_dressing_pct", e.target.value)} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Target grid price (¢/kg CW)</Label>
+                    <Input type="number" step="1" placeholder="e.g. 750" value={settings.target_grid_price_cpkg} onChange={e => setSetting("target_grid_price_cpkg", e.target.value)} />
+                  </div>
+                  <div className="col-span-2 space-y-1">
+                    <Label className="text-xs">Typical kill program</Label>
+                    <Select value={settings.typical_program} onValueChange={v => setSetting("typical_program", v)}>
+                      <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="70_day">70 day</SelectItem>
+                        <SelectItem value="100_day">100 day</SelectItem>
+                        <SelectItem value="150_day">150 day</SelectItem>
+                        <SelectItem value="grassfed">Grassfed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="col-span-2 flex justify-end pt-2">
+                    <Button onClick={saveSettings} disabled={settingsSaving}>
+                      {settingsSaving ? "Saving…" : "Save settings"}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
 
