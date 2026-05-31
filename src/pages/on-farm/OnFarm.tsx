@@ -139,21 +139,63 @@ export default function OnFarm() {
         </div>
 
         {/* KPI row */}
-        <div className="grid grid-cols-4 gap-3">
-          {[
-            { label: "Active mobs", value: String(active.length), sub: null },
-            { label: "Total head", value: totalHead.toLocaleString(), sub: null },
-            { label: "Capital at risk", value: `$${(totalCapital / 1000).toFixed(0)}k`, sub: null },
-            { label: "Exit ≤14 days", value: String(exiting.length), sub: exiting.length > 0 ? "action needed" : "clear", alert: exiting.length > 0 },
-          ].map(k => (
-            <Card key={k.label}>
-              <CardContent className="px-3 py-2.5 text-center">
-                <p className={`text-2xl font-bold ${k.alert ? "text-amber-500" : "text-foreground"}`}>{k.value}</p>
-                <p className="text-muted-foreground text-xs mt-0.5">{k.label}</p>
-                {k.sub && <p className={`text-xs font-medium mt-0.5 ${k.alert ? "text-amber-500" : "text-muted-foreground"}`}>{k.sub}</p>}
-              </CardContent>
-            </Card>
-          ))}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
+                  <Beef className="h-4 w-4 text-amber-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Active mobs</p>
+                  <p className="text-2xl font-bold leading-tight">{active.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                  <Scale className="h-4 w-4 text-blue-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Total head</p>
+                  <p className="text-2xl font-bold leading-tight">{totalHead.toLocaleString()}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-full bg-green-50 flex items-center justify-center shrink-0">
+                  <DollarSign className="h-4 w-4 text-green-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Capital at risk</p>
+                  <p className="text-2xl font-bold leading-tight">${(totalCapital / 1000).toFixed(0)}k</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Exit ≤14 days</p>
+                  <p className="text-2xl font-bold leading-tight">{exiting.length}</p>
+                  {exiting.length > 0
+                    ? <p className="text-xs text-amber-600 font-medium">action needed</p>
+                    : <p className="text-xs text-muted-foreground">clear</p>
+                  }
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Market strip */}
@@ -189,8 +231,8 @@ export default function OnFarm() {
           onClick={() => navigate("/on-farm/enterprise")}
           className="w-full flex items-center gap-4 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 hover:bg-amber-100 transition-colors text-left"
         >
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shrink-0">
-            <Building2 className="h-5 w-5 text-white" />
+          <div className="h-10 w-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
+            <Building2 className="h-5 w-5 text-amber-600" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-bold text-amber-900 text-sm">Livestock Enterprise</p>

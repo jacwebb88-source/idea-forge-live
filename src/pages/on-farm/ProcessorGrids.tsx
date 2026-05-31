@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useProcessorGrids, type ProcessorGrid } from "@/components/on-farm/useMobs";
-import { Plus, Trash2, Grid3X3, Star } from "lucide-react";
+import { Plus, Trash2, Grid3X3, Star, Building2, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
 
 function fmt(n: number) { return n.toFixed(0); }
@@ -56,19 +56,46 @@ export default function ProcessorGrids() {
 
         {/* Summary strip */}
         {grids.length > 0 && (
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: "Processors", value: Object.keys(grouped).length },
-              { label: "Grid entries", value: grids.length },
-              { label: "Best price (¢/kg CW)", value: bestPrice },
-            ].map(({ label, value }) => (
-              <Card key={label}>
-                <CardContent className="px-4 py-3 text-center">
-                  <p className="text-muted-foreground text-xs">{label}</p>
-                  <p className="font-bold text-xl">{value}</p>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Building2 className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">Processors</p>
+                    <p className="text-2xl font-bold leading-tight">{Object.keys(grouped).length}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-full bg-green-50 flex items-center justify-center shrink-0">
+                    <Grid3X3 className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">Grid entries</p>
+                    <p className="text-2xl font-bold leading-tight">{grids.length}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-start gap-3">
+                  <div className="h-8 w-8 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
+                    <TrendingUp className="h-4 w-4 text-amber-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">Best price (¢/kg CW)</p>
+                    <p className="text-2xl font-bold leading-tight">{bestPrice}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
 
@@ -277,9 +304,10 @@ function AddGridDialog({ open, onClose, onSaved, toast, existingProcessors }: an
           <div className="flex gap-2 pt-1">
             <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl">Cancel</Button>
             <Button
+              variant="default"
               onClick={save}
               disabled={saving || !form.processor_name || !form.price_cpkg_cw}
-              className="flex-1 rounded-xl bg-gradient-to-r from-green-700 to-emerald-800 text-white hover:opacity-90 font-bold"
+              className="flex-1 rounded-xl font-bold"
             >
               {saving ? "Saving…" : "Add Grid"}
             </Button>

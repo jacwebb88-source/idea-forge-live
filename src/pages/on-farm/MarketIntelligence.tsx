@@ -78,14 +78,6 @@ const generatePriceHistory = (currentPrice: number, weeks: number = 12) => {
   return data;
 };
 
-const CARD_COLOURS = [
-  "bg-emerald-50 border-emerald-200 text-emerald-800",
-  "bg-amber-50 border-amber-200 text-amber-800",
-  "bg-sky-50 border-sky-200 text-sky-800",
-  "bg-violet-50 border-violet-200 text-violet-800",
-  "bg-orange-50 border-orange-200 text-orange-800",
-];
-
 const REGIONAL_ADJUSTMENTS = [
   { region: "Roma QLD",        heavyAdj: +8,  feederAdj: +7 },
   { region: "Dalby QLD",       heavyAdj: +4,  feederAdj: +5 },
@@ -129,21 +121,26 @@ export default function MarketIntelligence() {
           <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground mb-3">Live Market Indicators</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {benchmarks && benchmarks.length > 0 ? (
-              benchmarks.map((b, i) => {
+              benchmarks.map((b) => {
                 const isWheat = isWheatIndicator(b.indicator);
-                const colourCls = CARD_COLOURS[i % CARD_COLOURS.length];
                 const formattedValue = isWheat
                   ? `$${b.cents_per_kg.toFixed(0)}/t`
                   : fmtCpkg(b.cents_per_kg);
                 return (
-                  <Card key={b.indicator} className={`rounded-2xl border ${colourCls}`}>
-                    <CardContent className="pt-4 pb-4 px-4">
-                      <p className="text-xs font-semibold uppercase tracking-wide opacity-70 mb-1">
-                        {formatIndicatorName(b.indicator)}
-                      </p>
-                      <p className="text-2xl font-black leading-none">{formattedValue}</p>
-                      <p className="text-xs opacity-60 mt-1.5">{b.benchmark_date}</p>
-                      <p className="text-xs opacity-50">{b.source}</p>
+                  <Card key={b.indicator}>
+                    <CardContent className="pt-4">
+                      <div className="flex items-start gap-3">
+                        <div className="h-8 w-8 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
+                          <TrendingUp className="h-4 w-4 text-amber-600" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs text-muted-foreground leading-tight">
+                            {formatIndicatorName(b.indicator)}
+                          </p>
+                          <p className="text-2xl font-bold leading-tight">{formattedValue}</p>
+                          <p className="text-xs text-muted-foreground">{b.benchmark_date}</p>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 );

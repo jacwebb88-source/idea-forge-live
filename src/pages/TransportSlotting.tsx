@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Truck, AlertTriangle, Calendar, CheckCircle, Clock, RefreshCcw } from "lucide-react";
+import { Truck, AlertTriangle, Calendar, CheckCircle, Clock, RefreshCcw, MapPin } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -172,49 +172,67 @@ export default function TransportSlotting() {
         {/* Summary strip */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card className={needsArranging > 0 ? "border-amber-200" : ""}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs text-muted-foreground font-medium">Needs arranging</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold ${needsArranging > 0 ? "text-amber-600" : ""}`}>
-                {loading ? "—" : needsArranging}
+            <CardContent className="pt-4">
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Needs arranging</p>
+                  <p className="text-2xl font-bold leading-tight">{loading ? "—" : needsArranging}</p>
+                </div>
               </div>
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs text-muted-foreground font-medium">Arranged</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{loading ? "—" : arranged}</div>
+            <CardContent className="pt-4">
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                  <Truck className="h-4 w-4 text-blue-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Arranged</p>
+                  <p className="text-2xl font-bold leading-tight">{loading ? "—" : arranged}</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs text-muted-foreground font-medium">Confirmed</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-emerald-600">{loading ? "—" : confirmed}</div>
+            <CardContent className="pt-4">
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-full bg-green-50 flex items-center justify-center shrink-0">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Confirmed</p>
+                  <p className="text-2xl font-bold leading-tight">{loading ? "—" : confirmed}</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs text-muted-foreground font-medium">Arrived</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-indigo-600">{loading ? "—" : arrived}</div>
+            <CardContent className="pt-4">
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
+                  <MapPin className="h-4 w-4 text-indigo-600" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Arrived</p>
+                  <p className="text-2xl font-bold leading-tight">{loading ? "—" : arrived}</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
           <Card className={conflictCount > 0 ? "border-destructive/50" : ""}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs text-muted-foreground font-medium flex items-center gap-1">
-                {conflictCount > 0 && <AlertTriangle className="h-3.5 w-3.5 text-destructive" />}
-                Slot conflicts
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold ${conflictCount > 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                {loadingConflicts ? "—" : conflictCount}
+            <CardContent className="pt-4">
+              <div className="flex items-start gap-3">
+                <div className="h-8 w-8 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Slot conflicts</p>
+                  <p className="text-2xl font-bold leading-tight">{loadingConflicts ? "—" : conflictCount}</p>
+                </div>
               </div>
             </CardContent>
           </Card>
