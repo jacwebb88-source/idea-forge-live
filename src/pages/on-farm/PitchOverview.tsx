@@ -169,7 +169,7 @@ export default function PitchOverview() {
               userSelect: "none",
             }}
           >
-            {viewerLabel} &nbsp;&nbsp;&nbsp; CONFIDENTIAL &nbsp;&nbsp;&nbsp; {viewerLabel}
+            Jacqui Webb · Muster · Confidential &nbsp;&nbsp;&nbsp; {format(new Date(), "d MMM yyyy")} &nbsp;&nbsp;&nbsp; Jacqui Webb · Muster · Confidential
           </div>
         ))}
       </div>
@@ -180,9 +180,12 @@ export default function PitchOverview() {
       >
 
         {/* ── Confidentiality notice ────────────────────────────────────────── */}
-        <div className="text-center">
-          <p className="text-muted-foreground text-xs">
-            This material is shared in confidence. Please treat it as you would any private business conversation.
+        <div className="rounded-xl border border-gray-200 bg-gray-50 px-6 py-4 text-center">
+          <p className="text-gray-500 text-xs leading-relaxed max-w-3xl mx-auto">
+            <span className="font-semibold text-gray-700">Confidential & Proprietary.</span>{" "}
+            By accessing this prototype you agree that this material is confidential, belongs exclusively to Muster,
+            and may not be copied, reproduced, distributed, or disclosed to any third party without prior written consent.
+            Unauthorised use may result in legal action. This session is watermarked.
           </p>
         </div>
 
