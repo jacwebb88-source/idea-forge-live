@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
+import Welcome from "./pages/Welcome";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import BookingBoard from "./pages/BookingBoard";
@@ -53,7 +54,8 @@ const App = () => (
             <Route path="/login" element={<Login />} />
 
             {/* Ops / management routes — full access */}
-            <Route path="/" element={<ProtectedRoute allowedRoles={["ops","management"]}><Index /></ProtectedRoute>} />
+            <Route path="/" element={<Welcome />} />
+            <Route path="/home" element={<ProtectedRoute allowedRoles={["ops","management"]}><Index /></ProtectedRoute>} />
             <Route path="/kill-plan" element={<ProtectedRoute allowedRoles={["ops","management"]}><KillPlan /></ProtectedRoute>} />
             <Route path="/bookings" element={<ProtectedRoute allowedRoles={["ops","management","buyer"]}><BookingBoard /></ProtectedRoute>} />
             <Route path="/transport" element={<ProtectedRoute allowedRoles={["ops","management","transport"]}><TransportSlotting /></ProtectedRoute>} />
