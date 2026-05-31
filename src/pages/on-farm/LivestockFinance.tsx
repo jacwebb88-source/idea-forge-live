@@ -79,15 +79,10 @@ export default function LivestockFinance() {
       <div className="space-y-6 pb-10">
 
         {/* ── Hero ── */}
-        <div className="rounded-2xl overflow-hidden bg-gradient-to-br from-teal-500 to-emerald-600 px-6 pt-6 pb-6">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center">
-              <Banknote className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-white text-2xl font-bold">Livestock Finance Modeller</h1>
-              <p className="text-white/70 text-sm">Model purchase finance costs and their impact on your mob margin</p>
-            </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Livestock Finance Modeller</h1>
+            <p className="text-muted-foreground mt-1">Model purchase finance costs and their impact on your mob margin</p>
           </div>
         </div>
 

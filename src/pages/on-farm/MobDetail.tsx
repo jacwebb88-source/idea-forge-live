@@ -77,93 +77,76 @@ export default function MobDetail() {
     <DashboardLayout>
       <div className="space-y-5 pb-10">
 
-        {/* ── Hero header with category colour ─────────────────────────── */}
-        <div className={`rounded-2xl overflow-hidden bg-gradient-to-br ${cat.gradient} relative`}>
-          <div className="absolute inset-0 opacity-10"
-            style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }}
-          />
-          <div className="relative px-5 pt-5 pb-5">
-            {/* Back + status */}
-            <div className="flex items-center justify-between mb-4">
-              <button
-                onClick={() => navigate("/on-farm")}
-                className="flex items-center gap-1.5 text-white/70 hover:text-white text-sm font-medium transition-colors"
-              >
-                <ArrowLeft className="h-4 w-4" /> On Farm
-              </button>
-              <button
-                onClick={() => setShowStatusDialog(true)}
-                className="bg-white/20 hover:bg-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-full border border-white/20 transition-colors flex items-center gap-1.5"
-              >
-                <Edit3 className="h-3 w-3" />
-                {mob.status.charAt(0).toUpperCase() + mob.status.slice(1)}
-              </button>
-            </div>
+        {/* Page header */}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <button onClick={() => navigate("/on-farm")} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-sm mb-1 transition-colors">
+              <ArrowLeft className="h-4 w-4" /> On Farm
+            </button>
+            <p className="text-xs uppercase tracking-wider font-medium text-muted-foreground">{cat.label}</p>
+            <h1 className="text-3xl font-bold text-foreground leading-tight">{mob.mob_name}</h1>
+            <p className="text-muted-foreground mt-0.5 text-sm">
+              {mob.head_count} head
+              {mob.breed_type ? ` · ${mob.breed_type}` : ""}
+              {mob.location_name ? ` · ${mob.location_name}` : ""}
+            </p>
+          </div>
+          <button onClick={() => setShowStatusDialog(true)} className="shrink-0 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-border bg-muted hover:bg-muted/80 transition-colors">
+            <Edit3 className="h-3 w-3" />
+            {mob.status.charAt(0).toUpperCase() + mob.status.slice(1)}
+          </button>
+        </div>
 
-            {/* Mob identity */}
-            <div className="mb-1">
-              <p className="text-white/60 text-xs uppercase tracking-wider font-medium">{cat.label}</p>
-              <h1 className="text-white text-2xl font-bold leading-tight">{mob.mob_name}</h1>
-              <p className="text-white/70 text-sm mt-0.5">
-                {mob.head_count} head
-                {mob.breed_type ? ` · ${mob.breed_type}` : ""}
-                {mob.location_name ? ` · ${mob.location_name}` : ""}
-              </p>
-            </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: "Days on feed", value: String(dof) },
+            { label: "Avg weight", value: currentWt > 0 ? `${currentWt.toFixed(0)}kg` : "—" },
+            { label: "ADG", value: adg != null && adg > 0 ? `${adg.toFixed(2)}kg` : "—" },
+            { label: "Cost/head", value: totalCostPerHead > 0 ? fmt$(totalCostPerHead) : "—" },
+          ].map(s => (
+            <Card key={s.label}><CardContent className="pt-4"><p className="text-xs text-muted-foreground">{s.label}</p><p className="text-2xl font-bold">{s.value}</p></CardContent></Card>
+          ))}
+        </div>
 
-            {/* Big 4 stats */}
-            <div className="grid grid-cols-4 gap-3 mt-4">
-              <StatBox label="Days on feed" value={String(dof)} />
-              <StatBox label="Avg weight" value={currentWt > 0 ? `${currentWt.toFixed(0)}kg` : "—"} />
-              <StatBox label="ADG" value={adg != null && adg > 0 ? `${adg.toFixed(2)}kg` : "—"} />
-              <StatBox label="Cost/head" value={totalCostPerHead > 0 ? fmt$(totalCostPerHead) : "—"} />
-            </div>
-
-            {/* Weight progress bar */}
+        {(targetWt > 0 && arrivalWt > 0) || prog || exit || mob.hgp_free || mob.msa_eligible || mob.halal_certified ? (
+          <Card><CardContent className="pt-4 space-y-3">
             {targetWt > 0 && arrivalWt > 0 && (
-              <div className="mt-4">
-                <div className="flex justify-between text-white/70 text-xs mb-1.5">
+              <div>
+                <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
                   <span>Weight to target: {currentWt.toFixed(0)}kg → {targetWt}kg</span>
                   <span>{wtPct}%</span>
                 </div>
-                <div className="h-2.5 bg-white/20 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${wtPct >= 100 ? "bg-green-400" : "bg-white"}`}
-                    style={{ width: `${Math.max(3, wtPct)}%` }}
-                  />
+                <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full transition-all ${wtPct >= 100 ? "bg-green-500" : "bg-primary"}`} style={{ width: `${Math.max(3, wtPct)}%` }} />
                 </div>
               </div>
             )}
-
-            {/* Exit + program badges */}
-            <div className="flex flex-wrap gap-2 mt-4">
-              {prog && <span className="bg-white/20 text-white text-xs px-2.5 py-1 rounded-full font-medium">{prog.label}</span>}
-              {exit && <span className="bg-white/20 text-white text-xs px-2.5 py-1 rounded-full font-medium">{exit.label}</span>}
-              {mob.hgp_free && <span className="bg-white/20 text-white text-xs px-2.5 py-1 rounded-full font-medium">HGP Free</span>}
-              {mob.msa_eligible && <span className="bg-white/20 text-white text-xs px-2.5 py-1 rounded-full font-medium">MSA Eligible</span>}
-              {mob.halal_certified && <span className="bg-white/20 text-white text-xs px-2.5 py-1 rounded-full font-medium">Halal</span>}
+            <div className="flex flex-wrap gap-2">
+              {prog && <Badge variant="secondary">{prog.label}</Badge>}
+              {exit && <Badge variant="secondary">{exit.label}</Badge>}
+              {mob.hgp_free && <Badge variant="secondary">HGP Free</Badge>}
+              {mob.msa_eligible && <Badge variant="secondary">MSA Eligible</Badge>}
+              {mob.halal_certified && <Badge variant="secondary">Halal</Badge>}
             </div>
+          </CardContent></Card>
+        ) : null}
+
+        {daysToExit !== null && (
+          <div className={`rounded-lg px-4 py-3 border flex items-center justify-between text-sm ${
+            daysToExit <= 0 ? "bg-red-50 border-red-200 text-red-800"
+            : daysToExit <= 7 ? "bg-amber-50 border-amber-200 text-amber-800"
+            : "bg-muted/40 border-border text-foreground"
+          }`}>
+            <span>{mob.target_exit_path === "oth" ? "Kill date" : "Exit date"}:&nbsp;<strong>{format(new Date(mob.target_exit_date!), "EEEE d MMMM yyyy")}</strong></span>
+            <span className="font-bold">{daysToExit <= 0 ? "Overdue" : `${daysToExit} days`}</span>
           </div>
-
-          {/* Exit countdown */}
-          {daysToExit !== null && (
-            <div className={`px-5 py-3 border-t border-white/10 flex items-center justify-between ${daysToExit <= 7 ? "bg-amber-500/30" : "bg-black/20"}`}>
-              <span className="text-white/80 text-sm">
-                {mob.target_exit_path === "oth" ? "Kill date" : "Exit date"}:&nbsp;
-                <strong className="text-white">{format(new Date(mob.target_exit_date!), "EEEE d MMMM yyyy")}</strong>
-              </span>
-              <span className={`text-sm font-bold ${daysToExit <= 0 ? "text-red-300" : daysToExit <= 7 ? "text-amber-300" : "text-white/70"}`}>
-                {daysToExit <= 0 ? "Overdue" : `${daysToExit} days`}
-              </span>
-            </div>
-          )}
-        </div>
+        )}
 
         {/* ── Quick action buttons ──────────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-3">
           <Button
             onClick={() => setShowWeightDialog(true)}
-            className={`h-14 rounded-xl text-sm font-bold gap-2 bg-gradient-to-r ${cat.gradient} text-white hover:opacity-90 shadow-sm`}
+            className={`h-14 rounded-xl text-sm font-bold gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm`}
           >
             <Scale className="h-5 w-5" />
             Log Weight
@@ -396,7 +379,7 @@ export default function MobDetail() {
 
             <Button
               onClick={() => setShowWeightDialog(true)}
-              className={`w-full h-12 rounded-xl font-bold gap-2 bg-gradient-to-r ${cat.gradient} text-white hover:opacity-90`}
+              className={`w-full h-12 rounded-xl font-bold gap-2 bg-primary text-primary-foreground hover:bg-primary/90`}
             >
               <Scale className="h-5 w-5" /> Log Weight
             </Button>
@@ -1189,7 +1172,7 @@ function EditFeedPlanDialog({ open, onClose, mobId, current, targetWt, currentWt
             <Button
               onClick={save}
               disabled={saving || !form.daily_feed_cost_per_head || !form.expected_adg_kg_day}
-              className={`flex-1 rounded-xl bg-gradient-to-r ${cat.gradient} text-white hover:opacity-90 font-bold`}
+              className={`flex-1 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-bold`}
             >
               {saving ? "Saving…" : "Save Plan"}
             </Button>
@@ -1591,7 +1574,7 @@ function AddCostDialog({ open, onClose, mobId, headCount, onSaved, toast, cat }:
             <Button
               onClick={save}
               disabled={saving || !form.cost_type || !form.amount_total}
-              className={`flex-1 rounded-xl bg-gradient-to-r ${cat.gradient} text-white hover:opacity-90 font-bold`}
+              className={`flex-1 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-bold`}
             >
               {saving ? "Saving…" : "Add Cost"}
             </Button>
@@ -1636,7 +1619,7 @@ function LogWeightDialog({ open, onClose, mobId, weights, onSaved, toast, cat }:
         <DialogHeader><DialogTitle className="text-lg">Log Weight</DialogTitle></DialogHeader>
         <div className="space-y-4">
           {/* Big weight input */}
-          <div className={`rounded-2xl bg-gradient-to-br ${cat.gradient} p-5 text-center`}>
+          <div className={`rounded-2xl bg-primary/10 border border-primary/20 p-5 text-center`}>
             <p className="text-white/70 text-sm mb-2">Average weight (kg/head)</p>
             <input
               type="number" step="0.1"
@@ -1681,7 +1664,7 @@ function LogWeightDialog({ open, onClose, mobId, weights, onSaved, toast, cat }:
             <Button
               onClick={save}
               disabled={saving || !form.avg_weight_kg}
-              className={`flex-1 rounded-xl h-12 bg-gradient-to-r ${cat.gradient} text-white hover:opacity-90 font-bold text-base`}
+              className={`flex-1 rounded-xl h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-base`}
             >
               {saving ? "Saving…" : "Save Weight"}
             </Button>
@@ -2000,7 +1983,7 @@ function AddKillRecordDialog({ open, onClose, mobId, onSaved, toast, cat }: any)
             <Button
               onClick={save}
               disabled={saving || !form.kill_date || !form.processor_name || !form.head_count}
-              className={`flex-1 rounded-xl bg-gradient-to-r ${cat.gradient} text-white hover:opacity-90 font-bold`}
+              className={`flex-1 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-bold`}
             >
               {saving ? "Saving…" : "Save Record"}
             </Button>

@@ -88,21 +88,16 @@ export default function BidCalculator() {
     <DashboardLayout>
       <div className="space-y-6 pb-10">
         {/* Hero */}
-        <div className="rounded-2xl overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-700 px-6 pt-6 pb-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center">
-                <Calculator className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-white text-2xl font-bold">Purchase Bid Calculator</h1>
-                <p className="text-white/70 text-sm">Calculate your maximum safe bid price per head</p>
-              </div>
-            </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Purchase Bid Calculator</h1>
+            <p className="text-muted-foreground mt-1">Calculate your maximum safe bid price per head</p>
+          </div>
+          <div className="flex gap-2">
             <Button
               onClick={reset}
-              variant="ghost"
-              className="text-white/80 hover:text-white hover:bg-white/10 gap-2 rounded-xl"
+              variant="outline"
+              className="gap-2 rounded-xl"
             >
               <RefreshCw className="h-4 w-4" /> Reset
             </Button>

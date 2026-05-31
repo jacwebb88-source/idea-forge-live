@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,17 +39,12 @@ export default function ProcessorGrids() {
     <DashboardLayout>
       <div className="space-y-6 pb-10">
         {/* Header */}
-        <div className="rounded-2xl overflow-hidden bg-gradient-to-br from-green-700 to-emerald-800 px-6 pt-6 pb-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center">
-                <Grid3X3 className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-white text-2xl font-bold">Processor Grids</h1>
-                <p className="text-white/70 text-sm">Weekly kill grid prices from Australian processors</p>
-              </div>
-            </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Processor Grids</h1>
+            <p className="text-muted-foreground mt-1">Weekly kill grid prices from Australian processors</p>
+          </div>
+          <div className="flex gap-2">
             <Button
               onClick={() => setShowAdd(true)}
               className="bg-white text-green-800 hover:bg-white/90 font-bold rounded-xl gap-2"
@@ -57,23 +52,25 @@ export default function ProcessorGrids() {
               <Plus className="h-4 w-4" /> Add Grid
             </Button>
           </div>
-
-          {/* Summary strip */}
-          {grids.length > 0 && (
-            <div className="grid grid-cols-3 gap-3 mt-5">
-              {[
-                { label: "Processors", value: Object.keys(grouped).length },
-                { label: "Grid entries", value: grids.length },
-                { label: "Best price (¢/kg CW)", value: bestPrice },
-              ].map(({ label, value }) => (
-                <div key={label} className="bg-white/15 rounded-xl px-4 py-2.5 text-center">
-                  <p className="text-white/60 text-xs">{label}</p>
-                  <p className="text-white font-bold text-xl">{value}</p>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
+
+        {/* Summary strip */}
+        {grids.length > 0 && (
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: "Processors", value: Object.keys(grouped).length },
+              { label: "Grid entries", value: grids.length },
+              { label: "Best price (¢/kg CW)", value: bestPrice },
+            ].map(({ label, value }) => (
+              <Card key={label}>
+                <CardContent className="px-4 py-3 text-center">
+                  <p className="text-muted-foreground text-xs">{label}</p>
+                  <p className="font-bold text-xl">{value}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
         {/* Grid table */}
         {loading ? (

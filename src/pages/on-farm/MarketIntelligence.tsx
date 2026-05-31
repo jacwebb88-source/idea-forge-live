@@ -116,18 +116,13 @@ export default function MarketIntelligence() {
       <div className="space-y-6 pb-10">
 
         {/* ── Hero ── */}
-        <div className="rounded-2xl overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-700 px-6 pt-6 pb-6">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center">
-              <LineChart className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-white text-2xl font-bold">Market Intelligence</h1>
-              <p className="text-white/70 text-sm">Live Australian cattle market indicators · MLA/NLRS data</p>
-            </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Market Intelligence</h1>
+            <p className="text-muted-foreground mt-1">Live Australian cattle market indicators · MLA/NLRS data</p>
           </div>
-          <p className="text-white/50 text-xs mt-4">{today}</p>
         </div>
+        <p className="text-muted-foreground text-xs">{today}</p>
 
         {/* ── Live Market Indicators ── */}
         <section>

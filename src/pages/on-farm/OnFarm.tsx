@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMobs, useMarketBenchmarks } from "@/components/on-farm/useMobs";
 import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent } from "@/components/ui/card";
 import { MobCard } from "@/components/on-farm/MobCard";
 import { categoryToken } from "@/components/on-farm/farmTokens";
 import { CATEGORY_LABELS } from "@/components/on-farm/types";
@@ -114,58 +115,50 @@ export default function OnFarm() {
       <div className="space-y-6 pb-10">
 
         {/* ── Hero header ──────────────────────────────────────────────── */}
-        <div className="rounded-2xl overflow-hidden bg-gradient-to-br from-green-800 via-green-700 to-emerald-600 relative">
-          {/* Subtle texture overlay */}
-          <div className="absolute inset-0 opacity-10"
-            style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }}
-          />
-          <div className="relative px-6 pt-6 pb-5">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Beef className="h-5 w-5 text-white/80" />
-                  <span className="text-white/70 text-sm font-medium uppercase tracking-wider">On Farm</span>
-                </div>
-                <h1 className="text-white text-2xl font-bold">Livestock Tracker</h1>
-                <p className="text-white/70 text-sm mt-0.5">Per-animal cost, weight, and exit decision</p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => navigate("/on-farm/pitch")}
-                  className="text-white/70 hover:text-white text-xs font-medium flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-white/20 hover:border-white/40 transition-colors"
-                >
-                  <Presentation className="h-3.5 w-3.5" />
-                  Platform Overview
-                </button>
-                <Button
-                  onClick={() => navigate("/on-farm/mobs/new")}
-                  className="bg-white text-green-800 hover:bg-green-50 font-bold gap-1.5"
-                >
-                  <Plus className="h-4 w-4" />
-                  New Mob
-                </Button>
-              </div>
-            </div>
-
-            {/* KPI row */}
-            <div className="grid grid-cols-4 gap-3 mt-5">
-              {[
-                { label: "Active mobs", value: String(active.length), sub: null },
-                { label: "Total head", value: totalHead.toLocaleString(), sub: null },
-                { label: "Capital at risk", value: `$${(totalCapital / 1000).toFixed(0)}k`, sub: null },
-                { label: "Exit ≤14 days", value: String(exiting.length), sub: exiting.length > 0 ? "action needed" : "clear", alert: exiting.length > 0 },
-              ].map(k => (
-                <div key={k.label} className="bg-white/15 backdrop-blur rounded-xl px-3 py-2.5 text-center">
-                  <p className={`text-2xl font-bold ${k.alert ? "text-amber-300" : "text-white"}`}>{k.value}</p>
-                  <p className="text-white/60 text-xs mt-0.5">{k.label}</p>
-                  {k.sub && <p className={`text-xs font-medium mt-0.5 ${k.alert ? "text-amber-300" : "text-white/50"}`}>{k.sub}</p>}
-                </div>
-              ))}
-            </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Livestock Tracker</h1>
+            <p className="text-muted-foreground mt-1">Per-animal cost, weight, and exit decision</p>
           </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => navigate("/on-farm/pitch")}
+              className="text-muted-foreground hover:text-foreground text-xs font-medium flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-border hover:border-foreground/40 transition-colors"
+            >
+              <Presentation className="h-3.5 w-3.5" />
+              Platform Overview
+            </button>
+            <Button
+              onClick={() => navigate("/on-farm/mobs/new")}
+              className="font-bold gap-1.5"
+            >
+              <Plus className="h-4 w-4" />
+              New Mob
+            </Button>
+          </div>
+        </div>
 
-          {/* Market strip */}
-          <div className="bg-green-900/40 border-t border-white/10 px-6 py-3 flex gap-5 overflow-x-auto scrollbar-none">
+        {/* KPI row */}
+        <div className="grid grid-cols-4 gap-3">
+          {[
+            { label: "Active mobs", value: String(active.length), sub: null },
+            { label: "Total head", value: totalHead.toLocaleString(), sub: null },
+            { label: "Capital at risk", value: `$${(totalCapital / 1000).toFixed(0)}k`, sub: null },
+            { label: "Exit ≤14 days", value: String(exiting.length), sub: exiting.length > 0 ? "action needed" : "clear", alert: exiting.length > 0 },
+          ].map(k => (
+            <Card key={k.label}>
+              <CardContent className="px-3 py-2.5 text-center">
+                <p className={`text-2xl font-bold ${k.alert ? "text-amber-500" : "text-foreground"}`}>{k.value}</p>
+                <p className="text-muted-foreground text-xs mt-0.5">{k.label}</p>
+                {k.sub && <p className={`text-xs font-medium mt-0.5 ${k.alert ? "text-amber-500" : "text-muted-foreground"}`}>{k.sub}</p>}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Market strip */}
+        <Card>
+          <CardContent className="px-6 py-3 flex gap-5 overflow-x-auto scrollbar-none">
             {[
               { key: "eyci",         label: "EYCI" },
               { key: "feeder_steer", label: "Feeder Steer" },
@@ -177,19 +170,19 @@ export default function OnFarm() {
               const b = latest(key);
               return (
                 <div key={key} className="shrink-0 text-center">
-                  <p className="text-white/50 text-xs whitespace-nowrap">{label}</p>
-                  <p className="text-white font-bold text-base">{b ? `${b.cents_per_kg}¢` : "—"}</p>
-                  <p className="text-white/40 text-xs">{b?.basis === "dressed_weight" ? "dw" : "lwt"}</p>
+                  <p className="text-muted-foreground text-xs whitespace-nowrap">{label}</p>
+                  <p className="text-foreground font-bold text-base">{b ? `${b.cents_per_kg}¢` : "—"}</p>
+                  <p className="text-muted-foreground text-xs">{b?.basis === "dressed_weight" ? "dw" : "lwt"}</p>
                 </div>
               );
             })}
             {benchDate && (
               <div className="ml-auto shrink-0 text-right self-center">
-                <p className="text-white/30 text-xs">MLA/NLRS · {benchDate}</p>
+                <p className="text-muted-foreground text-xs">MLA/NLRS · {benchDate}</p>
               </div>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* ── Enterprise shortcut ───────────────────────────────────────── */}
         <button
