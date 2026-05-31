@@ -114,43 +114,64 @@ export default function ProcessorGrids() {
           </div>
         ) : (
           <div className="space-y-5">
-            {Object.entries(grouped).map(([processorName, rows]) => (
+            {/* State filter tabs */}
+            {(() => {
+              const states = Array.from(new Set(grids.map(g => (g as any).state).filter(Boolean))).sort();
+              return states.length > 1 ? (
+                <div className="flex gap-2 flex-wrap">
+                  {states.map(s => (
+                    <Badge key={s} variant="outline" className="cursor-default px-3 py-1 text-xs font-medium">{s}</Badge>
+                  ))}
+                  <span className="text-xs text-muted-foreground self-center ml-1">— scroll down to filter by state</span>
+                </div>
+              ) : null;
+            })()}
+
+            {/* Data freshness notice */}
+            <div className="flex items-start gap-2 rounded-lg bg-blue-50 border border-blue-100 px-4 py-3 text-xs text-blue-800">
+              <span className="font-semibold shrink-0">ℹ Grid data:</span>
+              <span>Sourced from Beef Central weekly kill reports (May 2026). Processors do not publish grids publicly — confirmed prices reflect regional market rates. <span className="font-medium">Derived</span> = assigned from regional differential. <span className="font-medium">Estimated</span> = industry-based approximation. Update grids weekly as markets move.</span>
+            </div>
+
+            {Object.entries(grouped).map(([processorName, rows]) => {
+              const locations = Array.from(new Set(rows.map(r => (r as any).plant_location).filter(Boolean)));
+              const states = Array.from(new Set(rows.map(r => (r as any).state).filter(Boolean)));
+              return (
               <div key={processorName}>
-                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 px-1">{processorName}</p>
+                <div className="flex items-center gap-3 mb-2 px-1">
+                  <p className="text-sm font-bold text-foreground">{processorName}</p>
+                  {states.map(s => <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>)}
+                  {locations.length === 1 && <span className="text-xs text-muted-foreground">{locations[0]}</span>}
+                </div>
                 <Card className="overflow-hidden rounded-xl">
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b bg-muted/20 text-xs text-muted-foreground">
-                          <th className="text-left px-4 py-3">Spec / Description</th>
-                          <th className="text-center px-3 py-3">Grade</th>
-                          <th className="text-center px-3 py-3">Fat Score</th>
-                          <th className="text-center px-3 py-3">Weight Range</th>
+                          <th className="text-left px-4 py-3">Category</th>
+                          <th className="text-left px-3 py-3">Location</th>
                           <th className="text-right px-4 py-3">Base ¢/kg CW</th>
                           <th className="text-right px-3 py-3">HGP Free +</th>
                           <th className="text-right px-3 py-3">MSA +</th>
                           <th className="text-right px-3 py-3">Effective</th>
+                          <th className="text-center px-3 py-3">Source</th>
                           <th className="px-3 py-3"></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
                         {rows.map(g => {
                           const isBest = g.price_cpkg_cw === bestPrice;
+                          const confidence = (g as any).source_confidence ?? 'confirmed';
+                          const confidenceStyle = confidence === 'confirmed' ? 'bg-green-100 text-green-700' : confidence === 'derived' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700';
                           return (
                             <tr key={g.id} className={`hover:bg-muted/10 ${isBest ? "bg-green-50/50" : ""}`}>
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-2">
                                   {isBest && <Star className="h-3.5 w-3.5 text-green-600 fill-green-600 shrink-0" />}
-                                  <span className="font-medium">{g.description ?? "—"}</span>
+                                  <span className="font-medium">{g.grade ?? g.description ?? "—"}</span>
                                 </div>
                               </td>
-                              <td className="px-3 py-3 text-center">
-                                {g.grade ? <Badge variant="outline" className="text-xs">{g.grade}</Badge> : <span className="text-muted-foreground">—</span>}
-                              </td>
-                              <td className="px-3 py-3 text-center text-muted-foreground text-xs">{g.fat_score ?? "—"}</td>
-                              <td className="px-3 py-3 text-center text-muted-foreground text-xs">
-                                {g.weight_min_kg && g.weight_max_kg ? `${g.weight_min_kg}–${g.weight_max_kg}kg` : "—"}
-                              </td>
+                              <td className="px-3 py-3 text-xs text-muted-foreground">{(g as any).plant_location ?? "—"}</td>
                               <td className="px-4 py-3 text-right">
                                 <div className="flex items-center justify-end gap-1.5">
                                   {isBest && (
@@ -168,6 +189,11 @@ export default function ProcessorGrids() {
                               <td className="px-3 py-3 text-right text-muted-foreground text-xs whitespace-nowrap">
                                 {format(new Date(g.effective_date), "d MMM yy")}
                               </td>
+                              <td className="px-3 py-3 text-center">
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${confidenceStyle}`}>
+                                  {confidence}
+                                </span>
+                              </td>
                               <td className="px-3 py-3">
                                 <button
                                   onClick={() => deleteGrid(g.id)}
@@ -184,7 +210,8 @@ export default function ProcessorGrids() {
                   </div>
                 </Card>
               </div>
-            ))}
+            );
+            })}
           </div>
         )}
       </div>
