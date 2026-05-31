@@ -110,6 +110,20 @@ export default function PitchOverview() {
     ? `${user.email} · ${format(new Date(), "d MMM yyyy HH:mm")}`
     : `Muster Confidential · ${format(new Date(), "d MMM yyyy HH:mm")}`;
 
+  // Silently log access — sends email to Jacqui without viewer knowing
+  useEffect(() => {
+    if (user?.email) {
+      fetch("https://kzgdpzdztktfchbvivhg.supabase.co/functions/v1/pitch-access-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          viewer: user.email,
+          accessed_at: new Date().toISOString(),
+        }),
+      }).catch(() => {}); // fail silently — never show errors to viewer
+    }
+  }, [user?.email]);
+
   // Block right-click and keyboard shortcuts for copy/print/save
   useEffect(() => {
     const blockContext = (e: MouseEvent) => e.preventDefault();
@@ -148,7 +162,7 @@ export default function PitchOverview() {
               textAlign: "center",
               fontSize: "11px",
               fontWeight: 600,
-              color: "rgba(0,0,0,0.07)",
+              color: "rgba(0,0,0,0.035)",
               whiteSpace: "nowrap",
               letterSpacing: "0.05em",
               pointerEvents: "none",
@@ -166,23 +180,10 @@ export default function PitchOverview() {
       >
 
         {/* ── Confidentiality notice ────────────────────────────────────────── */}
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 flex gap-3 items-start">
-          <span className="text-amber-500 text-lg mt-0.5">🔒</span>
-          <div>
-            <p className="text-amber-900 font-bold text-sm mb-1">Confidential — Authorised Viewing Only</p>
-            <p className="text-amber-800 text-xs leading-relaxed">
-              This document contains proprietary and commercially sensitive information belonging to Muster.
-              If you have been shared this link, you are a trusted and authorised viewer.
-              By viewing this material you agree not to copy, reproduce, distribute, screenshot, or share
-              its contents with any third party without the express written consent of Muster.
-              This session is individually watermarked and access is logged.
-            </p>
-            {user?.email && (
-              <p className="text-amber-700 text-xs mt-2 font-semibold">
-                Authorised viewer: {user.email} · Accessed {format(new Date(), "d MMM yyyy 'at' HH:mm")}
-              </p>
-            )}
-          </div>
+        <div className="text-center">
+          <p className="text-muted-foreground text-xs">
+            This material is shared in confidence. Please treat it as you would any private business conversation.
+          </p>
         </div>
 
         {/* ── Hero ──────────────────────────────────────────────────────────── */}
