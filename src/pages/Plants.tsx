@@ -104,7 +104,7 @@ export default function Plants() {
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-foreground">Processing Plants</h1>
-          <p className="text-muted-foreground">Registered abattoirs and processing facilities</p>
+          <p className="text-muted-foreground mt-1">Processing plant details, capacity and operational contacts</p>
         </div>
 
         {/* Summary strip */}

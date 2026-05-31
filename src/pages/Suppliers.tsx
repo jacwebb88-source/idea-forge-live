@@ -143,9 +143,7 @@ export default function Suppliers() {
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Suppliers</h1>
-            <p className="text-muted-foreground">
-              Manage producer, agent, and feedlot supplier records
-            </p>
+            <p className="text-muted-foreground mt-1">Manage supplier relationships, contacts and accreditation status</p>
           </div>
           <Button>
             <Plus className="h-4 w-4 mr-2" />

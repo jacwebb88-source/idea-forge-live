@@ -427,7 +427,8 @@ export default function SupplierPortal() {
               <div className="w-8 h-8 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-lg flex items-center justify-center">
                 <Leaf className="h-4 w-4 text-white" />
               </div>
-              <h1 className="text-2xl font-bold text-foreground">Muster Supplier</h1>
+              <h1 className="text-3xl font-bold text-foreground">Muster Supplier</h1>
+              <p className="text-muted-foreground mt-1">Manage your livestock bookings, documents and communications</p>
               {totalUnread > 0 && (
                 <Badge className="bg-red-500 text-white text-xs">{totalUnread} new</Badge>
               )}

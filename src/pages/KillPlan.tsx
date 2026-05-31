@@ -483,9 +483,7 @@ export default function KillPlan() {
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Kill Board</h1>
-            <p className="text-muted-foreground">
-              Weekly kill schedule — head count, booking confidence, compliance &amp; exit-date follow-up
-            </p>
+            <p className="text-muted-foreground mt-1">Weekly kill schedule — plan, fill and confirm your kill slots</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <Button

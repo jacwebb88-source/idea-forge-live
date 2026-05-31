@@ -268,9 +268,7 @@ export default function IntakeStatus() {
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Intake Status</h1>
-            <p className="text-muted-foreground">
-              Live event log — arrivals, weighing, lairage and kill progress
-            </p>
+            <p className="text-muted-foreground mt-1">Live intake feed — monitor arrivals, lairage status and pre-slaughter checks</p>
           </div>
           <div className="flex items-center gap-3">
             <Select value={dateRange} onValueChange={setDateRange}>

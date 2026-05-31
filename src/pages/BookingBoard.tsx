@@ -414,7 +414,7 @@ export default function BookingBoard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Booking Board</h1>
-            <p className="text-muted-foreground">Manage kill slot bookings — click any row to view or edit</p>
+            <p className="text-muted-foreground mt-1">Manage supplier bookings, confirm kill slots and track compliance</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={handleExportCSV} disabled={filteredBookings.length === 0}>

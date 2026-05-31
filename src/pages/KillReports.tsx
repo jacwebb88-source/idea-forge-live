@@ -286,9 +286,7 @@ export default function KillReports() {
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Kill Reports</h1>
-            <p className="text-muted-foreground">
-              Distribute kill reports to all vendors, buyers, and plant staff automatically — replaces 50+ weekly manual emails
-            </p>
+            <p className="text-muted-foreground mt-1">Historical kill data, yield summaries and carcase performance reports</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">

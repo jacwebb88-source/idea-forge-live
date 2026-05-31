@@ -264,7 +264,7 @@ export default function ComplianceChecks() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Compliance Checks</h1>
-            <p className="text-muted-foreground">NLIS, NVD, PIC status · HGP sequencing · Mulesing declarations</p>
+            <p className="text-muted-foreground mt-1">Track HGP declarations, NVDs and MSA requirements across all bookings</p>
           </div>
         </div>
 

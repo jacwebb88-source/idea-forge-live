@@ -244,9 +244,7 @@ export default function ForwardPlan() {
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Forward Volume Plan</h1>
-            <p className="text-muted-foreground">
-              Rolling volume by confidence level vs planned capacity — {horizon}-week horizon
-            </p>
+            <p className="text-muted-foreground mt-1">Project forward kill volume and identify supply gaps over the next 12 weeks</p>
           </div>
           <div className="flex gap-2 flex-wrap">
             <Select value={speciesFilter} onValueChange={setSpeciesFilter}>

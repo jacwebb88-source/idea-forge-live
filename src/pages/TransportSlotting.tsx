@@ -159,9 +159,7 @@ export default function TransportSlotting() {
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Transport Slotting</h1>
-            <p className="text-muted-foreground">
-              Monitor and arrange transport for upcoming bookings — next 21 days
-            </p>
+            <p className="text-muted-foreground mt-1">Assign transport to confirmed bookings and manage pickup schedules</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={fetchData}>
