@@ -41,37 +41,47 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const mainItems = [
+// ─── Sidebar nav groups ──────────────────────────────────────────────────────
+
+const overviewItems = [
+  { title: "Dashboard", url: "/home", icon: Home },
   { title: "Kill Board", url: "/kill-plan", icon: CalendarRange },
-  { title: "Dashboard", url: "/", icon: Home },
-  { title: "Forward Volume Plan", url: "/forward-plan", icon: TrendingUp },
-  { title: "Booking Board", url: "/bookings", icon: Calendar },
-  { title: "Transport Slotting", url: "/transport", icon: Truck },
-  { title: "Kill Grid Specifications", url: "/grid-specs", icon: ClipboardList },
   { title: "Operational KPIs", url: "/kpis", icon: BarChart3 },
-  { title: "Compliance Checks", url: "/compliance", icon: ShieldCheck },
-  { title: "Kill Reports & Despatch", url: "/kill-reports", icon: FileText },
-  { title: "Change History", url: "/change-history", icon: History },
-  { title: "Pilot Projects", url: "/pilots", icon: Lightbulb },
-  { title: "Supplier Booking Request", url: "/buyer-request", icon: UserCheck },
 ];
 
-const dataItems = [
-  { title: "Plants", url: "/plants", icon: Users },
-  { title: "Suppliers", url: "/suppliers", icon: Users },
-  { title: "Import Data", url: "/import", icon: ClipboardList },
-];
-
-const systemItems = [
+const operationsItems = [
+  { title: "Booking Board", url: "/bookings", icon: Calendar },
+  { title: "Forward Volume Plan", url: "/forward-plan", icon: TrendingUp },
+  { title: "Transport Slotting", url: "/transport", icon: Truck },
   { title: "Intake Status", url: "/intake", icon: MessageSquare },
+  { title: "Kill Grid Specs", url: "/grid-specs", icon: ClipboardList },
+];
+
+const reportingItems = [
+  { title: "Kill Reports", url: "/kill-reports", icon: FileText },
+  { title: "Compliance", url: "/compliance", icon: ShieldCheck },
+  { title: "Change History", url: "/change-history", icon: History },
+];
+
+const relationshipsItems = [
+  { title: "Suppliers", url: "/suppliers", icon: Users },
+  { title: "Plants", url: "/plants", icon: Building2 },
   { title: "Buyer Portal", url: "/buyer-portal", icon: ShoppingBag },
   { title: "Supplier Portal", url: "/supplier-portal", icon: Leaf },
-  { title: "On Farm", url: "/on-farm", icon: TrendingUp },
-  { title: "Livestock Enterprise", url: "/on-farm/enterprise", icon: Building2 },
-  { title: "Bid Calculator", url: "/on-farm/bid-calculator", icon: Calculator },
-  { title: "Processor Grids", url: "/on-farm/grids", icon: Grid3X3 },
+  { title: "Booking Request", url: "/buyer-request", icon: UserCheck },
+];
+
+const onFarmItems = [
+  { title: "On Farm Home", url: "/on-farm", icon: TrendingUp },
   { title: "Market Intelligence", url: "/on-farm/market", icon: LineChart },
+  { title: "Processor Grids", url: "/on-farm/grids", icon: Grid3X3 },
+  { title: "Bid Calculator", url: "/on-farm/bid-calculator", icon: Calculator },
   { title: "Livestock Finance", url: "/on-farm/finance", icon: Banknote },
+];
+
+const adminItems = [
+  { title: "Import Data", url: "/import", icon: ClipboardList },
+  { title: "Pilot Projects", url: "/pilots", icon: Lightbulb },
   { title: "Platform Overview", url: "/on-farm/pitch", icon: Presentation },
   { title: "Users & Access", url: "/users", icon: UserCog },
   { title: "Settings", url: "/settings", icon: Settings },
@@ -106,59 +116,34 @@ export function AppSidebar() {
           )}
         </div>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Kill Floor</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {mainItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} end className={getNavCls}>
-                      <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Reference Data</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {dataItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} className={getNavCls}>
-                      <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>System</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {systemItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} className={getNavCls}>
-                      <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {[
+          { label: "Overview",      items: overviewItems },
+          { label: "Operations",    items: operationsItems },
+          { label: "Reporting",     items: reportingItems },
+          { label: "Relationships", items: relationshipsItems },
+          { label: "🌿 On Farm",    items: onFarmItems },
+          { label: "Admin",         items: adminItems },
+        ].map(({ label, items }) => (
+          <SidebarGroup key={label}>
+            <SidebarGroupLabel className="text-xs uppercase tracking-widest font-semibold text-muted-foreground/70 px-3 py-1">
+              {label}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {items.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink to={item.url} end className={getNavCls}>
+                        <item.icon className="h-4 w-4 shrink-0" />
+                        {!collapsed && <span className="truncate">{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
 
         {/* User strip at bottom */}
         {profile && (
