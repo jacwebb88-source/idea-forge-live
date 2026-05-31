@@ -77,7 +77,10 @@ const onFarmItems = [
   { title: "Processor Grids", url: "/on-farm/grids", icon: Grid3X3 },
   { title: "Bid Calculator", url: "/on-farm/bid-calculator", icon: Calculator },
   { title: "Livestock Finance", url: "/on-farm/finance", icon: Banknote },
-  { title: "Enterprise", url: "/on-farm/enterprise", icon: Building2 },
+];
+
+const enterpriseItems = [
+  { title: "Enterprise Overview", url: "/on-farm/enterprise", icon: Building2 },
 ];
 
 const adminItems = [
@@ -122,8 +125,9 @@ export function AppSidebar() {
           { label: "Operations",    items: operationsItems },
           { label: "Reporting",     items: reportingItems },
           { label: "Relationships", items: relationshipsItems },
-          { label: "🌿 On Farm",    items: onFarmItems },
-          { label: "Admin",         items: adminItems },
+          { label: "🌿 On Farm",         items: onFarmItems },
+          { label: "🏢 Livestock Enterprise", items: enterpriseItems },
+          { label: "Admin",              items: adminItems },
         ].map(({ label, items }) => (
           <SidebarGroup key={label}>
             <SidebarGroupLabel className="text-xs uppercase tracking-widest font-semibold text-muted-foreground/70 px-3 py-1">
