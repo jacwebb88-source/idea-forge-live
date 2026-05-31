@@ -1,7 +1,9 @@
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { useMobs, useMarketBenchmarks } from "@/components/on-farm/useMobs";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Target, BarChart2, Bot, Clock, TrendingUp, Grid3X3,
   Calculator, Banknote, Wind, ArrowRight, CheckCircle2,
@@ -92,6 +94,7 @@ export default function PitchOverview() {
   const navigate = useNavigate();
   const { mobs } = useMobs();
   const { benchmarks, latest } = useMarketBenchmarks();
+  const { user } = useAuth();
 
   const activeMobs = mobs.filter(m => m.status === "active");
   const totalHead = activeMobs.reduce((s, m) => s + m.head_count, 0);
@@ -102,9 +105,65 @@ export default function PitchOverview() {
     ? format(new Date(benchmarks[0].benchmark_date), "d MMM yyyy")
     : null;
 
+  // Viewer identity for watermark
+  const viewerLabel = user?.email
+    ? `${user.email} · ${format(new Date(), "d MMM yyyy HH:mm")}`
+    : `Muster Confidential · ${format(new Date(), "d MMM yyyy HH:mm")}`;
+
+  // Block right-click and keyboard shortcuts for copy/print/save
+  useEffect(() => {
+    const blockContext = (e: MouseEvent) => e.preventDefault();
+    const blockKeys = (e: KeyboardEvent) => {
+      // Block Cmd/Ctrl + C, P, S, A, Shift+S (screenshot on some systems)
+      if ((e.metaKey || e.ctrlKey) && ["c","p","s","a"].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener("contextmenu", blockContext);
+    document.addEventListener("keydown", blockKeys);
+    return () => {
+      document.removeEventListener("contextmenu", blockContext);
+      document.removeEventListener("keydown", blockKeys);
+    };
+  }, []);
+
   return (
     <DashboardLayout>
-      <div className="space-y-10 pb-16">
+      {/* ── Watermark overlay ─────────────────────────────────────────────── */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 z-50 overflow-hidden select-none"
+        style={{ userSelect: "none" }}
+      >
+        {/* Diagonal repeating watermark */}
+        {Array.from({ length: 20 }).map((_, i) => (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              top: `${(i * 12) - 10}%`,
+              left: "-20%",
+              width: "140%",
+              transform: "rotate(-30deg)",
+              textAlign: "center",
+              fontSize: "11px",
+              fontWeight: 600,
+              color: "rgba(0,0,0,0.07)",
+              whiteSpace: "nowrap",
+              letterSpacing: "0.05em",
+              pointerEvents: "none",
+              userSelect: "none",
+            }}
+          >
+            {viewerLabel} &nbsp;&nbsp;&nbsp; CONFIDENTIAL &nbsp;&nbsp;&nbsp; {viewerLabel}
+          </div>
+        ))}
+      </div>
+
+      <div
+        className="space-y-10 pb-16"
+        style={{ userSelect: "none", WebkitUserSelect: "none" }}
+      >
 
         {/* ── Hero ──────────────────────────────────────────────────────────── */}
         <div className="rounded-2xl overflow-hidden bg-gradient-to-br from-green-900 via-green-800 to-emerald-700 relative">
