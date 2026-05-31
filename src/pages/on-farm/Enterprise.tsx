@@ -654,6 +654,56 @@ export default function Enterprise() {
             )}
           </TabsContent>
         </Tabs>
+
+        {/* ── Related Tools ────────────────────────────────────────────── */}
+        <div>
+          <h2 className="text-base font-semibold text-foreground mb-3">Related tools</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {[
+              {
+                title: "Market Intelligence",
+                desc: "Live EYCI, feeder and heavy steer indicators. Know what the market is doing before you decide to buy or sell.",
+                url: "/on-farm/market",
+                icon: <TrendingUp className="h-5 w-5 text-blue-600" />,
+                color: "bg-blue-50 border-blue-100",
+              },
+              {
+                title: "Processor Grids",
+                desc: "Current processor grid prices by category and state. See what your finished cattle are worth at the gate.",
+                url: "/on-farm/grids",
+                icon: <Layers className="h-5 w-5 text-purple-600" />,
+                color: "bg-purple-50 border-purple-100",
+              },
+              {
+                title: "Bid Calculator",
+                desc: "Work out the maximum you should pay for a pen of cattle to hit your target margin, based on grid and costs.",
+                url: "/on-farm/bid-calculator",
+                icon: <DollarSign className="h-5 w-5 text-green-600" />,
+                color: "bg-green-50 border-green-100",
+              },
+              {
+                title: "Livestock Finance",
+                desc: "Model finance scenarios for cattle purchases — interest, term, repayments and breakeven grid price.",
+                url: "/on-farm/finance",
+                icon: <Wallet className="h-5 w-5 text-amber-600" />,
+                color: "bg-amber-50 border-amber-100",
+              },
+            ].map(tool => (
+              <button
+                key={tool.url}
+                onClick={() => navigate(tool.url)}
+                className={`text-left rounded-xl border px-4 py-4 ${tool.color} hover:shadow-sm transition-shadow group`}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  {tool.icon}
+                  <span className="font-semibold text-sm text-foreground">{tool.title}</span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">{tool.desc}</p>
+                <p className="text-xs font-medium text-primary mt-2 group-hover:underline">Open →</p>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Dialogs */}
