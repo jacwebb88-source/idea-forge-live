@@ -77,6 +77,7 @@ const onFarmItems = [
   { title: "Processor Grids", url: "/on-farm/grids", icon: Grid3X3 },
   { title: "Bid Calculator", url: "/on-farm/bid-calculator", icon: Calculator },
   { title: "Livestock Finance", url: "/on-farm/finance", icon: Banknote },
+  { title: "Enterprise", url: "/on-farm/enterprise", icon: Building2 },
 ];
 
 const adminItems = [
