@@ -1,12 +1,54 @@
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import { format } from "date-fns";
+
+const WATERMARK_TEXT = `Jacqui Webb · Muster · Confidential · ${format(new Date(), "d MMM yyyy")}`;
 
 export default function Welcome() {
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const blockContext = (e: MouseEvent) => e.preventDefault();
+    const blockKeys = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && ["c","p","s","a"].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener("contextmenu", blockContext);
+    document.addEventListener("keydown", blockKeys);
+    return () => {
+      document.removeEventListener("contextmenu", blockContext);
+      document.removeEventListener("keydown", blockKeys);
+    };
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-emerald-700 flex flex-col items-center justify-center px-6 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-emerald-700 flex flex-col items-center justify-center px-6 relative overflow-hidden" style={{ userSelect: "none", WebkitUserSelect: "none" }}>
+
+      {/* Watermark */}
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
+        {Array.from({ length: 20 }).map((_, i) => (
+          <div key={i} style={{
+            position: "absolute",
+            top: `${(i * 12) - 10}%`,
+            left: "-20%",
+            width: "140%",
+            transform: "rotate(-30deg)",
+            textAlign: "center",
+            fontSize: "11px",
+            fontWeight: 600,
+            color: "rgba(255,255,255,0.07)",
+            whiteSpace: "nowrap",
+            letterSpacing: "0.05em",
+            pointerEvents: "none",
+            userSelect: "none",
+          }}>
+            {WATERMARK_TEXT} &nbsp;&nbsp;&nbsp; {WATERMARK_TEXT}
+          </div>
+        ))}
+      </div>
 
       {/* Background texture */}
       <div
