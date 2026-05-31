@@ -165,6 +165,26 @@ export default function PitchOverview() {
         style={{ userSelect: "none", WebkitUserSelect: "none" }}
       >
 
+        {/* ── Confidentiality notice ────────────────────────────────────────── */}
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 flex gap-3 items-start">
+          <span className="text-amber-500 text-lg mt-0.5">🔒</span>
+          <div>
+            <p className="text-amber-900 font-bold text-sm mb-1">Confidential — Authorised Viewing Only</p>
+            <p className="text-amber-800 text-xs leading-relaxed">
+              This document contains proprietary and commercially sensitive information belonging to Muster.
+              If you have been shared this link, you are a trusted and authorised viewer.
+              By viewing this material you agree not to copy, reproduce, distribute, screenshot, or share
+              its contents with any third party without the express written consent of Muster.
+              This session is individually watermarked and access is logged.
+            </p>
+            {user?.email && (
+              <p className="text-amber-700 text-xs mt-2 font-semibold">
+                Authorised viewer: {user.email} · Accessed {format(new Date(), "d MMM yyyy 'at' HH:mm")}
+              </p>
+            )}
+          </div>
+        </div>
+
         {/* ── Hero ──────────────────────────────────────────────────────────── */}
         <div className="rounded-2xl overflow-hidden bg-gradient-to-br from-green-900 via-green-800 to-emerald-700 relative">
           {/* Texture overlay */}
