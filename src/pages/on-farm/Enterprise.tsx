@@ -29,9 +29,11 @@ import {
 import {
   Plus, Building2, MapPin, Users, TrendingUp, AlertTriangle,
   ChevronDown, ChevronRight, Scale, DollarSign, Activity,
-  CheckCircle, Circle, Beef, LayoutGrid, Layers,
+  CheckCircle, Circle, Beef, LayoutGrid, Layers, Bell, Zap,
+  PieChart, Wallet, ArrowRight,
 } from "lucide-react";
 import { format, differenceInDays, addDays } from "date-fns";
+import { PieChart as RechartsPie, Pie, Cell, Tooltip as RechartsTooltip } from "recharts";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -73,45 +75,145 @@ export default function Enterprise() {
   const wk4Head = pipeline.slice(0, 4).reduce((s, w) => s + w.headReady, 0);
   const wk12Head = pipeline.reduce((s, w) => s + w.headReady, 0);
 
+  // Financial estimates
+  const activeMobs = mobs.filter(m => m.status === "active");
+  const estimatedValueOnFeed = activeMobs.reduce((s, m) => {
+    const avgWeight = (m.current_avg_weight_kg ?? m.purchase_weight_kg ?? 0);
+    const price = 4.5; // $/kg CW estimate
+    const dressingPct = 0.54;
+    return s + (m.head_count * avgWeight * dressingPct * price);
+  }, 0);
+  const totalFeedCostToDate = activeMobs.reduce((s, m) => {
+    const dof = differenceInDays(new Date(), new Date(m.purchase_date));
+    const dailyCost = 6; // $6/hd/day default estimate
+    return s + (m.head_count * dof * dailyCost);
+  }, 0);
+  const estimatedGrossMargin = estimatedValueOnFeed - totalFeedCostToDate - activeMobs.reduce((s, m) => s + (m.total_purchase_cost ?? 0), 0);
+
+  // Alerts
+  const alerts: { level: "warning" | "info"; text: string }[] = [];
+  if (readyPens.length > 0) alerts.push({ level: "warning", text: `${readyPens.length} pen${readyPens.length > 1 ? "s" : ""} ready to ship — book a kill slot now` });
+  const staleWeightMobs = activeMobs.filter(m => {
+    const lastWeight = m.updated_at ? differenceInDays(new Date(), new Date(m.updated_at)) : 999;
+    return lastWeight > 21;
+  });
+  if (staleWeightMobs.length > 0) alerts.push({ level: "info", text: `${staleWeightMobs.length} mob${staleWeightMobs.length > 1 ? "s" : ""} haven't had a weight update in 21+ days` });
+  const overCapacity = properties.filter(p => (p.current_head ?? 0) > (p.capacity_head ?? 999999));
+  if (overCapacity.length > 0) alerts.push({ level: "warning", text: `${overCapacity.map(p => p.name).join(", ")} showing over-capacity — check head counts` });
+
+  // Program mix for donut
+  const programCounts: Record<string, number> = {};
+  pens.forEach(pen => {
+    const key = pen.program ?? "unspecified";
+    programCounts[key] = (programCounts[key] ?? 0) + (pen.capacity ?? 0);
+  });
+  const programMixData = Object.entries(programCounts).map(([name, value]) => ({
+    name: PEN_PROGRAM_LABELS[name as PenProgram] ?? "Unspecified",
+    value,
+  })).filter(d => d.value > 0);
+  const PIE_COLORS = ["#16a34a","#f59e0b","#6366f1","#0ea5e9","#ec4899","#94a3b8"];
+
+  const fillPctTotal = pctFill(totalCurrentHead, totalCapacity);
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Building2 className="h-6 w-6 text-primary" />
-              Livestock Enterprise
-            </h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Multi-property portfolio, feedlot pen management, and forward kill pipeline — for vertically integrated operations
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setShowPenDialog(true)} className="gap-1">
-              <LayoutGrid className="h-4 w-4" /> Add Pen
-            </Button>
-            <Button size="sm" onClick={() => setShowPropertyDialog(true)} className="gap-1">
-              <Plus className="h-4 w-4" /> Add Property
-            </Button>
+
+        {/* ── Hero Banner ──────────────────────────────────────────────── */}
+        <div className="rounded-2xl bg-gradient-to-br from-green-800 via-green-700 to-emerald-600 text-white px-6 py-6 relative overflow-hidden">
+          {/* bg texture */}
+          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='1' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/Svg%3E\")" }} />
+          <div className="relative z-10">
+            <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Building2 className="h-5 w-5 text-emerald-200" />
+                  <span className="text-emerald-200 text-sm font-medium uppercase tracking-wider">Livestock Enterprise</span>
+                </div>
+                <h1 className="text-3xl font-extrabold tracking-tight">
+                  {properties.length > 0 ? `${properties.length} Propert${properties.length > 1 ? "ies" : "y"}` : "Your Portfolio"}
+                </h1>
+                <p className="text-white/70 text-sm mt-0.5">
+                  Multi-property portfolio, pen management & forward kill pipeline
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setShowPenDialog(true)}
+                  className="gap-1 bg-white/10 border-white/30 text-white hover:bg-white/20">
+                  <LayoutGrid className="h-4 w-4" /> Add Pen
+                </Button>
+                <Button size="sm" onClick={() => setShowPropertyDialog(true)}
+                  className="gap-1 bg-white text-green-800 hover:bg-emerald-50">
+                  <Plus className="h-4 w-4" /> Add Property
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white/15 rounded-xl px-4 py-3">
+                <p className="text-white/70 text-xs mb-0.5">Head on Feed</p>
+                <p className="text-2xl font-extrabold">{totalCurrentHead.toLocaleString()}</p>
+                {totalCapacity > 0 && (
+                  <div className="mt-1.5">
+                    <div className="h-1 bg-white/20 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-300 rounded-full" style={{ width: `${fillPctTotal}%` }} />
+                    </div>
+                    <p className="text-white/60 text-xs mt-0.5">{fillPctTotal}% of {totalCapacity.toLocaleString()} cap</p>
+                  </div>
+                )}
+              </div>
+              <div className="bg-white/15 rounded-xl px-4 py-3">
+                <p className="text-white/70 text-xs mb-0.5">Est. Value on Feed</p>
+                <p className="text-2xl font-extrabold">{estimatedValueOnFeed > 0 ? `$${(estimatedValueOnFeed / 1000).toFixed(0)}k` : "—"}</p>
+                <p className="text-white/60 text-xs mt-0.5">at $4.50/kg CW est.</p>
+              </div>
+              <div className="bg-white/15 rounded-xl px-4 py-3">
+                <p className="text-white/70 text-xs mb-0.5">Ready to ship ≤4 wks</p>
+                <p className="text-2xl font-extrabold">{wk4Head.toLocaleString()}</p>
+                <p className="text-white/60 text-xs mt-0.5">{wk12Head.toLocaleString()} head within 12 wks</p>
+              </div>
+              <div className={`rounded-xl px-4 py-3 ${readyPens.length > 0 ? "bg-amber-400/30 border border-amber-300/40" : "bg-white/15"}`}>
+                <p className="text-white/70 text-xs mb-0.5">Pens Ready to Ship</p>
+                <p className="text-2xl font-extrabold">{readyPens.length}</p>
+                <p className="text-white/60 text-xs mt-0.5">{activePens.length} pens active total</p>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* KPI strip */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {/* ── Alerts ───────────────────────────────────────────────────── */}
+        {alerts.length > 0 && (
+          <div className="space-y-2">
+            {alerts.map((a, i) => (
+              <div key={i} className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm border ${
+                a.level === "warning"
+                  ? "bg-amber-50 border-amber-200 text-amber-800"
+                  : "bg-blue-50 border-blue-200 text-blue-800"
+              }`}>
+                {a.level === "warning"
+                  ? <AlertTriangle className="h-4 w-4 shrink-0" />
+                  : <Bell className="h-4 w-4 shrink-0" />}
+                <span>{a.text}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── Quick stats strip ─────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KpiCard icon={<Building2 className="h-4 w-4 text-primary" />} label="Properties" value={String(properties.length)} color="bg-primary/10" />
-          <KpiCard icon={<Scale className="h-4 w-4 text-green-600" />} label="Head on Feed" value={totalCurrentHead.toLocaleString()} sub={totalCapacity ? `${pctFill(totalCurrentHead, totalCapacity)}% of ${totalCapacity.toLocaleString()} cap` : undefined} color="bg-green-50" />
-          <KpiCard icon={<Activity className="h-4 w-4 text-amber-600" />} label="Active Pens" value={String(activePens.length)} sub={`${readyPens.length} ready to ship`} color="bg-amber-50" />
-          <KpiCard icon={<TrendingUp className="h-4 w-4 text-blue-600" />} label="Head ready ≤4 wks" value={wk4Head.toLocaleString()} color="bg-blue-50" />
-          <KpiCard icon={<Layers className="h-4 w-4 text-purple-600" />} label="Head ready ≤12 wks" value={wk12Head.toLocaleString()} color="bg-purple-50" />
+          <KpiCard icon={<Wallet className="h-4 w-4 text-green-600" />} label="Est. Gross Margin" value={estimatedGrossMargin > 0 ? `$${(estimatedGrossMargin/1000).toFixed(0)}k` : "—"} sub="across active mobs" color="bg-green-50" />
+          <KpiCard icon={<DollarSign className="h-4 w-4 text-amber-600" />} label="Feed Cost to Date" value={totalFeedCostToDate > 0 ? `$${(totalFeedCostToDate/1000).toFixed(0)}k` : "—"} sub="est. $6/hd/day default" color="bg-amber-50" />
+          <KpiCard icon={<Zap className="h-4 w-4 text-purple-600" />} label="Active Mobs" value={String(activeMobs.length)} sub={`${readyPens.length} pens ready to ship`} color="bg-purple-50" />
         </div>
 
         {/* Tabs */}
         <Tabs defaultValue="portfolio">
-          <TabsList className="grid grid-cols-3 w-full max-w-lg">
-            <TabsTrigger value="portfolio">Property Portfolio</TabsTrigger>
-            <TabsTrigger value="pens">Pen Management</TabsTrigger>
+          <TabsList className="grid grid-cols-4 w-full max-w-2xl">
+            <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
+            <TabsTrigger value="pens">Pens</TabsTrigger>
             <TabsTrigger value="pipeline">Kill Pipeline</TabsTrigger>
+            <TabsTrigger value="financials">Financials</TabsTrigger>
           </TabsList>
 
           {/* ─── PROPERTY PORTFOLIO ───────────────────────────────────── */}
@@ -464,6 +566,135 @@ export default function Enterprise() {
                   <p>When a mob is ready, go to On Farm → mob detail → book a kill slot directly into the Muster booking system.</p>
                 </div>
               </>
+            )}
+          </TabsContent>
+          {/* ─── FINANCIALS ───────────────────────────────────────────── */}
+          <TabsContent value="financials" className="mt-4 space-y-4">
+            <div>
+              <h2 className="font-semibold">Enterprise Financial Snapshot</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Estimated figures based on current mobs, purchase costs, and default feed cost assumptions. Update mob records for more accurate numbers.
+              </p>
+            </div>
+
+            {/* Top-line P&L */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="border-green-200 bg-green-50">
+                <CardContent className="pt-5">
+                  <p className="text-xs text-muted-foreground mb-1">Estimated Sale Value</p>
+                  <p className="text-3xl font-extrabold text-green-700">
+                    {estimatedValueOnFeed > 0 ? `$${(estimatedValueOnFeed / 1000).toFixed(1)}k` : "—"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Based on current avg weight × 54% dressing × $4.50/kg CW</p>
+                </CardContent>
+              </Card>
+              <Card className="border-amber-200 bg-amber-50">
+                <CardContent className="pt-5">
+                  <p className="text-xs text-muted-foreground mb-1">Total Cost In (est.)</p>
+                  <p className="text-3xl font-extrabold text-amber-700">
+                    {(totalFeedCostToDate + activeMobs.reduce((s, m) => s + (m.total_purchase_cost ?? 0), 0)) > 0
+                      ? `$${((totalFeedCostToDate + activeMobs.reduce((s, m) => s + (m.total_purchase_cost ?? 0), 0)) / 1000).toFixed(1)}k`
+                      : "—"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Purchase cost + feed cost to date ($6/hd/day est.)</p>
+                </CardContent>
+              </Card>
+              <Card className={`${estimatedGrossMargin > 0 ? "border-blue-200 bg-blue-50" : "border-red-200 bg-red-50"}`}>
+                <CardContent className="pt-5">
+                  <p className="text-xs text-muted-foreground mb-1">Est. Gross Margin</p>
+                  <p className={`text-3xl font-extrabold ${estimatedGrossMargin > 0 ? "text-blue-700" : "text-red-700"}`}>
+                    {estimatedGrossMargin !== 0 ? `${estimatedGrossMargin > 0 ? "+" : ""}$${(estimatedGrossMargin / 1000).toFixed(1)}k` : "—"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Before overheads, transport & processing</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Per-mob breakdown */}
+            {activeMobs.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2"><CardTitle className="text-sm">Mob-level Breakdown</CardTitle></CardHeader>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-muted/30 text-xs text-muted-foreground">
+                          <th className="text-left px-4 py-2.5">Mob</th>
+                          <th className="text-right px-4 py-2.5">Head</th>
+                          <th className="text-right px-4 py-2.5">DOF</th>
+                          <th className="text-right px-4 py-2.5">Purchase cost</th>
+                          <th className="text-right px-4 py-2.5">Feed cost est.</th>
+                          <th className="text-right px-4 py-2.5">Sale value est.</th>
+                          <th className="text-right px-4 py-2.5">Margin est.</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {activeMobs.map(m => {
+                          const dof = differenceInDays(new Date(), new Date(m.purchase_date));
+                          const feedCost = m.head_count * dof * 6;
+                          const purchaseCost = m.total_purchase_cost ?? 0;
+                          const avgWeight = m.current_avg_weight_kg ?? m.purchase_weight_kg ?? 0;
+                          const saleValue = m.head_count * avgWeight * 0.54 * 4.5;
+                          const margin = saleValue - feedCost - purchaseCost;
+                          return (
+                            <tr key={m.id} className="hover:bg-muted/20 cursor-pointer"
+                              onClick={() => navigate(`/on-farm/mobs/${m.id}`)}>
+                              <td className="px-4 py-2.5 font-medium">{m.mob_name}</td>
+                              <td className="px-4 py-2.5 text-right">{m.head_count}</td>
+                              <td className="px-4 py-2.5 text-right">{dof}d</td>
+                              <td className="px-4 py-2.5 text-right">{purchaseCost > 0 ? `$${(purchaseCost/1000).toFixed(1)}k` : "—"}</td>
+                              <td className="px-4 py-2.5 text-right text-amber-700">${(feedCost/1000).toFixed(1)}k</td>
+                              <td className="px-4 py-2.5 text-right text-green-700">{saleValue > 0 ? `$${(saleValue/1000).toFixed(1)}k` : "—"}</td>
+                              <td className={`px-4 py-2.5 text-right font-semibold ${margin > 0 ? "text-green-700" : "text-red-600"}`}>
+                                {saleValue > 0 ? `${margin > 0 ? "+" : ""}$${(margin/1000).toFixed(1)}k` : "—"}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Program mix */}
+            {programMixData.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm">Program Mix (by pen capacity)</CardTitle></CardHeader>
+                  <CardContent className="flex items-center justify-center py-2">
+                    <RechartsPie width={220} height={180}>
+                      <Pie data={programMixData} cx={110} cy={80} innerRadius={40} outerRadius={75} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false} fontSize={10}>
+                        {programMixData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                      </Pie>
+                      <RechartsTooltip />
+                    </RechartsPie>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm">Program Breakdown</CardTitle></CardHeader>
+                  <CardContent className="space-y-2 pt-2">
+                    {programMixData.map((d, i) => (
+                      <div key={d.name} className="flex items-center gap-3">
+                        <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                        <span className="text-sm flex-1">{d.name}</span>
+                        <span className="text-sm font-semibold">{d.value.toLocaleString()} head cap</span>
+                      </div>
+                    ))}
+                    <div className="pt-2 border-t text-xs text-muted-foreground">
+                      These are estimated values only. Update pen and mob records with actual costs for accurate projections.
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {activeMobs.length === 0 && (
+              <EmptyState
+                icon={<Wallet className="h-10 w-10 text-muted-foreground/30" />}
+                message="No active mobs yet. Add mobs via On Farm to see financial projections here."
+              />
             )}
           </TabsContent>
         </Tabs>
