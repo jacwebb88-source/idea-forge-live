@@ -29,8 +29,8 @@ import {
 import {
   Plus, Building2, MapPin, Users, TrendingUp, AlertTriangle,
   ChevronDown, ChevronRight, Scale, DollarSign, Activity,
-  CheckCircle, Circle, Beef, LayoutGrid, Layers, Bell, Zap,
-  PieChart, Wallet, ArrowRight,
+  CheckCircle, LayoutGrid, Layers, Bell,
+  Wallet,
 } from "lucide-react";
 import { format, differenceInDays, addDays } from "date-fns";
 import { PieChart as RechartsPie, Pie, Cell, Tooltip as RechartsTooltip } from "recharts";
@@ -119,65 +119,21 @@ export default function Enterprise() {
     <DashboardLayout>
       <div className="space-y-6">
 
-        {/* ── Hero Banner ──────────────────────────────────────────────── */}
-        <div className="rounded-2xl bg-gradient-to-br from-green-800 via-green-700 to-emerald-600 text-white px-6 py-6 relative overflow-hidden">
-          {/* bg texture */}
-          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='1' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/Svg%3E\")" }} />
-          <div className="relative z-10">
-            <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Building2 className="h-5 w-5 text-emerald-200" />
-                  <span className="text-emerald-200 text-sm font-medium uppercase tracking-wider">Livestock Enterprise</span>
-                </div>
-                <h1 className="text-3xl font-extrabold tracking-tight">
-                  {properties.length > 0 ? `${properties.length} Propert${properties.length > 1 ? "ies" : "y"}` : "Your Portfolio"}
-                </h1>
-                <p className="text-white/70 text-sm mt-0.5">
-                  Multi-property portfolio, pen management & forward kill pipeline
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setShowPenDialog(true)}
-                  className="gap-1 bg-white/10 border-white/30 text-white hover:bg-white/20">
-                  <LayoutGrid className="h-4 w-4" /> Add Pen
-                </Button>
-                <Button size="sm" onClick={() => setShowPropertyDialog(true)}
-                  className="gap-1 bg-white text-green-800 hover:bg-emerald-50">
-                  <Plus className="h-4 w-4" /> Add Property
-                </Button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white/15 rounded-xl px-4 py-3">
-                <p className="text-white/70 text-xs mb-0.5">Head on Feed</p>
-                <p className="text-2xl font-extrabold">{totalCurrentHead.toLocaleString()}</p>
-                {totalCapacity > 0 && (
-                  <div className="mt-1.5">
-                    <div className="h-1 bg-white/20 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-300 rounded-full" style={{ width: `${fillPctTotal}%` }} />
-                    </div>
-                    <p className="text-white/60 text-xs mt-0.5">{fillPctTotal}% of {totalCapacity.toLocaleString()} cap</p>
-                  </div>
-                )}
-              </div>
-              <div className="bg-white/15 rounded-xl px-4 py-3">
-                <p className="text-white/70 text-xs mb-0.5">Est. Value on Feed</p>
-                <p className="text-2xl font-extrabold">{estimatedValueOnFeed > 0 ? `$${(estimatedValueOnFeed / 1000).toFixed(0)}k` : "—"}</p>
-                <p className="text-white/60 text-xs mt-0.5">at $4.50/kg CW est.</p>
-              </div>
-              <div className="bg-white/15 rounded-xl px-4 py-3">
-                <p className="text-white/70 text-xs mb-0.5">Ready to ship ≤4 wks</p>
-                <p className="text-2xl font-extrabold">{wk4Head.toLocaleString()}</p>
-                <p className="text-white/60 text-xs mt-0.5">{wk12Head.toLocaleString()} head within 12 wks</p>
-              </div>
-              <div className={`rounded-xl px-4 py-3 ${readyPens.length > 0 ? "bg-amber-400/30 border border-amber-300/40" : "bg-white/15"}`}>
-                <p className="text-white/70 text-xs mb-0.5">Pens Ready to Ship</p>
-                <p className="text-2xl font-extrabold">{readyPens.length}</p>
-                <p className="text-white/60 text-xs mt-0.5">{activePens.length} pens active total</p>
-              </div>
-            </div>
+        {/* ── Page header ─────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Livestock Enterprise</h1>
+            <p className="text-muted-foreground mt-1">
+              Multi-property portfolio, pen management &amp; forward kill pipeline
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowPenDialog(true)} className="gap-1">
+              <LayoutGrid className="h-4 w-4" /> Add Pen
+            </Button>
+            <Button size="sm" onClick={() => setShowPropertyDialog(true)} className="gap-1">
+              <Plus className="h-4 w-4" /> Add Property
+            </Button>
           </div>
         </div>
 
@@ -199,12 +155,12 @@ export default function Enterprise() {
           </div>
         )}
 
-        {/* ── Quick stats strip ─────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {/* ── KPI strip ────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <KpiCard icon={<Building2 className="h-4 w-4 text-primary" />} label="Properties" value={String(properties.length)} color="bg-primary/10" />
-          <KpiCard icon={<Wallet className="h-4 w-4 text-green-600" />} label="Est. Gross Margin" value={estimatedGrossMargin > 0 ? `$${(estimatedGrossMargin/1000).toFixed(0)}k` : "—"} sub="across active mobs" color="bg-green-50" />
-          <KpiCard icon={<DollarSign className="h-4 w-4 text-amber-600" />} label="Feed Cost to Date" value={totalFeedCostToDate > 0 ? `$${(totalFeedCostToDate/1000).toFixed(0)}k` : "—"} sub="est. $6/hd/day default" color="bg-amber-50" />
-          <KpiCard icon={<Zap className="h-4 w-4 text-purple-600" />} label="Active Mobs" value={String(activeMobs.length)} sub={`${readyPens.length} pens ready to ship`} color="bg-purple-50" />
+          <KpiCard icon={<Scale className="h-4 w-4 text-green-600" />} label="Head on Feed" value={totalCurrentHead.toLocaleString()} sub={totalCapacity ? `${fillPctTotal}% of ${totalCapacity.toLocaleString()} cap` : undefined} color="bg-green-50" />
+          <KpiCard icon={<Wallet className="h-4 w-4 text-blue-600" />} label="Est. Gross Margin" value={estimatedGrossMargin > 0 ? `$${(estimatedGrossMargin/1000).toFixed(0)}k` : "—"} sub="across active mobs" color="bg-blue-50" />
+          <KpiCard icon={<Activity className="h-4 w-4 text-amber-600" />} label="Pens Ready to Ship" value={String(readyPens.length)} sub={`${activePens.length} pens active · ${wk4Head} head ≤4 wks`} color="bg-amber-50" />
         </div>
 
         {/* Tabs */}
