@@ -44,11 +44,11 @@ export default function Welcome() {
           <p className="text-white font-semibold text-sm">What you'll see inside:</p>
           <ul className="space-y-2">
             {[
-              "Live mob margin tracking & sell timing",
-              "Real MLA/NLRS market benchmarks",
-              "Processor grid intelligence",
-              "AI-powered sell/hold recommendations",
-              "Carbon tracking & livestock finance tools",
+              "Kill plan & booking management",
+              "Supplier & buyer coordination",
+              "Transport slotting & scheduling",
+              "Live KPI dashboard",
+              "Compliance & intake tracking",
             ].map(item => (
               <li key={item} className="flex items-start gap-2 text-white/80 text-sm">
                 <span className="text-emerald-300 mt-0.5">✓</span>
@@ -67,7 +67,7 @@ export default function Welcome() {
           </p>
 
           <Button
-            onClick={() => navigate("/on-farm")}
+            onClick={() => navigate("/home")}
             size="lg"
             className="bg-white text-green-900 hover:bg-emerald-50 font-bold text-base px-10 py-6 rounded-xl shadow-xl gap-2 w-full"
           >
