@@ -42,6 +42,13 @@ function formatIndicatorName(key: string): string {
     grain_wheat_aud_t: "Wheat (AUD/t)",
     grain_barley_aud_t:"Barley (AUD/t)",
     hay_aud_t:         "Hay (AUD/t)",
+    estli:             "ESTLI — Eastern States Trade Lamb",
+    heavy_lamb:        "Heavy Lamb (24-32kg CW)",
+    restocker_lamb:    "Restocker Lamb",
+    merino_lamb:       "Merino Lamb",
+    mutton:            "Mutton / Ewe",
+    watli:             "WATLI — WA Trade Lamb",
+    light_lamb:        "Light Lamb (<18kg CW)",
   };
   return map[key] ?? key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
@@ -50,12 +57,22 @@ function isWheatIndicator(key: string) {
   return key.includes("wheat") || key.includes("grain");
 }
 
+const CATTLE_KEYS = ["eyci", "wyci", "nyci", "feeder_steer", "heavy_steer", "heavy_steer_0t", "heavy_steer_2t", "medium_steer", "light_steer", "heavy_cow", "medium_cow", "oth_vic", "oth_qld", "oth_nsw", "oth_sa"];
+const SHEEP_KEYS = ["estli", "heavy_lamb", "restocker_lamb", "merino_lamb", "mutton", "watli", "light_lamb"];
+
 const CATEGORY_GUIDE = [
   { name: "EYCI Young Cattle", weightRange: "200–400 kg CW", minKg: 200, maxKg: 400, benchKey: "eyci", basis: "¢/kg CW" },
   { name: "Feeder Steers", weightRange: "280–380 kg LW", minKg: 280, maxKg: 380, benchKey: "feeder_steer", basis: "¢/kg LW" },
   { name: "Heavy Steers (0T)", weightRange: "400–550 kg LW", minKg: 400, maxKg: 550, benchKey: "heavy_steer_0t", basis: "¢/kg LW" },
   { name: "Heavy Cows", weightRange: "400–500 kg LW", minKg: 400, maxKg: 500, benchKey: "heavy_cow", basis: "¢/kg LW" },
   { name: "OTH VIC (Processor)", weightRange: "280–500 kg CW", minKg: 280, maxKg: 500, benchKey: "oth_vic", basis: "¢/kg CW" },
+];
+
+const SHEEP_CATEGORY_GUIDE = [
+  { name: "Trade Lamb", weightRange: "18–24 kg CW", minKg: 18, maxKg: 24, benchKey: "estli", basis: "¢/kg CW" },
+  { name: "Heavy Lamb", weightRange: "24–32 kg CW", minKg: 24, maxKg: 32, benchKey: "heavy_lamb", basis: "¢/kg CW" },
+  { name: "Merino Lamb", weightRange: "16–22 kg CW", minKg: 16, maxKg: 22, benchKey: "merino_lamb", basis: "¢/kg CW" },
+  { name: "Mutton / Ewe", weightRange: "22–32 kg CW", minKg: 22, maxKg: 32, benchKey: "mutton", basis: "¢/kg CW" },
 ];
 
 const AUCTIONS_PLUS_ROWS = [
@@ -91,8 +108,15 @@ export default function MarketIntelligence() {
   const { benchmarks, latest } = useMarketBenchmarks();
   const { toast } = useToast();
 
+  const [species, setSpecies] = useState("cattle");
   const [alertCategory, setAlertCategory] = useState("feeder_steer");
   const [alertPrice, setAlertPrice] = useState<number>(300);
+
+  const activeKeys = species === "cattle" ? CATTLE_KEYS : SHEEP_KEYS;
+  const filteredBenchmarks = benchmarks
+    ? benchmarks.filter(b => activeKeys.includes(b.indicator))
+    : [];
+  const activeCategoryGuide = species === "cattle" ? CATEGORY_GUIDE : SHEEP_CATEGORY_GUIDE;
 
   const today = new Date().toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
@@ -111,27 +135,44 @@ export default function MarketIntelligence() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Market Intelligence</h1>
-            <p className="text-muted-foreground mt-1">Live Australian cattle market indicators · MLA/NLRS data</p>
+            <p className="text-muted-foreground mt-1">Live Australian cattle & sheep market indicators · MLA/NLRS data</p>
           </div>
         </div>
         <p className="text-muted-foreground text-xs">{today}</p>
+
+        {/* ── Species Tabs ── */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setSpecies("cattle")}
+            className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${species === "cattle" ? "bg-amber-100 text-amber-800 border border-amber-300" : "bg-muted/40 text-muted-foreground hover:bg-muted/60"}`}
+          >
+            🐄 Cattle
+          </button>
+          <button
+            onClick={() => setSpecies("sheep")}
+            className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${species === "sheep" ? "bg-blue-100 text-blue-800 border border-blue-300" : "bg-muted/40 text-muted-foreground hover:bg-muted/60"}`}
+          >
+            🐑 Sheep & Lamb
+          </button>
+        </div>
 
         {/* ── Live Market Indicators ── */}
         <section>
           <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground mb-3">Live Market Indicators</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            {benchmarks && benchmarks.length > 0 ? (
-              benchmarks.map((b) => {
+            {filteredBenchmarks.length > 0 ? (
+              filteredBenchmarks.map((b) => {
                 const isWheat = isWheatIndicator(b.indicator);
                 const formattedValue = isWheat
                   ? `$${b.cents_per_kg.toFixed(0)}/t`
                   : fmtCpkg(b.cents_per_kg);
+                const isSheep = species === "sheep";
                 return (
                   <Card key={b.indicator}>
                     <CardContent className="pt-4">
                       <div className="flex items-start gap-3">
-                        <div className="h-8 w-8 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
-                          <TrendingUp className="h-4 w-4 text-amber-600" />
+                        <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${isSheep ? "bg-blue-50" : "bg-amber-50"}`}>
+                          <TrendingUp className={`h-4 w-4 ${isSheep ? "text-blue-600" : "text-amber-600"}`} />
                         </div>
                         <div className="min-w-0">
                           <p className="text-xs text-muted-foreground leading-tight">
@@ -145,6 +186,8 @@ export default function MarketIntelligence() {
                   </Card>
                 );
               })
+            ) : benchmarks && benchmarks.length > 0 ? (
+              <p className="text-sm text-muted-foreground col-span-5">No {species === "sheep" ? "sheep & lamb" : "cattle"} benchmarks available yet.</p>
             ) : (
               <p className="text-sm text-muted-foreground col-span-5">Loading benchmarks…</p>
             )}
@@ -152,7 +195,13 @@ export default function MarketIntelligence() {
         </section>
 
         {/* ── Price Trends ── */}
-        {(() => {
+        {species === "sheep" ? (
+          <Card className="rounded-2xl">
+            <CardContent className="py-8 text-center text-muted-foreground text-sm">
+              Sheep price trends coming soon — MLA/NLRS weekly lamb & mutton trend data will appear here once the feed is live.
+            </CardContent>
+          </Card>
+        ) : (() => {
           const eyciCurrent    = latest("eyci")?.cents_per_kg ?? 692;
           const feederCurrent  = latest("feeder_steer")?.cents_per_kg ?? 415;
           const heavyCurrent   = latest("heavy_steer")?.cents_per_kg ?? 345;
@@ -199,7 +248,7 @@ export default function MarketIntelligence() {
         })()}
 
         {/* ── Regional Saleyard Snapshot ── */}
-        {(() => {
+        {species === "sheep" ? null : (() => {
           const heavyBase = latest("heavy_steer")?.cents_per_kg ?? 320;
           const feederBase = latest("feeder_steer")?.cents_per_kg ?? 295;
           return (
@@ -247,6 +296,7 @@ export default function MarketIntelligence() {
         })()}
 
         {/* ── Category Price Guide ── */}
+
         <Card className="rounded-2xl">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Category Price Guide</CardTitle>
@@ -263,7 +313,7 @@ export default function MarketIntelligence() {
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {CATEGORY_GUIDE.map((row) => {
+                  {activeCategoryGuide.map((row) => {
                     const bench = latest(row.benchKey);
                     const cpkg = bench?.cents_per_kg ?? 0;
                     const midKg = (row.minKg + row.maxKg) / 2;
@@ -307,7 +357,7 @@ export default function MarketIntelligence() {
               </div>
               {/* Price ladder */}
               <div className="space-y-1.5">
-                {benchmarks && benchmarks
+                {filteredBenchmarks
                   .filter((b) => !isWheatIndicator(b.indicator))
                   .map((b, i) => {
                     const barWidth = Math.min(100, Math.max(10, (b.cents_per_kg / 400) * 100));

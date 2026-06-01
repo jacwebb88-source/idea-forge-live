@@ -17,6 +17,7 @@ function fmt(n: number) { return n.toFixed(0); }
 export default function ProcessorGrids() {
   const { grids, loading, refetch } = useProcessorGrids();
   const [showAdd, setShowAdd] = useState(false);
+  const [activeSpecies, setActiveSpecies] = useState("Beef");
   const { toast } = useToast();
 
   async function deleteGrid(id: string) {
@@ -26,14 +27,16 @@ export default function ProcessorGrids() {
     refetch();
   }
 
+  const filteredGrids = grids.filter(g => (g as any).species === activeSpecies || (!((g as any).species) && activeSpecies === "Beef"));
+
   // Group by processor name
   const grouped: Record<string, ProcessorGrid[]> = {};
-  grids.forEach(g => {
+  filteredGrids.forEach(g => {
     if (!grouped[g.processor_name]) grouped[g.processor_name] = [];
     grouped[g.processor_name].push(g);
   });
 
-  const bestPrice = grids.length ? Math.max(...grids.map(g => g.price_cpkg_cw)) : 0;
+  const bestPrice = filteredGrids.length ? Math.max(...filteredGrids.map(g => g.price_cpkg_cw)) : 0;
 
   return (
     <DashboardLayout>
@@ -54,8 +57,30 @@ export default function ProcessorGrids() {
           </div>
         </div>
 
+        {/* Species tabs */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setActiveSpecies("Beef")}
+            className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${activeSpecies === "Beef" ? "bg-amber-100 text-amber-800 border border-amber-300" : "bg-muted/40 text-muted-foreground hover:bg-muted/60"}`}
+          >
+            🐄 Cattle
+          </button>
+          <button
+            onClick={() => setActiveSpecies("Sheep")}
+            className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${activeSpecies === "Sheep" ? "bg-blue-100 text-blue-800 border border-blue-300" : "bg-muted/40 text-muted-foreground hover:bg-muted/60"}`}
+          >
+            🐑 Sheep & Lamb
+          </button>
+        </div>
+
+        {activeSpecies === "Sheep" && (
+          <div className="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-xs text-blue-800">
+            Dressing percentage for lambs is typically 46–50% (vs 52–56% for cattle). Grid prices shown are ¢/kg carcase weight (CW).
+          </div>
+        )}
+
         {/* Summary strip */}
-        {grids.length > 0 && (
+        {filteredGrids.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <Card>
               <CardContent className="pt-4">
@@ -78,7 +103,7 @@ export default function ProcessorGrids() {
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">Grid entries</p>
-                    <p className="text-2xl font-bold leading-tight">{grids.length}</p>
+                    <p className="text-2xl font-bold leading-tight">{filteredGrids.length}</p>
                   </div>
                 </div>
               </CardContent>
@@ -104,7 +129,7 @@ export default function ProcessorGrids() {
           <div className="space-y-3 animate-pulse">
             {[1,2,3].map(i => <div key={i} className="h-16 rounded-xl bg-muted/40" />)}
           </div>
-        ) : grids.length === 0 ? (
+        ) : filteredGrids.length === 0 ? (
           <div className="rounded-xl border-2 border-dashed border-green-200 bg-green-50 py-12 text-center">
             <Grid3X3 className="h-10 w-10 text-muted-foreground/20 mx-auto mb-3" />
             <p className="text-green-900/60 text-sm">No processor grids yet. Add one to compare kill prices.</p>
@@ -116,7 +141,7 @@ export default function ProcessorGrids() {
           <div className="space-y-5">
             {/* State filter tabs */}
             {(() => {
-              const states = Array.from(new Set(grids.map(g => (g as any).state).filter(Boolean))).sort();
+              const states = Array.from(new Set(filteredGrids.map(g => (g as any).state).filter(Boolean))).sort();
               return states.length > 1 ? (
                 <div className="flex gap-2 flex-wrap">
                   {states.map(s => (

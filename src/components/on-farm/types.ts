@@ -1,6 +1,7 @@
 export type MobCategory =
   | "boner_cow" | "lot_fed" | "backgrounder" | "weaner"
-  | "breeder" | "trade" | "bull" | "cull_cow";
+  | "breeder" | "trade" | "bull" | "cull_cow"
+  | "trade_lamb" | "heavy_lamb" | "merino_lamb" | "ewe" | "wether" | "hogget";
 
 export type ProgramType = "feedlot" | "grass" | "agistment" | "backgrounding";
 export type ExitPath = "saleyard" | "oth" | "live_export" | "breeding" | "kill_own";
@@ -87,6 +88,12 @@ export const CATEGORY_LABELS: Record<MobCategory, string> = {
   trade:        "Trade Cattle",
   bull:         "Bull",
   cull_cow:     "Cull Cow",
+  trade_lamb:   "Trade Lamb",
+  heavy_lamb:   "Heavy Lamb",
+  merino_lamb:  "Merino Lamb",
+  ewe:          "Breeding Ewe",
+  wether:       "Wether",
+  hogget:       "Hogget",
 };
 
 export const PROGRAM_LABELS: Record<ProgramType, string> = {

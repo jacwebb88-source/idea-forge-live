@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMarketBenchmarks } from "@/components/on-farm/useMobs";
 import { Calculator, RefreshCw, AlertTriangle } from "lucide-react";
 
-const DEFAULTS = {
+const CATTLE_DEFAULTS = {
   exitWeight: 420,
   exitPath: "oth",
   processorPrice: 620,
@@ -23,38 +23,67 @@ const DEFAULTS = {
   arrivalWeight: 350,
 };
 
+const SHEEP_DEFAULTS = {
+  exitWeight: 24,
+  exitPath: "oth",
+  processorPrice: 1100,
+  dressingPct: 48,
+  targetMargin: 20,
+  daysToFeed: 60,
+  dailyCost: 1.80,
+  freightIn: 20,
+  agentCommIn: 2.5,
+  mlaLevy: 2,
+  inductionCosts: 10,
+  arrivalWeight: 36,
+};
+
 export default function BidCalculator() {
   const { latest } = useMarketBenchmarks();
   const heavySteerBench = latest("heavy_steer")?.cents_per_kg ?? 620;
+  const estliBench = latest("estli")?.cents_per_kg ?? 1100;
 
-  const [exitWeight, setExitWeight] = useState(DEFAULTS.exitWeight);
-  const [exitPath, setExitPath] = useState(DEFAULTS.exitPath);
-  const [processorPrice, setProcessorPrice] = useState(heavySteerBench || DEFAULTS.processorPrice);
-  const [dressingPct, setDressingPct] = useState(DEFAULTS.dressingPct);
-  const [targetMargin, setTargetMargin] = useState(DEFAULTS.targetMargin);
-  const [daysToFeed, setDaysToFeed] = useState(DEFAULTS.daysToFeed);
-  const [dailyCost, setDailyCost] = useState(DEFAULTS.dailyCost);
-  const [freightIn, setFreightIn] = useState(DEFAULTS.freightIn);
-  const [agentCommIn, setAgentCommIn] = useState(DEFAULTS.agentCommIn);
-  const [inductionCosts, setInductionCosts] = useState(DEFAULTS.inductionCosts);
-  const [arrivalWeight, setArrivalWeight] = useState(DEFAULTS.arrivalWeight);
+  const [species, setSpecies] = useState<"cattle" | "sheep">("cattle");
+
+  const [exitWeight, setExitWeight] = useState(CATTLE_DEFAULTS.exitWeight);
+  const [exitPath, setExitPath] = useState(CATTLE_DEFAULTS.exitPath);
+  const [processorPrice, setProcessorPrice] = useState(heavySteerBench || CATTLE_DEFAULTS.processorPrice);
+  const [dressingPct, setDressingPct] = useState(CATTLE_DEFAULTS.dressingPct);
+  const [targetMargin, setTargetMargin] = useState(CATTLE_DEFAULTS.targetMargin);
+  const [daysToFeed, setDaysToFeed] = useState(CATTLE_DEFAULTS.daysToFeed);
+  const [dailyCost, setDailyCost] = useState(CATTLE_DEFAULTS.dailyCost);
+  const [freightIn, setFreightIn] = useState(CATTLE_DEFAULTS.freightIn);
+  const [agentCommIn, setAgentCommIn] = useState(CATTLE_DEFAULTS.agentCommIn);
+  const [inductionCosts, setInductionCosts] = useState(CATTLE_DEFAULTS.inductionCosts);
+  const [arrivalWeight, setArrivalWeight] = useState(CATTLE_DEFAULTS.arrivalWeight);
+
+  const applyDefaults = useCallback((s: "cattle" | "sheep") => {
+    const D = s === "cattle" ? CATTLE_DEFAULTS : SHEEP_DEFAULTS;
+    const benchPrice = s === "cattle" ? (heavySteerBench || D.processorPrice) : (estliBench || D.processorPrice);
+    setExitWeight(D.exitWeight);
+    setExitPath(D.exitPath);
+    setProcessorPrice(benchPrice);
+    setDressingPct(D.dressingPct);
+    setTargetMargin(D.targetMargin);
+    setDaysToFeed(D.daysToFeed);
+    setDailyCost(D.dailyCost);
+    setFreightIn(D.freightIn);
+    setAgentCommIn(D.agentCommIn);
+    setInductionCosts(D.inductionCosts);
+    setArrivalWeight(D.arrivalWeight);
+  }, [heavySteerBench, estliBench]);
+
+  const switchSpecies = useCallback((s: "cattle" | "sheep") => {
+    setSpecies(s);
+    applyDefaults(s);
+  }, [applyDefaults]);
 
   const reset = useCallback(() => {
-    setExitWeight(DEFAULTS.exitWeight);
-    setExitPath(DEFAULTS.exitPath);
-    setProcessorPrice(heavySteerBench || DEFAULTS.processorPrice);
-    setDressingPct(DEFAULTS.dressingPct);
-    setTargetMargin(DEFAULTS.targetMargin);
-    setDaysToFeed(DEFAULTS.daysToFeed);
-    setDailyCost(DEFAULTS.dailyCost);
-    setFreightIn(DEFAULTS.freightIn);
-    setAgentCommIn(DEFAULTS.agentCommIn);
-    setInductionCosts(DEFAULTS.inductionCosts);
-    setArrivalWeight(DEFAULTS.arrivalWeight);
-  }, [heavySteerBench]);
+    applyDefaults(species);
+  }, [species, applyDefaults]);
 
   // ── Calculations ──────────────────────────────────────────────────────────
-  const MLA = 5;
+  const MLA = species === "sheep" ? 2 : 5;
   const feedingCost = dailyCost * daysToFeed;
 
   let projectedSaleValue: number;
@@ -81,6 +110,19 @@ export default function BidCalculator() {
   const marginCheck = projectedSaleValue - totalCosts - maxBid;
   const isNegative = maxBid < 0;
 
+  const activeBench = species === "cattle" ? heavySteerBench : estliBench;
+  const benchLabel = species === "cattle" ? "Market benchmark:" : "ESTLI benchmark:";
+
+  const exitWeightLabel = species === "sheep"
+    ? (exitPath === "oth" ? "Target Exit Weight (kg CW)" : "Target Exit Weight (kg)")
+    : "Target Exit Weight (kg):";
+
+  const resultCardClass = isNegative
+    ? "bg-gradient-to-br from-red-500 to-rose-600"
+    : species === "sheep"
+      ? "bg-gradient-to-br from-green-500 to-emerald-600"
+      : "bg-gradient-to-br from-amber-500 to-orange-600";
+
   function fmt$(n: number) { return `$${Math.abs(n).toLocaleString("en-AU", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`; }
   function fmt$dec(n: number) { return `$${n.toFixed(2)}`; }
 
@@ -91,9 +133,24 @@ export default function BidCalculator() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Purchase Bid Calculator</h1>
-            <p className="text-muted-foreground mt-1">Calculate your maximum safe bid price per head</p>
+            <p className="text-muted-foreground mt-1">Calculate your maximum safe bid — Cattle &amp; Sheep</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            {/* Species toggle */}
+            <div className="flex items-center gap-1 bg-muted/50 rounded-xl p-1">
+              <button
+                onClick={() => switchSpecies("cattle")}
+                className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${species === "cattle" ? "bg-amber-100 text-amber-800" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+              >
+                🐄 Cattle
+              </button>
+              <button
+                onClick={() => switchSpecies("sheep")}
+                className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${species === "sheep" ? "bg-green-100 text-green-800" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+              >
+                🐑 Sheep &amp; Lamb
+              </button>
+            </div>
             <Button
               onClick={reset}
               variant="outline"
@@ -113,10 +170,15 @@ export default function BidCalculator() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-xs font-semibold">Target Exit Weight (kg): <span className="text-blue-600 font-bold">{exitWeight}kg</span></Label>
+                  <Label className="text-xs font-semibold">
+                    {exitWeightLabel} <span className="text-blue-600 font-bold">{exitWeight}{species === "sheep" && exitPath === "oth" ? "kg CW" : "kg"}</span>
+                  </Label>
                   <div className="flex items-center gap-3">
                     <input
-                      type="range" min={300} max={600} step={5}
+                      type="range"
+                      min={species === "sheep" ? 14 : 300}
+                      max={species === "sheep" ? 36 : 600}
+                      step={species === "sheep" ? 1 : 5}
                       value={exitWeight}
                       onChange={e => setExitWeight(+e.target.value)}
                       className="flex-1 accent-blue-600"
@@ -130,7 +192,9 @@ export default function BidCalculator() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Arrival Weight (kg)</Label>
+                  <Label className="text-xs font-semibold">
+                    {species === "sheep" ? "Arrival Weight (kg LW)" : "Arrival Weight (kg)"}
+                  </Label>
                   <Input
                     type="number" value={arrivalWeight}
                     onChange={e => setArrivalWeight(+e.target.value)}
@@ -145,7 +209,9 @@ export default function BidCalculator() {
                     <SelectContent>
                       <SelectItem value="saleyard">Saleyard (¢/kg liveweight)</SelectItem>
                       <SelectItem value="oth">OTH — Direct to Processor (¢/kg CW)</SelectItem>
-                      <SelectItem value="live_export">Live Export (¢/kg liveweight)</SelectItem>
+                      {species === "cattle" && (
+                        <SelectItem value="live_export">Live Export (¢/kg liveweight)</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -159,8 +225,8 @@ export default function BidCalculator() {
                     onChange={e => setProcessorPrice(+e.target.value)}
                     className="rounded-xl font-bold text-lg"
                   />
-                  {heavySteerBench > 0 && (
-                    <p className="text-xs text-muted-foreground">Market benchmark: {heavySteerBench}¢/kg</p>
+                  {activeBench > 0 && (
+                    <p className="text-xs text-muted-foreground">{benchLabel} {activeBench}¢/kg</p>
                   )}
                 </div>
 
@@ -169,7 +235,10 @@ export default function BidCalculator() {
                     <Label className="text-xs font-semibold">Dressing % ({dressingPct}%)</Label>
                     <div className="flex items-center gap-3">
                       <input
-                        type="range" min={52} max={62} step={0.5}
+                        type="range"
+                        min={species === "sheep" ? 44 : 52}
+                        max={species === "sheep" ? 54 : 62}
+                        step={0.5}
                         value={dressingPct}
                         onChange={e => setDressingPct(+e.target.value)}
                         className="flex-1 accent-blue-600"
@@ -220,7 +289,7 @@ export default function BidCalculator() {
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs font-semibold">MLA levy ($/hd)</Label>
-                    <Input type="number" value={5} disabled className="rounded-xl bg-muted/30 text-muted-foreground" />
+                    <Input type="number" value={MLA} disabled className="rounded-xl bg-muted/30 text-muted-foreground" />
                     <p className="text-xs text-muted-foreground">fixed</p>
                   </div>
                 </div>
@@ -236,7 +305,7 @@ export default function BidCalculator() {
           {/* ── Output ── */}
           <div className="space-y-4">
             {/* Main result */}
-            <div className={`rounded-2xl p-6 ${isNegative ? "bg-gradient-to-br from-red-500 to-rose-600" : "bg-gradient-to-br from-amber-500 to-orange-600"}`}>
+            <div className={`rounded-2xl p-6 ${resultCardClass}`}>
               <p className="text-white/70 text-sm font-semibold uppercase tracking-wide mb-1">Maximum bid price</p>
               <p className="text-white text-6xl font-black leading-none">
                 {isNegative ? "-" : ""}{fmt$(maxBid)}
@@ -298,7 +367,7 @@ export default function BidCalculator() {
                     </tr>
                     <tr className="border-t-2 border-foreground/20 bg-muted/20">
                       <td className="py-3 font-bold">Maximum bid</td>
-                      <td className={`py-3 text-right font-black text-xl ${isNegative ? "text-red-600" : "text-amber-700"}`}>
+                      <td className={`py-3 text-right font-black text-xl ${isNegative ? "text-red-600" : species === "sheep" ? "text-green-700" : "text-amber-700"}`}>
                         {isNegative ? "-" : ""}{fmt$(maxBid)}
                       </td>
                     </tr>

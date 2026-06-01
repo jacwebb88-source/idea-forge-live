@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +17,14 @@ import {
 } from "@/components/on-farm/types";
 import { ArrowLeft, Beef } from "lucide-react";
 
+const CATTLE_CATEGORIES: MobCategory[] = [
+  "boner_cow", "lot_fed", "backgrounder", "weaner", "breeder", "trade", "bull", "cull_cow",
+];
+
+const SHEEP_CATEGORIES: MobCategory[] = [
+  "trade_lamb", "heavy_lamb", "merino_lamb", "ewe", "wether", "hogget",
+];
+
 export default function NewMob() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -25,6 +32,7 @@ export default function NewMob() {
 
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
+    species: "cattle" as "cattle" | "sheep",
     mob_name: "",
     category: "" as MobCategory | "",
     breed_type: "",
@@ -53,6 +61,13 @@ export default function NewMob() {
 
   const set = (k: string, v: string | boolean) => setForm(f => ({ ...f, [k]: v }));
 
+  const setSpecies = (species: "cattle" | "sheep") => {
+    setForm(f => ({ ...f, species, category: "" }));
+  };
+
+  const isSheep = form.species === "sheep";
+  const categoryList = isSheep ? SHEEP_CATEGORIES : CATTLE_CATEGORIES;
+
   const arrivalWeight = form.purchase_weight_avg_kg && form.shrink_pct
     ? (parseFloat(form.purchase_weight_avg_kg) * (1 - parseFloat(form.shrink_pct) / 100)).toFixed(1)
     : "";
@@ -66,6 +81,7 @@ export default function NewMob() {
     setSaving(true);
 
     const payload: Record<string, unknown> = {
+      species: form.species,
       mob_name: form.mob_name,
       category: form.category,
       breed_type: form.breed_type || null,
@@ -158,7 +174,10 @@ export default function NewMob() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Beef className="h-5 w-5 text-primary" />
+          {isSheep
+            ? <span className="text-lg leading-none">🐑</span>
+            : <Beef className="h-5 w-5 text-primary" />
+          }
           <h1 className="text-xl font-bold">New Mob</h1>
         </div>
 
@@ -167,6 +186,33 @@ export default function NewMob() {
           <Card>
             <CardHeader className="pb-3"><CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Mob Details</CardTitle></CardHeader>
             <CardContent className="space-y-4">
+
+              {/* Species toggle */}
+              <div className="flex rounded-full border overflow-hidden w-fit">
+                <button
+                  type="button"
+                  onClick={() => setSpecies("cattle")}
+                  className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+                    !isSheep
+                      ? "bg-amber-100 text-amber-800 font-bold"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  🐄 Cattle
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSpecies("sheep")}
+                  className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+                    isSheep
+                      ? "bg-green-100 text-green-800 font-bold"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  🐑 Sheep & Lamb
+                </button>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 space-y-1.5">
                   <Label>Mob Name <span className="text-destructive">*</span></Label>
@@ -177,15 +223,19 @@ export default function NewMob() {
                   <Select value={form.category} onValueChange={v => set("category", v)}>
                     <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                     <SelectContent>
-                      {Object.entries(CATEGORY_LABELS).map(([v, l]) => (
-                        <SelectItem key={v} value={v}>{l}</SelectItem>
+                      {categoryList.map(v => (
+                        <SelectItem key={v} value={v}>{CATEGORY_LABELS[v]}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Breed / Type</Label>
-                  <Input placeholder="e.g. Angus, Crossbred, Bos Indicus" value={form.breed_type} onChange={e => set("breed_type", e.target.value)} />
+                  <Input
+                    placeholder={isSheep ? "e.g. Merino, Dorper, White Suffolk, Crossbred" : "e.g. Angus, Crossbred, Bos Indicus"}
+                    value={form.breed_type}
+                    onChange={e => set("breed_type", e.target.value)}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Head Count <span className="text-destructive">*</span></Label>
@@ -250,7 +300,7 @@ export default function NewMob() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Transit shrink %</Label>
-                  <Input type="number" step="0.1" placeholder="4" value={form.shrink_pct} onChange={e => set("shrink_pct", e.target.value)} />
+                  <Input type="number" step="0.1" placeholder={isSheep ? "2" : "4"} value={form.shrink_pct} onChange={e => set("shrink_pct", e.target.value)} />
                 </div>
                 {arrivalWeight && (
                   <div className="col-span-2 rounded-md bg-muted/40 px-4 py-2 text-sm">
@@ -292,7 +342,7 @@ export default function NewMob() {
                   <Input type="date" value={form.target_exit_date} onChange={e => set("target_exit_date", e.target.value)} />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Target turn-off weight (kg/head)</Label>
+                  <Label>{isSheep ? "Target turn-off weight (kg CW)" : "Target turn-off weight (kg/head)"}</Label>
                   <Input type="number" step="0.1" placeholder="e.g. 420" value={form.target_weight_kg} onChange={e => set("target_weight_kg", e.target.value)} />
                 </div>
               </div>
