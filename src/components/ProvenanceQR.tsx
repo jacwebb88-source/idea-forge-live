@@ -14,7 +14,7 @@ interface ProvenanceQRProps {
   };
 }
 
-export default function ProvenanceQR({ lotCode, lotDetails }: ProvenanceQRProps) {
+export function ProvenanceQR({ lotCode, lotDetails }: ProvenanceQRProps) {
   const [copied, setCopied] = useState(false);
 
   const provenanceUrl = `https://app.muster.com.au/provenance/${lotCode}`;
