@@ -380,7 +380,11 @@ export default function MarketIntelligence() {
                         <tr key={r.id}>
                           <td className="py-2.5 pr-4 font-semibold">{r.saleyard_name}</td>
                           <td className="py-2.5 pr-4 text-muted-foreground">{r.state}</td>
-                          <td className="py-2.5 pr-4 text-muted-foreground">{r.category}</td>
+                          <td className="py-2.5 pr-4 text-muted-foreground">{({
+                            feeder_steer: "Feeder Steer", heavy_steer: "Heavy Steer", heavy_cow: "Heavy Cow",
+                            weaner: "Weaner", trade_lamb: "Trade Lamb", heavy_lamb: "Heavy Lamb",
+                            merino_lamb: "Merino Lamb", mutton: "Mutton", backgrounder: "Backgrounder"
+                          } as Record<string,string>)[r.category] ?? r.category.replace(/_/g," ").replace(/\b\w/g,(c:string)=>c.toUpperCase())}</td>
                           <td className="py-2.5 pr-4 text-right font-bold text-green-700">{r.price_avg_cpkg.toFixed(0)}¢</td>
                           <td className="py-2.5 pr-4 text-right text-muted-foreground">
                             {r.price_low_dol != null && r.price_high_dol != null
