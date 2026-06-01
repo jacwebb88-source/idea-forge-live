@@ -33,6 +33,7 @@ import {
   QrCode,
   Upload,
   PieChart,
+  HelpCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -107,6 +108,7 @@ const adminItems = [
   { title: "Platform Overview", url: "/on-farm/pitch", icon: Presentation },
   { title: "Users & Access", url: "/users", icon: UserCog },
   { title: "Settings", url: "/settings", icon: Settings },
+  { title: "Help Centre", url: "/help", icon: HelpCircle },
 ];
 
 const ROLE_LABELS: Record<string, string> = {

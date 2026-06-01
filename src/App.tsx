@@ -47,6 +47,7 @@ import LotTracking from "./pages/LotTracking";
 import Provenance from "./pages/Provenance";
 import FinancialImport from "./pages/on-farm/FinancialImport";
 import FinancialAnalysis from "./pages/on-farm/FinancialAnalysis";
+import HelpCentre from "./pages/HelpCentre";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -117,6 +118,9 @@ const App = () => (
 
             {/* On-farm kill results */}
             <Route path="/on-farm/kill-results" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><KillResults /></ProtectedRoute>} />
+
+            {/* Help Centre — all authenticated roles */}
+            <Route path="/help" element={<ProtectedRoute><HelpCentre /></ProtectedRoute>} />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
