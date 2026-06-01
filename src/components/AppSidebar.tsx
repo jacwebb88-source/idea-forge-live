@@ -26,6 +26,8 @@ import {
   LineChart,
   Banknote,
   Presentation,
+  Globe,
+  PackageCheck,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -60,6 +62,7 @@ const operationsItems = [
 const reportingItems = [
   { title: "Kill Reports", url: "/kill-reports", icon: FileText },
   { title: "Compliance", url: "/compliance", icon: ShieldCheck },
+  { title: "Export Compliance", url: "/export-compliance", icon: Globe },
   { title: "Change History", url: "/change-history", icon: History },
 ];
 
@@ -77,10 +80,12 @@ const onFarmItems = [
 
 const enterpriseItems = [
   { title: "Enterprise Overview", url: "/on-farm/enterprise", icon: Building2 },
+  { title: "Export Markets", url: "/on-farm/enterprise-export", icon: PackageCheck },
 ];
 
 const farmToolsItems = [
   { title: "Market Intelligence", url: "/on-farm/market", icon: LineChart },
+  { title: "Export Compliance", url: "/on-farm/export-compliance", icon: Globe },
   { title: "Processor Grids", url: "/on-farm/grids", icon: Grid3X3 },
   { title: "Bid Calculator", url: "/on-farm/bid-calculator", icon: Calculator },
   { title: "Livestock Finance", url: "/on-farm/finance", icon: Banknote },

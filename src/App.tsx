@@ -38,6 +38,9 @@ import MarketIntelligence from "./pages/on-farm/MarketIntelligence";
 import LivestockFinance from "./pages/on-farm/LivestockFinance";
 import MobReport from "./pages/on-farm/MobReport";
 import PitchOverview from "./pages/on-farm/PitchOverview";
+import ExportCompliance from "./pages/on-farm/ExportCompliance";
+import ProcessorExportCompliance from "./pages/ExportCompliance";
+import EnterpriseExport from "./pages/on-farm/EnterpriseExport";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -95,6 +98,11 @@ const App = () => (
             <Route path="/on-farm/market" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><MarketIntelligence /></ProtectedRoute>} />
             <Route path="/on-farm/finance" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><LivestockFinance /></ProtectedRoute>} />
             <Route path="/on-farm/pitch" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><PitchOverview /></ProtectedRoute>} />
+            <Route path="/on-farm/export-compliance" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><ExportCompliance /></ProtectedRoute>} />
+            <Route path="/on-farm/enterprise-export" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><EnterpriseExport /></ProtectedRoute>} />
+
+            {/* Processor export compliance */}
+            <Route path="/export-compliance" element={<ProtectedRoute allowedRoles={["ops","management"]}><ProcessorExportCompliance /></ProtectedRoute>} />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
