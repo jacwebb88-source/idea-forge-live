@@ -30,6 +30,7 @@ import {
   PackageCheck,
   Microscope,
   Award,
+  QrCode,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -64,6 +65,7 @@ const operationsItems = [
 const reportingItems = [
   { title: "Kill Reports", url: "/kill-reports", icon: FileText },
   { title: "Kill Grading", url: "/kill-grading", icon: Microscope },
+  { title: "Lot Tracking & QR", url: "/lot-tracking", icon: QrCode },
   { title: "Compliance", url: "/compliance", icon: ShieldCheck },
   { title: "Export Compliance", url: "/export-compliance", icon: Globe },
   { title: "Change History", url: "/change-history", icon: History },
