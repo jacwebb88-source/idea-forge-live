@@ -31,6 +31,8 @@ import {
   Microscope,
   Award,
   QrCode,
+  Upload,
+  PieChart,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -86,11 +88,13 @@ const onFarmItems = [
 const enterpriseItems = [
   { title: "Enterprise Overview", url: "/on-farm/enterprise", icon: Building2 },
   { title: "Export Markets", url: "/on-farm/enterprise-export", icon: PackageCheck },
+  { title: "Financial Analysis", url: "/on-farm/financial-analysis", icon: PieChart },
 ];
 
 const farmToolsItems = [
   { title: "Market Intelligence", url: "/on-farm/market", icon: LineChart },
   { title: "Kill Results", url: "/on-farm/kill-results", icon: Award },
+  { title: "Import Financials", url: "/on-farm/financial-import", icon: Upload },
   { title: "Export Compliance", url: "/on-farm/export-compliance", icon: Globe },
   { title: "Processor Grids", url: "/on-farm/grids", icon: Grid3X3 },
   { title: "Bid Calculator", url: "/on-farm/bid-calculator", icon: Calculator },

@@ -45,6 +45,8 @@ import KillGrading from "./pages/KillGrading";
 import KillResults from "./pages/on-farm/KillResults";
 import LotTracking from "./pages/LotTracking";
 import Provenance from "./pages/Provenance";
+import FinancialImport from "./pages/on-farm/FinancialImport";
+import FinancialAnalysis from "./pages/on-farm/FinancialAnalysis";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -105,6 +107,8 @@ const App = () => (
             <Route path="/on-farm/pitch" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><PitchOverview /></ProtectedRoute>} />
             <Route path="/on-farm/export-compliance" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><ExportCompliance /></ProtectedRoute>} />
             <Route path="/on-farm/enterprise-export" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><EnterpriseExport /></ProtectedRoute>} />
+            <Route path="/on-farm/financial-import" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><FinancialImport /></ProtectedRoute>} />
+            <Route path="/on-farm/financial-analysis" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><FinancialAnalysis /></ProtectedRoute>} />
 
             {/* Processor export compliance */}
             <Route path="/export-compliance" element={<ProtectedRoute allowedRoles={["ops","management"]}><ProcessorExportCompliance /></ProtectedRoute>} />
