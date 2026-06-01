@@ -1,13 +1,31 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 const WATERMARK_TEXT = `Jacqui Webb · Muster · Confidential · ${format(new Date(), "d MMM yyyy")}`;
 
 export default function Welcome() {
   const navigate = useNavigate();
+  const [demoLoading, setDemoLoading] = useState(false);
+  const [demoError, setDemoError] = useState(false);
+
+  const handleDemoLogin = async () => {
+    setDemoLoading(true);
+    setDemoError(false);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: "demo@muster.com.au",
+      password: "MusterDemo2025!",
+    });
+    if (error) {
+      setDemoError(true);
+      setDemoLoading(false);
+    } else {
+      navigate("/home");
+    }
+  };
 
   useEffect(() => {
     const blockContext = (e: MouseEvent) => e.preventDefault();
@@ -26,6 +44,13 @@ export default function Welcome() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-900 via-green-800 to-emerald-700 flex flex-col items-center justify-center px-6 relative overflow-hidden" style={{ userSelect: "none", WebkitUserSelect: "none" }}>
+
+      {/* Top banner */}
+      <div className="fixed top-0 left-0 right-0 z-40 bg-emerald-600/90 backdrop-blur-sm border-b border-emerald-500/40 py-2 px-4 text-center">
+        <p className="text-white/90 text-xs sm:text-sm font-medium">
+          🚀 Built for Australian livestock — farm to fork traceability, kill scheduling, export compliance and more.
+        </p>
+      </div>
 
       {/* Watermark */}
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
@@ -59,7 +84,7 @@ export default function Welcome() {
         }}
       />
 
-      <div className="relative z-10 max-w-lg w-full text-center space-y-8">
+      <div className="relative z-10 max-w-lg w-full text-center space-y-8 pt-12">
 
         {/* Logo */}
         <div className="flex items-center justify-center gap-3">
@@ -116,6 +141,30 @@ export default function Welcome() {
             Enter prototype
             <ArrowRight className="h-5 w-5" />
           </Button>
+
+          {/* Demo login */}
+          <div className="space-y-2">
+            <Button
+              onClick={handleDemoLogin}
+              disabled={demoLoading}
+              size="lg"
+              variant="outline"
+              className="border-white/40 text-white hover:bg-white/10 hover:border-white/70 font-semibold text-base px-10 py-6 rounded-xl gap-2 w-full bg-transparent"
+            >
+              {demoLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "🔍"
+              )}
+              Explore the Demo
+            </Button>
+            {demoError && (
+              <p className="text-red-300 text-xs">Demo unavailable — please try again</p>
+            )}
+            <p className="text-white/50 text-xs">
+              See the full platform with live data. No account needed.
+            </p>
+          </div>
 
           <p className="text-white/40 text-xs">
             Built by Jacqui Webb · Muster · {new Date().getFullYear()}

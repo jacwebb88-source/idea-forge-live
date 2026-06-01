@@ -9,6 +9,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Welcome from "./pages/Welcome";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import BookingBoard from "./pages/BookingBoard";
 import KillPlan from "./pages/KillPlan";
 import TransportSlotting from "./pages/TransportSlotting";
@@ -63,6 +64,7 @@ const App = () => (
             {/* Public — no auth required */}
             <Route path="/provenance/:lotCode" element={<Provenance />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
 
             {/* Ops / management routes — full access */}
             <Route path="/" element={<Welcome />} />
