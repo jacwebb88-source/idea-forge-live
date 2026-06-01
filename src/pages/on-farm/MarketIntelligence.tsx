@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   LineChart as RechartsLineChart,
   Line,
@@ -104,6 +105,53 @@ const REGIONAL_ADJUSTMENTS = [
   { region: "Kimberley WA",    heavyAdj: -12, feederAdj: -14 },
 ];
 
+type SaleyardReport = {
+  id: string;
+  created_at: string;
+  sale_date: string;
+  saleyard_name: string;
+  state: string;
+  species: string;
+  category: string;
+  price_avg_cpkg: number;
+  price_low_dol: number;
+  price_high_dol: number;
+  head_count: number;
+  source: string | null;
+  notes: string | null;
+};
+
+function useSaleyardReports(species: string) {
+  const [reports, setReports] = useState<SaleyardReport[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    supabase
+      .from("saleyard_reports")
+      .select("*")
+      .eq("species", species)
+      .order("sale_date", { ascending: false })
+      .limit(60)
+      .then(({ data }) => {
+        // Deduplicate: keep most recent row per saleyard+category
+        const seen = new Set<string>();
+        const deduped: SaleyardReport[] = [];
+        for (const row of (data as SaleyardReport[]) ?? []) {
+          const key = `${row.saleyard_name}||${row.category}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            deduped.push(row);
+          }
+        }
+        setReports(deduped);
+        setLoading(false);
+      });
+  }, [species]);
+
+  return { reports, loading };
+}
+
 export default function MarketIntelligence() {
   const { benchmarks, latest } = useMarketBenchmarks();
   const { toast } = useToast();
@@ -111,6 +159,9 @@ export default function MarketIntelligence() {
   const [species, setSpecies] = useState("cattle");
   const [alertCategory, setAlertCategory] = useState("feeder_steer");
   const [alertPrice, setAlertPrice] = useState<number>(300);
+  const [saleyardState, setSaleyardState] = useState("all");
+
+  const { reports, loading: reportsLoading } = useSaleyardReports(species);
 
   const activeKeys = species === "cattle" ? CATTLE_KEYS : SHEEP_KEYS;
   const filteredBenchmarks = benchmarks
@@ -192,6 +243,86 @@ export default function MarketIntelligence() {
               <p className="text-sm text-muted-foreground col-span-5">Loading benchmarks…</p>
             )}
           </div>
+        </section>
+
+        {/* ── Saleyard Results ── */}
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <Map className="h-4 w-4 text-green-700" />
+            <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+              Saleyard Results · Live Clearances
+            </h2>
+            <span className="ml-1 text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">Agora</span>
+          </div>
+
+          {/* State filter pills */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["all", "NSW", "VIC", "SA", "QLD", "WA"].map((s) => (
+              <button
+                key={s}
+                onClick={() => setSaleyardState(s)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                  saleyardState === s
+                    ? "bg-green-100 text-green-800 border border-green-300"
+                    : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
+                }`}
+              >
+                {s === "all" ? "All" : s}
+              </button>
+            ))}
+          </div>
+
+          <Card className="rounded-2xl">
+            <CardContent className="pt-4 overflow-x-auto">
+              {reportsLoading ? (
+                <div className="space-y-3">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="h-8 bg-muted/40 rounded-lg animate-pulse" />
+                  ))}
+                </div>
+              ) : reports.filter((r) => saleyardState === "all" || r.state === saleyardState).length === 0 ? (
+                <div className="rounded-xl bg-blue-50 border border-blue-200 px-4 py-5 text-center">
+                  <p className="text-sm text-blue-800 font-semibold mb-1">No saleyard data yet</p>
+                  <p className="text-xs text-blue-700 leading-relaxed">
+                    Saleyard data loads automatically each week from Agora Livestock. First results will appear after the next weekly scrape.
+                  </p>
+                </div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-xs text-muted-foreground uppercase tracking-wide">
+                      <th className="text-left py-2 pr-4">Saleyard</th>
+                      <th className="text-left py-2 pr-4">State</th>
+                      <th className="text-left py-2 pr-4">Category</th>
+                      <th className="text-right py-2 pr-4">Avg ¢/kg CW</th>
+                      <th className="text-right py-2 pr-4">$/head range</th>
+                      <th className="text-right py-2 pr-4">Head yarded</th>
+                      <th className="text-right py-2">Sale date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {reports
+                      .filter((r) => saleyardState === "all" || r.state === saleyardState)
+                      .map((r) => (
+                        <tr key={r.id}>
+                          <td className="py-2.5 pr-4 font-semibold">{r.saleyard_name}</td>
+                          <td className="py-2.5 pr-4 text-muted-foreground">{r.state}</td>
+                          <td className="py-2.5 pr-4 text-muted-foreground">{r.category}</td>
+                          <td className="py-2.5 pr-4 text-right font-bold text-green-700">{r.price_avg_cpkg.toFixed(0)}¢</td>
+                          <td className="py-2.5 pr-4 text-right text-muted-foreground">
+                            {r.price_low_dol != null && r.price_high_dol != null
+                              ? `$${r.price_low_dol.toLocaleString("en-AU", { maximumFractionDigits: 0 })}–$${r.price_high_dol.toLocaleString("en-AU", { maximumFractionDigits: 0 })}`
+                              : "—"}
+                          </td>
+                          <td className="py-2.5 pr-4 text-right">{r.head_count != null ? r.head_count.toLocaleString("en-AU") : "—"}</td>
+                          <td className="py-2.5 text-right text-muted-foreground text-xs">{r.sale_date}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              )}
+            </CardContent>
+          </Card>
         </section>
 
         {/* ── Price Trends ── */}
