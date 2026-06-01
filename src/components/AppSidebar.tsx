@@ -33,7 +33,6 @@ import {
   QrCode,
   Bot,
   Upload,
-  PieChart,
   HelpCircle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -69,6 +68,7 @@ const operationsItems = [
 
 const reportingItems = [
   { title: "Kill Reports", url: "/kill-reports", icon: FileText },
+  { title: "Forecasting", url: "/forecasting", icon: TrendingUp },
   { title: "Vendor Scorecard", url: "/vendor-scorecard", icon: Award },
   { title: "Kill Grading", url: "/kill-grading", icon: Microscope },
   { title: "Lot Tracking & QR", url: "/lot-tracking", icon: QrCode },
@@ -96,6 +96,7 @@ const enterpriseItems = [
 ];
 
 const farmToolsItems = [
+  { title: "Forecasting", url: "/on-farm/forecasting", icon: TrendingUp },
   { title: "Market Intelligence", url: "/on-farm/market", icon: LineChart },
   { title: "Kill Results", url: "/on-farm/kill-results", icon: Award },
   { title: "Import Financials", url: "/on-farm/financial-import", icon: Upload },

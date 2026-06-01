@@ -50,6 +50,7 @@ import FinancialImport from "./pages/on-farm/FinancialImport";
 import FinancialAnalysis from "./pages/on-farm/FinancialAnalysis";
 import HelpCentre from "./pages/HelpCentre";
 import VendorScorecard from "./pages/VendorScorecard";
+import OnFarmForecasting from "./pages/on-farm/Forecasting";
 import ProcessorAgent from "./pages/ProcessorAgent";
 import NotFound from "./pages/NotFound";
 
@@ -82,6 +83,7 @@ const App = () => (
             <Route path="/pilots" element={<ProtectedRoute allowedRoles={["ops","management"]}><PilotProjects /></ProtectedRoute>} />
             <Route path="/compliance" element={<ProtectedRoute allowedRoles={["ops","management"]}><ComplianceChecks /></ProtectedRoute>} />
             <Route path="/kill-reports" element={<ProtectedRoute allowedRoles={["ops","management"]}><KillReports /></ProtectedRoute>} />
+            <Route path="/forecasting" element={<ProtectedRoute allowedRoles={["ops","management"]}><Forecasting /></ProtectedRoute>} />
             <Route path="/vendor-scorecard" element={<ProtectedRoute allowedRoles={["ops","management"]}><VendorScorecard /></ProtectedRoute>} />
             <Route path="/change-history" element={<ProtectedRoute allowedRoles={["ops","management"]}><ChangeHistory /></ProtectedRoute>} />
             <Route path="/intake" element={<ProtectedRoute allowedRoles={["ops","management"]}><IntakeStatus /></ProtectedRoute>} />
@@ -109,6 +111,7 @@ const App = () => (
             <Route path="/on-farm/bid-calculator" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><BidCalculator /></ProtectedRoute>} />
             <Route path="/on-farm/grids" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><ProcessorGrids /></ProtectedRoute>} />
             <Route path="/on-farm/market" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><MarketIntelligence /></ProtectedRoute>} />
+            <Route path="/on-farm/forecasting" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><OnFarmForecasting /></ProtectedRoute>} />
             <Route path="/on-farm/finance" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><LivestockFinance /></ProtectedRoute>} />
             <Route path="/on-farm/pitch" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><PitchOverview /></ProtectedRoute>} />
             <Route path="/on-farm/export-compliance" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><ExportCompliance /></ProtectedRoute>} />
