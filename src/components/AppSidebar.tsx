@@ -31,6 +31,7 @@ import {
   Microscope,
   Award,
   QrCode,
+  Bot,
   Upload,
   PieChart,
   HelpCircle,
@@ -54,6 +55,7 @@ import {
 const overviewItems = [
   { title: "Dashboard", url: "/home", icon: Home },
   { title: "Kill Board", url: "/kill-plan", icon: CalendarRange },
+  { title: "Operations Agent", url: "/agent", icon: Bot },
   { title: "Operational KPIs", url: "/kpis", icon: BarChart3 },
 ];
 
@@ -67,6 +69,7 @@ const operationsItems = [
 
 const reportingItems = [
   { title: "Kill Reports", url: "/kill-reports", icon: FileText },
+  { title: "Vendor Scorecard", url: "/vendor-scorecard", icon: Award },
   { title: "Kill Grading", url: "/kill-grading", icon: Microscope },
   { title: "Lot Tracking & QR", url: "/lot-tracking", icon: QrCode },
   { title: "Compliance", url: "/compliance", icon: ShieldCheck },

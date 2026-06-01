@@ -49,6 +49,8 @@ import Provenance from "./pages/Provenance";
 import FinancialImport from "./pages/on-farm/FinancialImport";
 import FinancialAnalysis from "./pages/on-farm/FinancialAnalysis";
 import HelpCentre from "./pages/HelpCentre";
+import VendorScorecard from "./pages/VendorScorecard";
+import ProcessorAgent from "./pages/ProcessorAgent";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -80,6 +82,7 @@ const App = () => (
             <Route path="/pilots" element={<ProtectedRoute allowedRoles={["ops","management"]}><PilotProjects /></ProtectedRoute>} />
             <Route path="/compliance" element={<ProtectedRoute allowedRoles={["ops","management"]}><ComplianceChecks /></ProtectedRoute>} />
             <Route path="/kill-reports" element={<ProtectedRoute allowedRoles={["ops","management"]}><KillReports /></ProtectedRoute>} />
+            <Route path="/vendor-scorecard" element={<ProtectedRoute allowedRoles={["ops","management"]}><VendorScorecard /></ProtectedRoute>} />
             <Route path="/change-history" element={<ProtectedRoute allowedRoles={["ops","management"]}><ChangeHistory /></ProtectedRoute>} />
             <Route path="/intake" element={<ProtectedRoute allowedRoles={["ops","management"]}><IntakeStatus /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
@@ -117,6 +120,7 @@ const App = () => (
             <Route path="/export-compliance" element={<ProtectedRoute allowedRoles={["ops","management"]}><ProcessorExportCompliance /></ProtectedRoute>} />
             <Route path="/kill-grading" element={<ProtectedRoute allowedRoles={["ops","management"]}><KillGrading /></ProtectedRoute>} />
             <Route path="/lot-tracking" element={<ProtectedRoute allowedRoles={["ops","management"]}><LotTracking /></ProtectedRoute>} />
+            <Route path="/agent" element={<ProtectedRoute allowedRoles={["ops","management"]}><ProcessorAgent /></ProtectedRoute>} />
 
             {/* On-farm kill results */}
             <Route path="/on-farm/kill-results" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><KillResults /></ProtectedRoute>} />
