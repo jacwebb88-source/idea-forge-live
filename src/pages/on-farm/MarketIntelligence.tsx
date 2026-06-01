@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMarketBenchmarks } from "@/components/on-farm/useMobs";
 import { useToast } from "@/hooks/use-toast";
-import { LineChart, Bell, Info, TrendingUp, BarChart2, Map } from "lucide-react";
+import { LineChart, Bell, Info, TrendingUp, BarChart2, Map, Cloud } from "lucide-react";
 
 function fmt$(n: number) { return `$${n.toLocaleString("en-AU", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`; }
 function fmtCpkg(n: number) { return `${n.toFixed(0)}¢/kg`; }
@@ -162,6 +162,29 @@ export default function MarketIntelligence() {
   const [alertCategory, setAlertCategory] = useState("feeder_steer");
   const [alertPrice, setAlertPrice] = useState<number>(300);
   const [saleyardState, setSaleyardState] = useState("all");
+  const [seasonalState, setSeasonalState] = useState("all");
+
+  const [seasonalData, setSeasonalData] = useState<any[]>([]);
+  const [seasonalLoading, setSeasonalLoading] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from("seasonal_data")
+      .select("*")
+      .order("observation_date", { ascending: false })
+      .limit(48) // up to 4 weeks × 12 regions
+      .then(({ data }) => {
+        // Keep only most recent row per region
+        const seen = new Set<string>();
+        const deduped = (data ?? []).filter(r => {
+          if (seen.has(r.region_name)) return false;
+          seen.add(r.region_name);
+          return true;
+        });
+        setSeasonalData(deduped);
+        setSeasonalLoading(false);
+      });
+  }, []);
 
   const { reports, loading: reportsLoading } = useSaleyardReports(species);
 
@@ -540,6 +563,197 @@ export default function MarketIntelligence() {
               </CardContent>
             </Card>
           </div>
+        </section>
+
+        {/* ── Seasonal Conditions ── */}
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <Cloud className="h-4 w-4 text-sky-600" />
+            <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+              Seasonal Conditions
+            </h2>
+          </div>
+
+          {/* Part A — ENSO / Seasonal Outlook banner */}
+          {(() => {
+            const soiRow = seasonalData.find(r => r.soi_index != null);
+            if (seasonalLoading) {
+              return (
+                <div className="h-28 bg-muted/40 rounded-2xl animate-pulse mb-4" />
+              );
+            }
+            if (!soiRow) {
+              return (
+                <div className="rounded-2xl bg-sky-50 border border-sky-200 px-5 py-5 mb-4">
+                  <p className="text-sm text-sky-800 font-semibold mb-1">Seasonal outlook not yet available</p>
+                  <p className="text-xs text-sky-700 leading-relaxed">
+                    SOI and ENSO phase data loads after the first weekly weather scrape from Open-Meteo and SILO. Check back after the next scheduled update.
+                  </p>
+                </div>
+              );
+            }
+            const phase = soiRow.enso_phase as string | null;
+            const soi = soiRow.soi_index as number;
+            const phaseConfig = phase === "el_nino"
+              ? { label: "🌡 El Niño — below average rain likely", badgeClass: "bg-red-100 text-red-800 border-red-300" }
+              : phase === "la_nina"
+              ? { label: "🌧 La Niña — above average rain likely", badgeClass: "bg-blue-100 text-blue-800 border-blue-300" }
+              : { label: "⛅ Neutral — average conditions", badgeClass: "bg-gray-100 text-gray-700 border-gray-300" };
+            return (
+              <div className="rounded-2xl bg-white border border-sky-200 shadow-sm px-5 py-5 mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div className="flex-1">
+                    <span className={`inline-block text-xs font-semibold border px-2.5 py-1 rounded-full mb-2 ${phaseConfig.badgeClass}`}>
+                      {phaseConfig.label}
+                    </span>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Southern Oscillation Index · Updated monthly · Negative = El Niño (dry), Positive = La Niña (wet)
+                    </p>
+                    {soiRow.rainfall_outlook_3m && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        3-month outlook:{" "}
+                        <span className="font-semibold capitalize">{soiRow.rainfall_outlook_3m.replace(/_/g, " ")}</span>
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className={`text-5xl font-bold ${soi > 0 ? "text-blue-600" : soi < 0 ? "text-red-500" : "text-gray-500"}`}>
+                      {soi > 0 ? "+" : ""}{soi.toFixed(1)}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">SOI index</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* State filter pills */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {["all", "QLD", "NSW", "VIC", "SA", "WA", "NT"].map((s) => (
+              <button
+                key={s}
+                onClick={() => setSeasonalState(s)}
+                className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                  seasonalState === s
+                    ? "bg-sky-100 text-sky-800 border border-sky-300"
+                    : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
+                }`}
+              >
+                {s === "all" ? "All" : s}
+              </button>
+            ))}
+          </div>
+
+          {/* Part B — Region cards */}
+          {seasonalLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="h-40 bg-muted/40 rounded-2xl animate-pulse" />
+              ))}
+            </div>
+          ) : seasonalData.length === 0 ? (
+            <div className="rounded-2xl bg-sky-50 border border-sky-200 px-5 py-5">
+              <p className="text-sm text-sky-800 font-semibold mb-1">Seasonal data not yet loaded</p>
+              <p className="text-xs text-sky-700 leading-relaxed">
+                Seasonal data loads weekly from Open-Meteo (BOM data) and SILO. Covers 12 livestock regions across Australia. First results appear after the weekly weather update runs.
+              </p>
+            </div>
+          ) : (() => {
+            const filtered = seasonalData.filter(r =>
+              seasonalState === "all" || r.state === seasonalState
+            );
+            if (filtered.length === 0) {
+              return (
+                <p className="text-sm text-muted-foreground">No regions found for {seasonalState}.</p>
+              );
+            }
+            return (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {filtered.map((r) => {
+                  const stressConfig = r.pasture_stress === "good"
+                    ? { dot: "bg-green-500", label: "Good", dotClass: "" }
+                    : r.pasture_stress === "fair"
+                    ? { dot: "bg-amber-400", label: "Fair", dotClass: "" }
+                    : r.pasture_stress === "stressed"
+                    ? { dot: "bg-orange-500", label: "Stressed", dotClass: "" }
+                    : r.pasture_stress === "critical"
+                    ? { dot: "bg-red-500", label: "Critical", dotClass: "animate-pulse" }
+                    : { dot: "bg-gray-300", label: "Unknown", dotClass: "" };
+
+                  const rainfallPct = r.rainfall_30d_pct_avg as number | null;
+                  const rainfallMm = r.rainfall_30d_mm as number | null;
+                  const rainfallBarColor = rainfallPct == null
+                    ? "bg-muted"
+                    : rainfallPct >= 90
+                    ? "bg-green-500"
+                    : rainfallPct >= 60
+                    ? "bg-amber-400"
+                    : "bg-red-500";
+                  const rainfallBarWidth = rainfallPct != null
+                    ? Math.min(100, Math.max(2, rainfallPct))
+                    : 0;
+
+                  const supplyConfig = r.supply_pressure === "low"
+                    ? { label: "↓ Low supply pressure", badgeClass: "bg-gray-100 text-gray-600" }
+                    : r.supply_pressure === "moderate"
+                    ? { label: "→ Moderate", badgeClass: "bg-amber-100 text-amber-700" }
+                    : r.supply_pressure === "high"
+                    ? { label: "↑ High supply pressure", badgeClass: "bg-orange-100 text-orange-700" }
+                    : r.supply_pressure === "very_high"
+                    ? { label: "⚠ Very high — watch prices", badgeClass: "bg-red-100 text-red-700" }
+                    : { label: "—", badgeClass: "bg-gray-100 text-gray-500" };
+
+                  return (
+                    <div key={r.id ?? r.region_name} className="rounded-2xl border bg-white shadow-sm px-4 py-3 flex flex-col gap-2">
+                      {/* Region name + state */}
+                      <div className="flex items-start justify-between gap-1">
+                        <p className="text-sm font-bold leading-tight">{r.region_name}</p>
+                        <span className="text-xs bg-muted/50 text-muted-foreground px-1.5 py-0.5 rounded shrink-0">{r.state}</span>
+                      </div>
+
+                      {/* Pasture stress */}
+                      <div className="flex items-center gap-1.5">
+                        <span className={`inline-block h-2.5 w-2.5 rounded-full shrink-0 ${stressConfig.dot} ${stressConfig.dotClass}`} />
+                        <span className="text-xs font-medium">{stressConfig.label}</span>
+                      </div>
+
+                      {/* Rainfall bar */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-muted-foreground">30-day rainfall</span>
+                          <span className="text-xs font-semibold">
+                            {rainfallMm != null ? `${rainfallMm.toFixed(0)}mm` : "—"}
+                            {rainfallPct != null ? ` (${rainfallPct.toFixed(0)}%)` : ""}
+                          </span>
+                        </div>
+                        <div className="w-full bg-muted/30 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className={`h-1.5 rounded-full ${rainfallBarColor}`}
+                            style={{ width: `${rainfallBarWidth}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Soil moisture */}
+                      {r.soil_moisture_pct != null && (
+                        <p className="text-xs text-muted-foreground">Soil: {(r.soil_moisture_pct as number).toFixed(0)}%</p>
+                      )}
+
+                      {/* Supply pressure badge + note */}
+                      <div className="mt-auto pt-1">
+                        <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${supplyConfig.badgeClass}`}>
+                          {supplyConfig.label}
+                        </span>
+                        {r.supply_pressure_note && (
+                          <p className="text-xs text-muted-foreground mt-1 leading-tight">{r.supply_pressure_note}</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </section>
 
         {/* ── Price Trends ── */}
