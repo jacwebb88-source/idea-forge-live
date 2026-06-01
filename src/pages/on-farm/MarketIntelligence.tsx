@@ -28,7 +28,7 @@ function formatIndicatorName(key: string): string {
     eyci:              "EYCI — Eastern Young Cattle",
     wyci:              "WYCI — Western Young Cattle",
     nyci:              "NYCI — National Young Cattle",
-    ayci:              "AYCI — AuctionsPlus Young Cattle",
+    ayci:              "AYCI — Young Cattle Index",
     feeder_steer:      "Feeder Steer",
     heavy_steer:       "Heavy Steer (0 tooth)",
     heavy_steer_0t:    "Heavy Steer (0 tooth)",
@@ -51,7 +51,7 @@ function formatIndicatorName(key: string): string {
     mutton:            "Mutton / Ewe",
     watli:             "WATLI — WA Trade Lamb",
     light_lamb:        "Light Lamb (<18kg CW)",
-    arli:              "ARLI — AuctionsPlus Restocker Lamb",
+    arli:              "ARLI — Restocker Lamb Index",
   };
   return map[key] ?? key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
@@ -260,7 +260,7 @@ export default function MarketIntelligence() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Market Intelligence</h1>
-            <p className="text-muted-foreground mt-1">Live Australian cattle & sheep market indicators · MLA/NLRS data</p>
+            <p className="text-muted-foreground mt-1">Live Australian cattle & sheep market indicators · Muster Intelligence</p>
           </div>
         </div>
         <p className="text-muted-foreground text-xs">{today}</p>
@@ -326,7 +326,6 @@ export default function MarketIntelligence() {
             <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
               Saleyard Results · Live Clearances
             </h2>
-            <span className="ml-1 text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">Agora</span>
           </div>
 
           {/* State filter pills */}
@@ -358,7 +357,7 @@ export default function MarketIntelligence() {
                 <div className="rounded-xl bg-blue-50 border border-blue-200 px-4 py-5 text-center">
                   <p className="text-sm text-blue-800 font-semibold mb-1">No saleyard data yet</p>
                   <p className="text-xs text-blue-700 leading-relaxed">
-                    Saleyard data loads automatically each week from Agora Livestock. First results will appear after the next weekly scrape.
+                    Saleyard data loads automatically each week from Muster Intelligence. First results will appear after the next weekly update.
                   </p>
                 </div>
               ) : (
@@ -404,7 +403,7 @@ export default function MarketIntelligence() {
           <div className="flex items-center gap-2 mb-3">
             <BarChart2 className="h-4 w-4 text-green-700" />
             <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
-              AuctionsPlus Online Auctions
+              Online Auction Clearances
             </h2>
           </div>
 
@@ -415,9 +414,9 @@ export default function MarketIntelligence() {
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
                   <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
-                    AuctionsPlus · Online Auction Pulse
+                    Muster · Online Auction Pulse
                   </CardTitle>
-                  <span className="text-xs bg-green-600 text-white px-1.5 py-0.5 rounded font-bold">AP</span>
+                  <span className="text-xs bg-green-600 text-white px-1.5 py-0.5 rounded font-bold">MI</span>
                 </div>
               </CardHeader>
               <CardContent>
@@ -431,7 +430,7 @@ export default function MarketIntelligence() {
                   <div className="rounded-xl bg-green-50 border border-green-200 px-4 py-5">
                     <p className="text-sm text-green-800 font-semibold mb-1">Data not yet available</p>
                     <p className="text-xs text-green-700 leading-relaxed">
-                      AuctionsPlus data loads after the Friday newsletter is parsed. First results appear within 24 hours of your first weekly email.
+                      Online auction data loads weekly from Muster Intelligence. First results will appear after the next scheduled update.
                     </p>
                   </div>
                 ) : (
@@ -587,7 +586,7 @@ export default function MarketIntelligence() {
                 <div className="rounded-2xl bg-sky-50 border border-sky-200 px-5 py-5 mb-4">
                   <p className="text-sm text-sky-800 font-semibold mb-1">Seasonal outlook not yet available</p>
                   <p className="text-xs text-sky-700 leading-relaxed">
-                    SOI and ENSO phase data loads after the first weekly weather scrape from Open-Meteo and SILO. Check back after the next scheduled update.
+                    Seasonal outlook data loads after the first weekly update. Check back after the next scheduled update.
                   </p>
                 </div>
               );
@@ -655,7 +654,7 @@ export default function MarketIntelligence() {
             <div className="rounded-2xl bg-sky-50 border border-sky-200 px-5 py-5">
               <p className="text-sm text-sky-800 font-semibold mb-1">Seasonal data not yet loaded</p>
               <p className="text-xs text-sky-700 leading-relaxed">
-                Seasonal data loads weekly from Open-Meteo (BOM data) and SILO. Covers 12 livestock regions across Australia. First results appear after the weekly weather update runs.
+                Seasonal data updates weekly from Muster Intelligence. Covers 12 livestock regions across Australia. First results appear after the next scheduled update.
               </p>
             </div>
           ) : (() => {
@@ -760,7 +759,7 @@ export default function MarketIntelligence() {
         {species === "sheep" ? (
           <Card className="rounded-2xl">
             <CardContent className="py-8 text-center text-muted-foreground text-sm">
-              Sheep price trends coming soon — MLA/NLRS weekly lamb & mutton trend data will appear here once the feed is live.
+              Sheep price trends coming soon — weekly lamb & mutton trend data will appear here once the feed is live.
             </CardContent>
           </Card>
         ) : (() => {
@@ -781,12 +780,12 @@ export default function MarketIntelligence() {
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
                   <BarChart2 className="h-4 w-4 text-green-600" />
-                  <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">MLA Price Trends — 12 Week History</CardTitle>
+                  <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Market Price Trends — 12 Week History</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 mb-4">
-                  <p className="text-xs text-amber-800">⚠️ Simulated trend — real weekly MLA/NLRS prices will flow in once the data feed is live. Current endpoint values are accurate.</p>
+                  <p className="text-xs text-amber-800">⚠️ Simulated trend — real weekly prices will flow in once the data feed is live. Current endpoint values are accurate.</p>
                 </div>
                 <ResponsiveContainer width="100%" height={240}>
                   <RechartsLineChart data={merged} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
@@ -803,7 +802,7 @@ export default function MarketIntelligence() {
                     <Line type="monotone" dataKey="heavySteer"  stroke="#16a34a" strokeWidth={2} dot={false} activeDot={{ r: 4 }} strokeDasharray="4 2" />
                   </RechartsLineChart>
                 </ResponsiveContainer>
-                <p className="text-xs text-muted-foreground/60 mt-2 text-center">EYCI = Eastern Young Cattle Indicator (MLA) · ¢/kg carcase weight · Primary Australian cattle price benchmark</p>
+                <p className="text-xs text-muted-foreground/60 mt-2 text-center">EYCI = Eastern Young Cattle Indicator · ¢/kg carcase weight · Primary Australian cattle price benchmark</p>
               </CardContent>
             </Card>
           );
@@ -914,7 +913,7 @@ export default function MarketIntelligence() {
               <div className="rounded-xl bg-blue-50 border border-blue-200 p-4">
                 <p className="text-sm text-blue-800 font-semibold">Weekly market commentary</p>
                 <p className="text-xs text-blue-700 mt-1 leading-relaxed">
-                  Real-time saleyard results from MLA NLRS and AuctionsPlus will appear here — updated weekly. Currently showing benchmark snapshot.
+                  Real-time saleyard results from Muster Intelligence will appear here — updated weekly. Currently showing benchmark snapshot.
                 </p>
               </div>
               {/* Price ladder */}
@@ -946,13 +945,13 @@ export default function MarketIntelligence() {
             <CardHeader className="pb-3">
               <div className="flex items-center gap-2">
                 <Info className="h-4 w-4 text-indigo-500" />
-                <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">AuctionsPlus Price Context</CardTitle>
+                <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Online Auction Price Context</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="rounded-xl bg-indigo-50 border border-indigo-200 p-3">
                 <p className="text-xs text-indigo-800 leading-relaxed">
-                  AuctionsPlus integration coming — this will automatically pull clearing prices for your target cattle categories from recent online sales.
+                  Online auction clearing prices for your target cattle categories — updated weekly by Muster Intelligence.
                 </p>
               </div>
               <table className="w-full text-sm">
