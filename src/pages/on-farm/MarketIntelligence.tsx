@@ -28,6 +28,7 @@ function formatIndicatorName(key: string): string {
     eyci:              "EYCI — Eastern Young Cattle",
     wyci:              "WYCI — Western Young Cattle",
     nyci:              "NYCI — National Young Cattle",
+    ayci:              "AYCI — AuctionsPlus Young Cattle",
     feeder_steer:      "Feeder Steer",
     heavy_steer:       "Heavy Steer (0 tooth)",
     heavy_steer_0t:    "Heavy Steer (0 tooth)",
@@ -50,6 +51,7 @@ function formatIndicatorName(key: string): string {
     mutton:            "Mutton / Ewe",
     watli:             "WATLI — WA Trade Lamb",
     light_lamb:        "Light Lamb (<18kg CW)",
+    arli:              "ARLI — AuctionsPlus Restocker Lamb",
   };
   return map[key] ?? key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
@@ -58,8 +60,8 @@ function isWheatIndicator(key: string) {
   return key.includes("wheat") || key.includes("grain");
 }
 
-const CATTLE_KEYS = ["eyci", "wyci", "nyci", "feeder_steer", "heavy_steer", "heavy_steer_0t", "heavy_steer_2t", "medium_steer", "light_steer", "heavy_cow", "medium_cow", "oth_vic", "oth_qld", "oth_nsw", "oth_sa"];
-const SHEEP_KEYS = ["estli", "heavy_lamb", "restocker_lamb", "merino_lamb", "mutton", "watli", "light_lamb"];
+const CATTLE_KEYS = ["eyci", "ayci", "wyci", "nyci", "feeder_steer", "heavy_steer", "heavy_steer_0t", "heavy_steer_2t", "medium_steer", "light_steer", "heavy_cow", "medium_cow", "oth_vic", "oth_qld", "oth_nsw", "oth_sa"];
+const SHEEP_KEYS = ["estli", "arli", "heavy_lamb", "restocker_lamb", "merino_lamb", "mutton", "watli", "light_lamb"];
 
 const CATEGORY_GUIDE = [
   { name: "EYCI Young Cattle", weightRange: "200–400 kg CW", minKg: 200, maxKg: 400, benchKey: "eyci", basis: "¢/kg CW" },
@@ -163,6 +165,32 @@ export default function MarketIntelligence() {
 
   const { reports, loading: reportsLoading } = useSaleyardReports(species);
 
+  // AuctionsPlus clearances
+  const [clearances, setClearances] = useState<any[]>([]);
+  const [clearanceLoading, setClearanceLoading] = useState(true);
+
+  useEffect(() => {
+    setClearanceLoading(true);
+    supabase
+      .from("auction_clearances")
+      .select("*")
+      .eq("species", species)
+      .order("sale_date", { ascending: false })
+      .limit(20)
+      .then(({ data }) => {
+        // Keep only the most recent row per category
+        const seen = new Set<string>();
+        const deduped = (data ?? []).filter(r => {
+          const k = r.category;
+          if (seen.has(k)) return false;
+          seen.add(k);
+          return true;
+        });
+        setClearances(deduped);
+        setClearanceLoading(false);
+      });
+  }, [species]);
+
   const activeKeys = species === "cattle" ? CATTLE_KEYS : SHEEP_KEYS;
   const filteredBenchmarks = benchmarks
     ? benchmarks.filter(b => activeKeys.includes(b.indicator))
@@ -177,6 +205,29 @@ export default function MarketIntelligence() {
       description: "Coming soon via push notification.",
     });
   }
+
+  // AuctionsPlus section helpers
+  const overallClearance = clearances.find(r => r.category === "overall");
+  const weightBrackets = clearances
+    .filter(r => r.category !== "overall")
+    .sort((a, b) => (a.weight_min_kg ?? 0) - (b.weight_min_kg ?? 0));
+
+  const maxPriceCpkg = species === "cattle" ? 700 : 1800;
+
+  function clearanceBadgeClass(pct: number) {
+    if (pct >= 90) return "bg-green-100 text-green-800";
+    if (pct >= 70) return "bg-amber-100 text-amber-800";
+    return "bg-red-100 text-red-800";
+  }
+
+  function clearanceBarClass(pct: number) {
+    if (pct >= 90) return "bg-green-500";
+    if (pct >= 70) return "bg-amber-500";
+    return "bg-red-500";
+  }
+
+  const apIndicatorKey = species === "cattle" ? "ayci" : "arli";
+  const apBenchmark = latest(apIndicatorKey);
 
   return (
     <DashboardLayout>
@@ -323,6 +374,172 @@ export default function MarketIntelligence() {
               )}
             </CardContent>
           </Card>
+        </section>
+
+        {/* ── AuctionsPlus Online Auctions ── */}
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <BarChart2 className="h-4 w-4 text-green-700" />
+            <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+              AuctionsPlus Online Auctions
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+            {/* Left card — Market Sentiment */}
+            <Card className="rounded-2xl">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+                    AuctionsPlus · Online Auction Pulse
+                  </CardTitle>
+                  <span className="text-xs bg-green-600 text-white px-1.5 py-0.5 rounded font-bold">AP</span>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {clearanceLoading ? (
+                  <div className="space-y-3">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="h-8 bg-muted/40 rounded-lg animate-pulse" />
+                    ))}
+                  </div>
+                ) : clearances.length === 0 ? (
+                  <div className="rounded-xl bg-green-50 border border-green-200 px-4 py-5">
+                    <p className="text-sm text-green-800 font-semibold mb-1">Data not yet available</p>
+                    <p className="text-xs text-green-700 leading-relaxed">
+                      AuctionsPlus data loads after the Friday newsletter is parsed. First results appear within 24 hours of your first weekly email.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Overall clearance rate */}
+                    {overallClearance ? (
+                      <div className="text-center py-2">
+                        <p className="text-5xl font-bold text-green-700">
+                          {overallClearance.clearance_pct != null ? `${overallClearance.clearance_pct.toFixed(0)}%` : "—"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">Overall clearance rate</p>
+                      </div>
+                    ) : (
+                      (() => {
+                        const withPct = clearances.filter(r => r.clearance_pct != null);
+                        const avgPct = withPct.length > 0
+                          ? withPct.reduce((sum, r) => sum + r.clearance_pct, 0) / withPct.length
+                          : null;
+                        return avgPct != null ? (
+                          <div className="text-center py-2">
+                            <p className="text-5xl font-bold text-green-700">{avgPct.toFixed(0)}%</p>
+                            <p className="text-xs text-muted-foreground mt-1">Avg clearance rate (all brackets)</p>
+                          </div>
+                        ) : null;
+                      })()
+                    )}
+
+                    {/* Head stats */}
+                    {overallClearance && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-xl bg-muted/30 px-3 py-2 text-center">
+                          <p className="text-lg font-bold">{overallClearance.head_offered != null ? overallClearance.head_offered.toLocaleString("en-AU") : "—"}</p>
+                          <p className="text-xs text-muted-foreground">Head offered</p>
+                        </div>
+                        <div className="rounded-xl bg-muted/30 px-3 py-2 text-center">
+                          <p className="text-lg font-bold">{overallClearance.head_sold != null ? overallClearance.head_sold.toLocaleString("en-AU") : "—"}</p>
+                          <p className="text-xs text-muted-foreground">Head sold</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Value over reserve */}
+                    {overallClearance?.value_over_reserve != null && (
+                      <div className="rounded-xl bg-green-50 border border-green-200 px-3 py-2 flex items-center justify-between">
+                        <p className="text-xs text-green-800">Avg value over reserve</p>
+                        <p className="text-sm font-bold text-green-700">{fmt$(overallClearance.value_over_reserve)}/head</p>
+                      </div>
+                    )}
+
+                    {/* AYCI / ARLI benchmark */}
+                    {apBenchmark && (
+                      <div className="rounded-xl bg-muted/20 border px-3 py-2 flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground">{formatIndicatorName(apIndicatorKey)}</p>
+                        <p className="text-sm font-bold">{fmtCpkg(apBenchmark.cents_per_kg)}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Right card — Price by Weight */}
+            <Card className="rounded-2xl">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+                  Weight Bracket Prices
+                  <span className="ml-2 text-xs font-normal normal-case text-muted-foreground">
+                    ¢/kg {species === "cattle" ? "LW" : "DW"}
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {clearanceLoading ? (
+                  <div className="space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="space-y-1.5">
+                        <div className="h-4 bg-muted/40 rounded animate-pulse w-1/2" />
+                        <div className="h-3 bg-muted/40 rounded animate-pulse" />
+                      </div>
+                    ))}
+                  </div>
+                ) : weightBrackets.length === 0 ? (
+                  <div className="space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="space-y-1.5">
+                        <div className="h-4 bg-muted/40 rounded animate-pulse w-1/2" />
+                        <div className="h-3 bg-muted/40 rounded animate-pulse" />
+                      </div>
+                    ))}
+                    <p className="text-xs text-muted-foreground text-center pt-1">
+                      Bracket prices will appear once weekly sale data is parsed.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {weightBrackets.map((r) => {
+                      const barWidth = r.price_cpkg != null
+                        ? Math.min(100, Math.max(4, (r.price_cpkg / maxPriceCpkg) * 100))
+                        : 0;
+                      return (
+                        <div key={r.category}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-medium text-foreground">{r.label ?? r.category}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold">
+                                {r.price_cpkg != null ? `${r.price_cpkg.toFixed(0)}¢` : "—"}
+                              </span>
+                              {r.clearance_pct != null && (
+                                <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${clearanceBadgeClass(r.clearance_pct)}`}>
+                                  {r.clearance_pct.toFixed(0)}%
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="w-full bg-muted/30 rounded-full h-2 overflow-hidden">
+                            <div
+                              className={`h-2 rounded-full transition-all ${r.clearance_pct != null ? clearanceBarClass(r.clearance_pct) : "bg-muted"}`}
+                              style={{ width: `${barWidth}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <p className="text-xs text-muted-foreground pt-1">
+                      Bar colour: green ≥ 90% clearance · amber 70–89% · red &lt; 70%
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </section>
 
         {/* ── Price Trends ── */}
