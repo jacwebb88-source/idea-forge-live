@@ -133,30 +133,42 @@ export default function Signup() {
 
       const userId = authData.user.id;
 
-      // 2. Insert organisation (table may not be in generated types — use any cast)
-      const { data: orgData, error: orgError } = await (supabase as any)
+      // 2. Check if this email has a pre-linked org before creating a new one
+      const { data: existingOrg } = await (supabase as any)
         .from("organisations")
-        .insert({
-          name: form.businessName,
-          org_type: form.businessType,
-          state: form.state,
-          pic_number: form.picNumber || null,
-          plan: "trial",
-        })
-        .select("id")
+        .select("id, name")
+        .eq("contact_email", form.email.toLowerCase())
         .single();
 
-      const orgId: string | null = orgError ? null : orgData?.id ?? null;
+      let orgId: string | null = null;
+      if (existingOrg) {
+        // Use the pre-linked org
+        orgId = existingOrg.id;
+      } else {
+        // Create a new org
+        const { data: newOrg, error: orgError } = await (supabase as any)
+          .from("organisations")
+          .insert({
+            name: form.businessName,
+            org_type: form.businessType,
+            state: form.state,
+            pic_number: form.picNumber || null,
+            plan: "trial",
+            contact_email: form.email.toLowerCase(),
+          })
+          .select("id")
+          .single();
 
-      // 3. Insert profile (use available columns; org_id and display_name are bonus if present)
+        orgId = orgError ? null : newOrg?.id ?? null;
+      }
+
+      // 3. Upsert profile with the correct orgId
       await (supabase as any)
         .from("profiles")
         .upsert({
           id: userId,
-          role: "supplier",
+          role: "admin",
           ...(orgId ? { org_id: orgId } : {}),
-          display_name: form.fullName,
-          email: form.email,
         });
 
       // 4. Done — if session exists navigate, otherwise show confirmation
