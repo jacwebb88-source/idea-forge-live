@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { format, subDays, parseISO } from "date-fns";
 
-// ─── Benchmarks (from Brook/industry data) ────────────────────────────────────
+// ─── Benchmarks (industry averages) ─────────────────────────────────────────
 
 const BENCH = {
   hscw_kg: 305,
