@@ -350,7 +350,7 @@ export default function Enterprise() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="col-span-2 space-y-1">
                     <Label className="text-xs">Business / Operation name <span className="text-destructive">*</span></Label>
-                    <Input placeholder="e.g. Killarook Pastoral Co." value={wizardData.business_name} onChange={e => setWd("business_name", e.target.value)} />
+                    <Input placeholder="e.g. Mitchell Pastoral Co." value={wizardData.business_name} onChange={e => setWd("business_name", e.target.value)} />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">ABN (optional)</Label>
@@ -406,7 +406,7 @@ export default function Enterprise() {
                   <p className="col-span-2 text-sm text-muted-foreground">Add your first property or station. You can add more later.</p>
                   <div className="col-span-2 space-y-1">
                     <Label className="text-xs">Property name <span className="text-destructive">*</span></Label>
-                    <Input placeholder="e.g. Killarook Feedlot" value={wizardData.prop_name} onChange={e => setWd("prop_name", e.target.value)} />
+                    <Input placeholder="e.g. Darling Downs Feedlot" value={wizardData.prop_name} onChange={e => setWd("prop_name", e.target.value)} />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Type <span className="text-destructive">*</span></Label>
@@ -1026,7 +1026,7 @@ export default function Enterprise() {
                   </div>
                   <div className="col-span-2 space-y-1">
                     <Label className="text-xs">Business / Operation name</Label>
-                    <Input placeholder="e.g. Killarook Pastoral Co." value={settings.business_name} onChange={e => setSetting("business_name", e.target.value)} />
+                    <Input placeholder="e.g. Mitchell Pastoral Co." value={settings.business_name} onChange={e => setSetting("business_name", e.target.value)} />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">ABN</Label>
@@ -1307,7 +1307,7 @@ function AddPropertyDialog({ open, onClose, onSaved, toast }: any) {
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2 space-y-1">
               <Label className="text-xs">Property Name <span className="text-destructive">*</span></Label>
-              <Input placeholder="e.g. Killarook Feedlot, Dunolly Station" value={form.name} onChange={e => set("name", e.target.value)} />
+              <Input placeholder="e.g. Darling Downs Feedlot, Riverstone Station" value={form.name} onChange={e => set("name", e.target.value)} />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Type <span className="text-destructive">*</span></Label>
@@ -1331,7 +1331,7 @@ function AddPropertyDialog({ open, onClose, onSaved, toast }: any) {
             </div>
             <div className="col-span-2 space-y-1">
               <Label className="text-xs">Location / Town</Label>
-              <Input placeholder="e.g. Dunolly, Seymour corridor" value={form.location} onChange={e => set("location", e.target.value)} />
+              <Input placeholder="e.g. Darling Downs, Central West NSW" value={form.location} onChange={e => set("location", e.target.value)} />
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Max Capacity (head)</Label>

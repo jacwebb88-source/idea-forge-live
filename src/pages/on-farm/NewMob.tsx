@@ -254,7 +254,7 @@ export default function NewMob() {
                 </div>
                 <div className="col-span-2 space-y-1.5">
                   <Label>Location / Property</Label>
-                  <Input placeholder="e.g. Home block, Killarook agistment, Dunolly feedlot" value={form.location_name} onChange={e => set("location_name", e.target.value)} />
+                  <Input placeholder="e.g. Home block, Back paddock, River flats" value={form.location_name} onChange={e => set("location_name", e.target.value)} />
                 </div>
               </div>
             </CardContent>
