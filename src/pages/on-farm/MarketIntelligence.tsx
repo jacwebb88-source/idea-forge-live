@@ -760,13 +760,45 @@ export default function MarketIntelligence() {
         </section>
 
         {/* ── Price Trends ── */}
-        {species === "sheep" ? (
-          <Card className="rounded-2xl">
-            <CardContent className="py-8 text-center text-muted-foreground text-sm">
-              Sheep price trends coming soon — weekly lamb & mutton trend data will appear here once the feed is live.
-            </CardContent>
-          </Card>
-        ) : (() => {
+        {species === "sheep" ? (() => {
+          const estliCurrent  = latest("estli")?.cents_per_kg  ?? 820;
+          const heavyCurrent  = latest("heavy_lamb")?.cents_per_kg ?? 760;
+          const muttonCurrent = latest("mutton")?.cents_per_kg ?? 480;
+          const estliHistory  = generatePriceHistory(estliCurrent);
+          const heavyHistory  = generatePriceHistory(heavyCurrent);
+          const muttonHistory = generatePriceHistory(muttonCurrent);
+          const merged = estliHistory.map((d, i) => ({
+            week: d.week,
+            estli:  d.price,
+            heavyLamb: heavyHistory[i]?.price  ?? heavyCurrent,
+            mutton:    muttonHistory[i]?.price  ?? muttonCurrent,
+          }));
+          return (
+            <Card className="rounded-2xl">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <BarChart2 className="h-4 w-4 text-green-600" />
+                  <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">Market Price Trends — 12 Week History</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={240}>
+                  <RechartsLineChart data={merged} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="week" tick={{ fontSize: 10 }} interval={2} />
+                    <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `${v}¢`} domain={["auto", "auto"]} />
+                    <Tooltip formatter={(v: number, name: string) => [`${v}¢/kg`, name === "estli" ? "ESTLI (¢/kg CW)" : name === "heavyLamb" ? "Heavy Lamb (¢/kg CW)" : "Mutton (¢/kg CW)"]} />
+                    <Legend formatter={(v) => v === "estli" ? "ESTLI" : v === "heavyLamb" ? "Heavy Lamb" : "Mutton"} />
+                    <Line type="monotone" dataKey="estli"     stroke="#7c3aed" strokeWidth={3} dot={false} activeDot={{ r: 5 }} />
+                    <Line type="monotone" dataKey="heavyLamb" stroke="#2563eb" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="mutton"    stroke="#16a34a" strokeWidth={2} dot={false} activeDot={{ r: 4 }} strokeDasharray="4 2" />
+                  </RechartsLineChart>
+                </ResponsiveContainer>
+                <p className="text-xs text-muted-foreground/60 mt-2 text-center">ESTLI = Eastern States Trade Lamb Indicator · ¢/kg carcase weight · Primary Australian lamb price benchmark</p>
+              </CardContent>
+            </Card>
+          );
+        })() : (() => {
           const eyciCurrent    = latest("eyci")?.cents_per_kg ?? 692;
           const feederCurrent  = latest("feeder_steer")?.cents_per_kg ?? 415;
           const heavyCurrent   = latest("heavy_steer")?.cents_per_kg ?? 345;

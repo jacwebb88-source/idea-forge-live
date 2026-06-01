@@ -250,7 +250,7 @@ export default function OnFarm() {
               { icon: Calculator, color: "text-amber-600", border: "border-l-amber-400", label: "Bid Calculator", desc: "Max bid per head", route: "/on-farm/bid-calculator" },
               { icon: Grid3X3, color: "text-violet-600", border: "border-l-violet-400", label: "Processor Grids", desc: "Kill grid comparison", route: "/on-farm/grids" },
               { icon: Banknote, color: "text-green-600", border: "border-l-green-400", label: "Finance", desc: "Finance cost modelling", route: "/on-farm/finance" },
-              { icon: Wind, color: "text-teal-600", border: "border-l-teal-400", label: "Carbon", desc: "ACCU & methane tracker", route: "/on-farm" },
+              { icon: Wind, color: "text-teal-600", border: "border-l-teal-400", label: "Carbon", desc: "ACCU & methane tracker", route: "/on-farm/market" },
             ].map(tool => (
               <button
                 key={tool.label}
