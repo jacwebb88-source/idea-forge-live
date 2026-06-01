@@ -41,6 +41,8 @@ import PitchOverview from "./pages/on-farm/PitchOverview";
 import ExportCompliance from "./pages/on-farm/ExportCompliance";
 import ProcessorExportCompliance from "./pages/ExportCompliance";
 import EnterpriseExport from "./pages/on-farm/EnterpriseExport";
+import KillGrading from "./pages/KillGrading";
+import KillResults from "./pages/on-farm/KillResults";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -103,6 +105,10 @@ const App = () => (
 
             {/* Processor export compliance */}
             <Route path="/export-compliance" element={<ProtectedRoute allowedRoles={["ops","management"]}><ProcessorExportCompliance /></ProtectedRoute>} />
+            <Route path="/kill-grading" element={<ProtectedRoute allowedRoles={["ops","management"]}><KillGrading /></ProtectedRoute>} />
+
+            {/* On-farm kill results */}
+            <Route path="/on-farm/kill-results" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><KillResults /></ProtectedRoute>} />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

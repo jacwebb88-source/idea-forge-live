@@ -28,6 +28,8 @@ import {
   Presentation,
   Globe,
   PackageCheck,
+  Microscope,
+  Award,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -61,6 +63,7 @@ const operationsItems = [
 
 const reportingItems = [
   { title: "Kill Reports", url: "/kill-reports", icon: FileText },
+  { title: "Kill Grading", url: "/kill-grading", icon: Microscope },
   { title: "Compliance", url: "/compliance", icon: ShieldCheck },
   { title: "Export Compliance", url: "/export-compliance", icon: Globe },
   { title: "Change History", url: "/change-history", icon: History },
@@ -85,6 +88,7 @@ const enterpriseItems = [
 
 const farmToolsItems = [
   { title: "Market Intelligence", url: "/on-farm/market", icon: LineChart },
+  { title: "Kill Results", url: "/on-farm/kill-results", icon: Award },
   { title: "Export Compliance", url: "/on-farm/export-compliance", icon: Globe },
   { title: "Processor Grids", url: "/on-farm/grids", icon: Grid3X3 },
   { title: "Bid Calculator", url: "/on-farm/bid-calculator", icon: Calculator },
