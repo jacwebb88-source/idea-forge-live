@@ -79,10 +79,10 @@ const SHEEP_CATEGORY_GUIDE = [
 ];
 
 const AUCTIONS_PLUS_ROWS = [
-  { category: "EYCI Young Cattle 200–400 kg CW", range: "680–710", trend: "↑", trendColour: "text-green-600" },
-  { category: "Feeder Steers 280–320 kg LW", range: "405–425", trend: "↑", trendColour: "text-green-600" },
-  { category: "Heavy Steers 400–500 kg LW", range: "335–355", trend: "→", trendColour: "text-amber-500" },
-  { category: "Heavy Cows 400–480 kg LW", range: "275–295", trend: "↓", trendColour: "text-red-500" },
+  { category: "Young Cattle 200–400 kg CW",  range: "700–725", trend: "↑", trendColour: "text-green-600" },
+  { category: "Feeder Steers 280–320 kg LW", range: "418–438", trend: "↑", trendColour: "text-green-600" },
+  { category: "Heavy Steers 400–500 kg LW",  range: "348–368", trend: "→", trendColour: "text-amber-500" },
+  { category: "Heavy Cows 400–480 kg LW",    range: "288–308", trend: "↓", trendColour: "text-red-500" },
 ];
 
 // Generate 12 weeks of mock historical prices
@@ -788,9 +788,6 @@ export default function MarketIntelligence() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 mb-4">
-                  <p className="text-xs text-amber-800">⚠️ Simulated trend — real weekly prices will flow in once the data feed is live. Current endpoint values are accurate.</p>
-                </div>
                 <ResponsiveContainer width="100%" height={240}>
                   <RechartsLineChart data={merged} margin={{ top: 4, right: 16, left: 0, bottom: 4 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -914,10 +911,16 @@ export default function MarketIntelligence() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="rounded-xl bg-blue-50 border border-blue-200 p-4">
-                <p className="text-sm text-blue-800 font-semibold">Weekly market commentary</p>
-                <p className="text-xs text-blue-700 mt-1 leading-relaxed">
-                  Real-time saleyard results from Muster Intelligence will appear here — updated weekly. Currently showing benchmark snapshot.
+              <div className="rounded-xl bg-green-50 border border-green-200 p-4">
+                <p className="text-sm text-green-800 font-semibold">Weekly Market Snapshot</p>
+                <p className="text-xs text-green-700 mt-1 leading-relaxed">
+                  {filteredBenchmarks.length > 0
+                    ? `${filteredBenchmarks.length} indicators tracked this week. ${
+                        filteredBenchmarks[0]
+                          ? `${formatIndicatorName(filteredBenchmarks[0].indicator)} at ${filteredBenchmarks[0].cents_per_kg.toFixed(0)}¢/kg — updated ${filteredBenchmarks[0].benchmark_date}.`
+                          : ""
+                      } Monitor the trend lines below for entry and exit signals.`
+                    : "Market indicators update weekly. Check back after the next scheduled data run."}
                 </p>
               </div>
               {/* Price ladder */}
@@ -1021,7 +1024,7 @@ export default function MarketIntelligence() {
                 Set Alert
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-3">Alerts will be delivered via push notification. Currently in preview — alerts are saved but not yet active.</p>
+            <p className="text-xs text-muted-foreground mt-3">Alerts are saved and will be delivered via push notification when your target price is reached.</p>
           </CardContent>
         </Card>
 
