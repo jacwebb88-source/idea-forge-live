@@ -50,6 +50,7 @@ import FinancialImport from "./pages/on-farm/FinancialImport";
 import FinancialAnalysis from "./pages/on-farm/FinancialAnalysis";
 import HelpCentre from "./pages/HelpCentre";
 import VendorScorecard from "./pages/VendorScorecard";
+import Forecasting from "./pages/Forecasting";
 import OnFarmForecasting from "./pages/on-farm/Forecasting";
 import ProcessorAgent from "./pages/ProcessorAgent";
 import NotFound from "./pages/NotFound";
