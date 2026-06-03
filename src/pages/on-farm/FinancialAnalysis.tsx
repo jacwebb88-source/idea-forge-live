@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { DashboardLayout } from "@/components/DashboardLayout";
+import { LivestockLayout } from "@/components/LivestockLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -1208,7 +1208,7 @@ export default function FinancialAnalysis() {
   const [financialYear, setFinancialYear] = useState("2024-25");
 
   return (
-    <DashboardLayout>
+    <LivestockLayout>
       <div className="p-6 max-w-7xl mx-auto space-y-6">
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1258,6 +1258,6 @@ export default function FinancialAnalysis() {
           </TabsContent>
         </Tabs>
       </div>
-    </DashboardLayout>
+    </LivestockLayout>
   );
 }

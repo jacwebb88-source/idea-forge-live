@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { DashboardLayout } from "@/components/DashboardLayout";
+import { LivestockLayout } from "@/components/LivestockLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -179,7 +179,7 @@ export default function EnterpriseExport() {
   const totalRevenue = consignments.reduce((s, c) => s + c.total_value, 0);
 
   return (
-    <DashboardLayout>
+    <LivestockLayout>
       <div className="p-6 space-y-6 max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -378,6 +378,6 @@ export default function EnterpriseExport() {
           </TabsContent>
         </Tabs>
       </div>
-    </DashboardLayout>
+    </LivestockLayout>
   );
 }

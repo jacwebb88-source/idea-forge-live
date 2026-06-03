@@ -8,7 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { DashboardLayout } from "@/components/DashboardLayout";
+import { LivestockLayout } from "@/components/LivestockLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -61,9 +61,9 @@ export default function MobReport() {
 
   if (loading || !mob) {
     return (
-      <DashboardLayout>
+      <LivestockLayout>
         <div className="flex items-center justify-center h-64 text-muted-foreground">Loading report…</div>
-      </DashboardLayout>
+      </LivestockLayout>
     );
   }
 
@@ -120,7 +120,7 @@ export default function MobReport() {
   const bestOptionLabel = exitOptions[0].label;
 
   return (
-    <DashboardLayout>
+    <LivestockLayout>
       <div className="max-w-4xl mx-auto space-y-6 pb-16 print:pb-4 print:max-w-none">
 
         {/* ── Header ── */}
@@ -483,6 +483,6 @@ export default function MobReport() {
         </div>
 
       </div>
-    </DashboardLayout>
+    </LivestockLayout>
   );
 }

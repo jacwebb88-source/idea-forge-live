@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { DashboardLayout } from "@/components/DashboardLayout";
+import { LivestockLayout } from "@/components/LivestockLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -165,7 +165,7 @@ export default function NewMob() {
   }
 
   return (
-    <DashboardLayout>
+    <LivestockLayout>
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => navigate("/on-farm")} className="gap-1 text-muted-foreground">
@@ -392,6 +392,6 @@ export default function NewMob() {
           </div>
         </form>
       </div>
-    </DashboardLayout>
+    </LivestockLayout>
   );
 }

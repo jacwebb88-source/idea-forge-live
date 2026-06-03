@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { DashboardLayout } from "@/components/DashboardLayout";
+import { LivestockLayout } from "@/components/LivestockLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -671,7 +671,7 @@ export default function KillResults() {
   // ─── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <DashboardLayout>
+    <LivestockLayout>
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-8">
 
         {/* Header */}
@@ -896,6 +896,6 @@ export default function KillResults() {
           </>
         )}
       </div>
-    </DashboardLayout>
+    </LivestockLayout>
   );
 }

@@ -10,7 +10,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { DashboardLayout } from "@/components/DashboardLayout";
+import { LivestockLayout } from "@/components/LivestockLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -253,7 +253,7 @@ export default function MarketIntelligence() {
   const apBenchmark = latest(apIndicatorKey);
 
   return (
-    <DashboardLayout>
+    <LivestockLayout>
       <div className="space-y-6 pb-10">
 
         {/* ── Hero ── */}
@@ -1061,6 +1061,6 @@ export default function MarketIntelligence() {
         </Card>
 
       </div>
-    </DashboardLayout>
+    </LivestockLayout>
   );
 }

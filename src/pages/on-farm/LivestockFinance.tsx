@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DashboardLayout } from "@/components/DashboardLayout";
+import { LivestockLayout } from "@/components/LivestockLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -75,7 +75,7 @@ export default function LivestockFinance() {
   ];
 
   return (
-    <DashboardLayout>
+    <LivestockLayout>
       <div className="space-y-6 pb-10">
 
         {/* ── Hero ── */}
@@ -362,6 +362,6 @@ export default function LivestockFinance() {
         </Card>
 
       </div>
-    </DashboardLayout>
+    </LivestockLayout>
   );
 }

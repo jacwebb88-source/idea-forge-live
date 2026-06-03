@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { DashboardLayout } from "@/components/DashboardLayout";
+import { LivestockLayout } from "@/components/LivestockLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -111,7 +111,7 @@ export default function OnFarm() {
   const benchDate = benchmarks.length ? format(new Date(benchmarks[0].benchmark_date), "d MMM yyyy") : null;
 
   return (
-    <DashboardLayout>
+    <LivestockLayout>
       <div className="space-y-6 pb-10">
 
         {/* ── Hero header ──────────────────────────────────────────────── */}
@@ -397,6 +397,6 @@ export default function OnFarm() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </LivestockLayout>
   );
 }

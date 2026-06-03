@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import { DashboardLayout } from "@/components/DashboardLayout";
+import { LivestockLayout } from "@/components/LivestockLayout";
 import { Button } from "@/components/ui/button";
 import { useMobs, useMarketBenchmarks } from "@/components/on-farm/useMobs";
 import { useAuth } from "@/contexts/AuthContext";
@@ -142,7 +142,7 @@ export default function PitchOverview() {
   }, []);
 
   return (
-    <DashboardLayout>
+    <LivestockLayout>
       {/* ── Watermark overlay ─────────────────────────────────────────────── */}
       <div
         aria-hidden="true"
@@ -391,6 +391,6 @@ export default function PitchOverview() {
         </div>
 
       </div>
-    </DashboardLayout>
+    </LivestockLayout>
   );
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { DashboardLayout } from "@/components/DashboardLayout";
+import { LivestockLayout } from "@/components/LivestockLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -53,15 +53,15 @@ export default function MobDetail() {
   const [showKillDialog, setShowKillDialog] = useState(false);
 
   if (loading) return (
-    <DashboardLayout>
+    <LivestockLayout>
       <div className="space-y-3 animate-pulse p-4">
         <div className="h-48 rounded-2xl bg-muted/40" />
         <div className="h-24 rounded-xl bg-muted/40" />
         <div className="h-64 rounded-xl bg-muted/40" />
       </div>
-    </DashboardLayout>
+    </LivestockLayout>
   );
-  if (!mob) return <DashboardLayout><div className="p-8 text-center text-muted-foreground">Mob not found.</div></DashboardLayout>;
+  if (!mob) return <LivestockLayout><div className="p-8 text-center text-muted-foreground">Mob not found.</div></LivestockLayout>;
 
   const cat = categoryToken(mob.category);
   const exit = exitToken(mob.target_exit_path);
@@ -74,7 +74,7 @@ export default function MobDetail() {
   const wtPct = targetWt && arrivalWt ? Math.min(100, Math.round(((currentWt - arrivalWt) / (targetWt - arrivalWt)) * 100)) : 0;
 
   return (
-    <DashboardLayout>
+    <LivestockLayout>
       <div className="space-y-5 pb-10">
 
         {/* Page header */}
@@ -427,7 +427,7 @@ export default function MobDetail() {
       <StatusDialog open={showStatusDialog} onClose={() => setShowStatusDialog(false)} mobId={mob.id} currentStatus={mob.status} onSaved={() => { setShowStatusDialog(false); refetch(); }} toast={toast} />
       <EditFeedPlanDialog open={showFeedDialog} onClose={() => setShowFeedDialog(false)} mobId={mob.id} current={feedPlan} targetWt={mob.target_weight_kg} currentWt={currentWt} onSaved={() => { setShowFeedDialog(false); refetchFeed(); }} toast={toast} cat={cat} />
       <AddKillRecordDialog open={showKillDialog} onClose={() => setShowKillDialog(false)} mobId={mob.id} onSaved={() => { setShowKillDialog(false); refetchKill(); }} toast={toast} cat={cat} />
-    </DashboardLayout>
+    </LivestockLayout>
   );
 }
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DashboardLayout } from "@/components/DashboardLayout";
+import { LivestockLayout } from "@/components/LivestockLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,7 +39,7 @@ export default function ProcessorGrids() {
   const bestPrice = filteredGrids.length ? Math.max(...filteredGrids.map(g => g.price_cpkg_cw)) : 0;
 
   return (
-    <DashboardLayout>
+    <LivestockLayout>
       <div className="space-y-6 pb-10">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -242,7 +242,7 @@ export default function ProcessorGrids() {
       </div>
 
       <AddGridDialog open={showAdd} onClose={() => setShowAdd(false)} onSaved={() => { setShowAdd(false); refetch(); }} toast={toast} existingProcessors={Object.keys(grouped)} />
-    </DashboardLayout>
+    </LivestockLayout>
   );
 }
 

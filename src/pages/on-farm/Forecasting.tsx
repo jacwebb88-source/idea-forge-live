@@ -11,7 +11,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { DashboardLayout } from "@/components/DashboardLayout";
+import { LivestockLayout } from "@/components/LivestockLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, CalendarCheck, DollarSign, Users } from "lucide-react";
 
@@ -137,7 +137,7 @@ export default function OnFarmForecasting() {
   const bestMob = MOBS.find((m) => m.best);
 
   return (
-    <DashboardLayout>
+    <LivestockLayout>
       <div className="space-y-6 pb-10">
 
         {/* ── Hero ── */}
@@ -467,6 +467,6 @@ export default function OnFarmForecasting() {
         </section>
 
       </div>
-    </DashboardLayout>
+    </LivestockLayout>
   );
 }

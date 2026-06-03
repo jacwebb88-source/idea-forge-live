@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { DashboardLayout } from "@/components/DashboardLayout";
+import { LivestockLayout } from "@/components/LivestockLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -277,7 +277,7 @@ export default function FinancialImport() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <DashboardLayout>
+    <LivestockLayout>
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Import Financial Transactions</h1>
@@ -587,6 +587,6 @@ export default function FinancialImport() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </LivestockLayout>
   );
 }

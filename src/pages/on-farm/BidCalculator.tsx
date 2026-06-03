@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { DashboardLayout } from "@/components/DashboardLayout";
+import { LivestockLayout } from "@/components/LivestockLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -127,7 +127,7 @@ export default function BidCalculator() {
   function fmt$dec(n: number) { return `$${n.toFixed(2)}`; }
 
   return (
-    <DashboardLayout>
+    <LivestockLayout>
       <div className="space-y-6 pb-10">
         {/* Hero */}
         <div className="flex items-center justify-between">
@@ -390,6 +390,6 @@ export default function BidCalculator() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </LivestockLayout>
   );
 }
