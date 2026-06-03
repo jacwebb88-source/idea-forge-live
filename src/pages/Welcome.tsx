@@ -1,32 +1,12 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { useEffect } from "react";
 import { format } from "date-fns";
-import { supabase } from "@/integrations/supabase/client";
+
 
 const WATERMARK_TEXT = `Jacqui Webb · Muster · Confidential · ${format(new Date(), "d MMM yyyy")}`;
 
 export default function Welcome() {
   const navigate = useNavigate();
-  const [demoLoading, setDemoLoading] = useState(false);
-  const [demoError, setDemoError] = useState(false);
-
-  const handleDemoLogin = async () => {
-    setDemoLoading(true);
-    setDemoError(false);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: "demo@muster.com.au",
-      password: "MusterDemo2025!",
-    });
-    if (error) {
-      setDemoError(true);
-      setDemoLoading(false);
-    } else {
-      navigate("/home");
-    }
-  };
-
   useEffect(() => {
     const blockContext = (e: MouseEvent) => e.preventDefault();
     const blockKeys = (e: KeyboardEvent) => {
@@ -107,10 +87,20 @@ export default function Welcome() {
 
         {/* Two platforms */}
         <div className="grid grid-cols-2 gap-3 text-left">
-          <div className="bg-white/10 border border-white/20 rounded-2xl px-5 py-5 space-y-3">
-            <p className="text-white font-bold text-sm">Muster Processing</p>
-            <p className="text-white/60 text-xs leading-relaxed">For abattoirs and processing plants</p>
-            <ul className="space-y-1.5">
+
+          {/* Processing */}
+          <button
+            onClick={() => navigate("/home")}
+            className="bg-white/10 border border-white/20 hover:bg-white/20 hover:border-white/40 rounded-2xl px-5 py-5 space-y-3 text-left transition-all duration-200 group"
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-white font-bold text-sm">Muster Processing</p>
+                <p className="text-white/50 text-xs mt-1">Abattoirs and processing plants</p>
+              </div>
+              <span className="text-white/30 group-hover:text-white/60 text-lg transition-colors">→</span>
+            </div>
+            <ul className="space-y-1.5 pt-1">
               {[
                 "Kill scheduling",
                 "Vendor coordination",
@@ -118,18 +108,27 @@ export default function Welcome() {
                 "Operations agent",
                 "Forecasting",
               ].map(item => (
-                <li key={item} className="flex items-start gap-2 text-white/75 text-xs">
+                <li key={item} className="flex items-start gap-2 text-white/65 text-xs">
                   <span className="text-amber-300 mt-0.5">✓</span>
                   {item}
                 </li>
               ))}
             </ul>
-          </div>
+          </button>
 
-          <div className="bg-white/10 border border-white/20 rounded-2xl px-5 py-5 space-y-3">
-            <p className="text-white font-bold text-sm">Muster Livestock</p>
-            <p className="text-white/60 text-xs leading-relaxed">Feedlots · Backgrounders · Pastoral companies · Farmers</p>
-            <ul className="space-y-1.5">
+          {/* Livestock */}
+          <button
+            onClick={() => navigate("/on-farm")}
+            className="bg-white/10 border border-white/20 hover:bg-white/20 hover:border-white/40 rounded-2xl px-5 py-5 space-y-3 text-left transition-all duration-200 group"
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-white font-bold text-sm">Muster Livestock</p>
+                <p className="text-white/50 text-xs mt-1 leading-relaxed">Feedlots · Backgrounders · Pastoral companies · Farmers</p>
+              </div>
+              <span className="text-white/30 group-hover:text-white/60 text-lg transition-colors">→</span>
+            </div>
+            <ul className="space-y-1.5 pt-1">
               {[
                 "Market intelligence",
                 "Livestock traceability",
@@ -137,57 +136,22 @@ export default function Welcome() {
                 "Bid calculator",
                 "AI agents",
               ].map(item => (
-                <li key={item} className="flex items-start gap-2 text-white/75 text-xs">
+                <li key={item} className="flex items-start gap-2 text-white/65 text-xs">
                   <span className="text-amber-300 mt-0.5">✓</span>
                   {item}
                 </li>
               ))}
             </ul>
-          </div>
+          </button>
+
         </div>
 
         {/* Confidentiality — friendly */}
-        <div className="space-y-4">
-          <p className="text-white/60 text-xs leading-relaxed px-4">
-            This is an early prototype shared with you in confidence. By entering you agree
-            to keep what you see between us — no screenshots, forwarding, or sharing without
-            a quick chat with Jacqui first. We appreciate you respecting that. 🤝
+        <div className="space-y-3">
+          <p className="text-white/50 text-xs leading-relaxed px-2">
+            This is an early prototype shared with you in confidence. By entering you agree to keep what you see between us — no screenshots, forwarding, or sharing without a quick chat with Jacqui first.
           </p>
-
-          <Button
-            onClick={() => navigate("/home")}
-            size="lg"
-            className="bg-white text-green-900 hover:bg-emerald-50 font-bold text-base px-10 py-6 rounded-xl shadow-xl gap-2 w-full"
-          >
-            Enter prototype
-            <ArrowRight className="h-5 w-5" />
-          </Button>
-
-          {/* Demo login */}
-          <div className="space-y-2">
-            <Button
-              onClick={handleDemoLogin}
-              disabled={demoLoading}
-              size="lg"
-              variant="outline"
-              className="border-white/40 text-white hover:bg-white/10 hover:border-white/70 font-semibold text-base px-10 py-6 rounded-xl gap-2 w-full bg-transparent"
-            >
-              {demoLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "🔍"
-              )}
-              Explore the Demo
-            </Button>
-            {demoError && (
-              <p className="text-red-300 text-xs">Demo unavailable — please try again</p>
-            )}
-            <p className="text-white/50 text-xs">
-              See the full platform with live data. No account needed.
-            </p>
-          </div>
-
-          <p className="text-white/40 text-xs">
+          <p className="text-white/30 text-xs">
             Built by Jacqui Webb · Muster · {new Date().getFullYear()}
           </p>
         </div>
