@@ -101,28 +101,49 @@ export default function Welcome() {
             Welcome to Muster
           </h1>
           <p className="text-white/75 text-lg leading-relaxed">
-            You've been invited to explore an early look at something we're really excited about —
-            a decision engine built for Australian cattle producers.
+            You've been invited to explore an early look at the Muster platform. Livestock intake coordination, compliance and operational visibility for red meat processors and producers.
           </p>
         </div>
 
-        {/* What they're about to see */}
-        <div className="bg-white/10 border border-white/20 rounded-2xl px-6 py-5 text-left space-y-3">
-          <p className="text-white font-semibold text-sm">What you'll see inside:</p>
-          <ul className="space-y-2">
-            {[
-              "Kill plan & booking management",
-              "Supplier & buyer coordination",
-              "Transport slotting & scheduling",
-              "Live KPI dashboard",
-              "Compliance & intake tracking",
-            ].map(item => (
-              <li key={item} className="flex items-start gap-2 text-white/80 text-sm">
-                <span className="text-emerald-300 mt-0.5">✓</span>
-                {item}
-              </li>
-            ))}
-          </ul>
+        {/* Two platforms */}
+        <div className="grid grid-cols-2 gap-3 text-left">
+          <div className="bg-white/10 border border-white/20 rounded-2xl px-5 py-5 space-y-3">
+            <p className="text-white font-bold text-sm">Muster Processing</p>
+            <p className="text-white/60 text-xs leading-relaxed">For abattoirs and processing plants</p>
+            <ul className="space-y-1.5">
+              {[
+                "Kill scheduling",
+                "Vendor coordination",
+                "NVD compliance",
+                "Operations agent",
+                "Forecasting",
+              ].map(item => (
+                <li key={item} className="flex items-start gap-2 text-white/75 text-xs">
+                  <span className="text-amber-300 mt-0.5">✓</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="bg-white/10 border border-white/20 rounded-2xl px-5 py-5 space-y-3">
+            <p className="text-white font-bold text-sm">Muster On Farm</p>
+            <p className="text-white/60 text-xs leading-relaxed">For producers, graziers and feedlots</p>
+            <ul className="space-y-1.5">
+              {[
+                "Market intelligence",
+                "Livestock traceability",
+                "Kill results",
+                "Bid calculator",
+                "AI agents",
+              ].map(item => (
+                <li key={item} className="flex items-start gap-2 text-white/75 text-xs">
+                  <span className="text-amber-300 mt-0.5">✓</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
 
         {/* Confidentiality — friendly */}
