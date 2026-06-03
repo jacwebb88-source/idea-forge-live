@@ -1,5 +1,5 @@
-import { differenceInDays, format } from "date-fns";
-import { ArrowRight, CheckCircle, AlertTriangle, Clock, Scale } from "lucide-react";
+import { differenceInDays } from "date-fns";
+import { ArrowRight, CheckCircle, AlertTriangle, Clock, TrendingUp, TrendingDown } from "lucide-react";
 import { categoryToken, exitToken, programToken } from "./farmTokens";
 import type { Mob } from "./types";
 
@@ -8,10 +8,33 @@ interface MobCardProps {
   latestWeightKg?: number | null;
   adg?: number | null;
   totalCostPerHead?: number;
+  marketPriceCpkg?: number | null;   // relevant benchmark price in c/kg lwt
   onClick: () => void;
 }
 
-export function MobCard({ mob, latestWeightKg, adg, totalCostPerHead, onClick }: MobCardProps) {
+// Dressing % by category (lwt → cwt conversion for OTH/grid calc)
+const DRESSING: Record<string, number> = {
+  lot_fed:      0.58,
+  backgrounder: 0.56,
+  boner_cow:    0.52,
+  trade:        0.56,
+  weaner:       0.54,
+  breeder:      0.52,
+  bull:         0.56,
+  cull_cow:     0.50,
+  trade_lamb:   0.48,
+  heavy_lamb:   0.50,
+  merino_lamb:  0.46,
+  ewe:          0.44,
+  wether:       0.46,
+  hogget:       0.46,
+};
+
+function fmt$(n: number) {
+  return n >= 0 ? `+$${n.toFixed(0)}` : `-$${Math.abs(n).toFixed(0)}`;
+}
+
+export function MobCard({ mob, latestWeightKg, adg, totalCostPerHead, marketPriceCpkg, onClick }: MobCardProps) {
   const cat = categoryToken(mob.category);
   const exit = exitToken(mob.target_exit_path);
   const prog = programToken(mob.program_type);
@@ -38,6 +61,25 @@ export function MobCard({ mob, latestWeightKg, adg, totalCostPerHead, onClick }:
 
   const isReady = daysToExit !== null && daysToExit <= 7;
   const isDueSoon = daysToExit !== null && daysToExit > 7 && daysToExit <= 21;
+
+  // ── Break-even and margin ─────────────────────────────────────────────────
+  const dressingPct = DRESSING[mob.category] ?? 0.56;
+  const hasBreakeven = totalCostPerHead != null && totalCostPerHead > 0 && currentWt > 0;
+
+  // Break-even price the market needs to pay (c/kg lwt) to cover all costs
+  const breakevenCpkg = hasBreakeven ? (totalCostPerHead! / currentWt) * 100 : null;
+
+  // Current market value per head at current weight and benchmark price
+  const marketValuePerHead = (marketPriceCpkg != null && currentWt > 0)
+    ? (currentWt * marketPriceCpkg) / 100
+    : null;
+
+  // Margin per head = market value minus total cost
+  const marginPerHead = (marketValuePerHead != null && totalCostPerHead != null && totalCostPerHead > 0)
+    ? marketValuePerHead - totalCostPerHead
+    : null;
+
+  const inTheMoney = marginPerHead != null && marginPerHead > 0;
 
   return (
     <button
@@ -137,15 +179,48 @@ export function MobCard({ mob, latestWeightKg, adg, totalCostPerHead, onClick }:
           {mob.msa_eligible && <span className="text-xs px-2 py-0.5 rounded-full bg-white/60 text-blue-800 font-medium">MSA</span>}
         </div>
 
-        {/* Bottom row: cost + exit date + arrow */}
+        {/* Break-even / margin row */}
+        {(breakevenCpkg != null || marginPerHead != null) && (
+          <div className={`rounded-xl px-3 py-2.5 ${
+            marginPerHead == null ? "bg-black/5" :
+            inTheMoney ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex gap-4 text-xs">
+                {breakevenCpkg != null && (
+                  <div>
+                    <span className="text-muted-foreground">Break-even </span>
+                    <span className="font-bold text-foreground">{breakevenCpkg.toFixed(0)}¢/kg</span>
+                  </div>
+                )}
+                {marketPriceCpkg != null && (
+                  <div>
+                    <span className="text-muted-foreground">Market </span>
+                    <span className="font-bold text-foreground">{marketPriceCpkg.toFixed(0)}¢/kg</span>
+                  </div>
+                )}
+              </div>
+              {marginPerHead != null && (
+                <div className={`flex items-center gap-1 text-xs font-bold ${inTheMoney ? "text-green-700" : "text-red-600"}`}>
+                  {inTheMoney
+                    ? <TrendingUp className="h-3.5 w-3.5" />
+                    : <TrendingDown className="h-3.5 w-3.5" />}
+                  {fmt$(marginPerHead)}/head
+                </div>
+              )}
+            </div>
+            {totalCostPerHead != null && totalCostPerHead > 0 && (
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Cost/head ${totalCostPerHead.toFixed(0)} · {mob.head_count} head
+                {marketValuePerHead != null ? ` · Total ${inTheMoney ? "profit" : "loss"} $${Math.abs(marginPerHead! * mob.head_count).toFixed(0)}` : ""}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Bottom row: exit date + arrow */}
         <div className="flex items-center justify-between pt-1 border-t border-black/10">
           <div className="flex gap-4 text-xs">
-            {totalCostPerHead != null && totalCostPerHead > 0 && (
-              <div>
-                <span className={`${cat.text} opacity-60`}>Cost/head </span>
-                <span className={`${cat.text} font-bold`}>${totalCostPerHead.toFixed(0)}</span>
-              </div>
-            )}
             {daysToExit !== null && (
               <div className={`flex items-center gap-1 ${isReady ? "text-white bg-green-600 px-2 py-0.5 rounded-full font-bold text-xs" : cat.text}`}>
                 {isReady ? <CheckCircle className="h-3 w-3" /> : daysToExit <= 21 ? <AlertTriangle className="h-3 w-3 text-amber-600" /> : <Clock className="h-3 w-3 opacity-50" />}

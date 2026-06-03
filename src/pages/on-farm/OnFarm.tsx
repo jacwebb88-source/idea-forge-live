@@ -110,6 +110,29 @@ export default function OnFarm() {
   const feederBench = latest("feeder_steer");
   const benchDate = benchmarks.length ? format(new Date(benchmarks[0].benchmark_date), "d MMM yyyy") : null;
 
+  // Pick the most relevant market price per mob category (c/kg lwt)
+  function mobMarketPrice(category: string): number | null {
+    const map: Record<string, string> = {
+      lot_fed:      "heavy_steer",
+      backgrounder: "feeder_steer",
+      trade:        "feeder_steer",
+      weaner:       "feeder_steer",
+      boner_cow:    "heavy_cow",
+      cull_cow:     "heavy_cow",
+      breeder:      "heavy_cow",
+      bull:         "heavy_bull",
+      trade_lamb:   "estli",
+      heavy_lamb:   "heavy_lamb",
+      merino_lamb:  "merino_lamb",
+      ewe:          "mutton",
+      wether:       "estli",
+      hogget:       "estli",
+    };
+    const key = map[category];
+    if (!key) return null;
+    return latest(key)?.cents_per_kg ?? null;
+  }
+
   return (
     <LivestockLayout>
       <div className="space-y-6 pb-10">
@@ -364,6 +387,7 @@ export default function OnFarm() {
                 latestWeightKg={e.latestWeightKg}
                 adg={e.adg}
                 totalCostPerHead={e.totalCostPerHead}
+                marketPriceCpkg={mobMarketPrice(e.mob.category)}
                 onClick={() => navigate(`/on-farm/mobs/${e.mob.id}`)}
               />
             ))}
