@@ -30,6 +30,7 @@ import {
   Satellite, Wind, X, Thermometer, Zap,
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
+import { DocumentScanner } from "@/components/on-farm/DocumentScanner";
 
 function fmt$(n: number) { return `$${n.toLocaleString("en-AU", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`; }
 function fmtKg(n: number) { return `${n.toFixed(1)} kg`; }
@@ -1618,6 +1619,16 @@ function LogWeightDialog({ open, onClose, mobId, weights, onSaved, toast, cat }:
       <DialogContent className="max-w-sm rounded-2xl">
         <DialogHeader><DialogTitle className="text-lg">Log Weight</DialogTitle></DialogHeader>
         <div className="space-y-4">
+          {/* Weighbridge docket scanner */}
+          <DocumentScanner
+            documentType="weighbridge"
+            onExtracted={(fields) => {
+              if (fields.weigh_date)    set("weigh_date",    String(fields.weigh_date));
+              if (fields.avg_weight_kg) set("avg_weight_kg", String(fields.avg_weight_kg));
+              if (fields.notes)         set("notes",         String(fields.notes));
+            }}
+          />
+
           {/* Big weight input */}
           <div className={`rounded-2xl bg-primary/10 border border-primary/20 p-5 text-center`}>
             <p className="text-white/70 text-sm mb-2">Average weight (kg/head)</p>

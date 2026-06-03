@@ -16,6 +16,7 @@ import {
   type MobCategory, type ProgramType, type ExitPath,
 } from "@/components/on-farm/types";
 import { ArrowLeft, Beef } from "lucide-react";
+import { DocumentScanner } from "@/components/on-farm/DocumentScanner";
 
 const CATTLE_CATEGORIES: MobCategory[] = [
   "boner_cow", "lot_fed", "backgrounder", "weaner", "breeder", "trade", "bull", "cull_cow",
@@ -179,6 +180,49 @@ export default function NewMob() {
             : <Beef className="h-5 w-5 text-primary" />
           }
           <h1 className="text-xl font-bold">New Mob</h1>
+        </div>
+
+        {/* ── Document Scanner ──────────────────────────────────────── */}
+        <div className="grid grid-cols-2 gap-3 mb-2">
+          <DocumentScanner
+            documentType="nvd"
+            onExtracted={(fields) => {
+              if (fields.vendor_name)           set("source_name",              String(fields.vendor_name));
+              if (fields.agent_name)            set("agent_name",               String(fields.agent_name));
+              if (fields.head_count)            set("head_count",               String(fields.head_count));
+              if (fields.species)               setSpecies(fields.species as "cattle" | "sheep");
+              if (fields.breed_type)            set("breed_type",               String(fields.breed_type));
+              if (fields.avg_weight_kg)         set("purchase_weight_avg_kg",   String(fields.avg_weight_kg));
+              if (fields.nvd_date)              set("purchase_date",            String(fields.nvd_date));
+              if (fields.hgp_free !== null && fields.hgp_free !== undefined)
+                                                set("hgp_free",                 Boolean(fields.hgp_free));
+              if (fields.msa_eligible !== null && fields.msa_eligible !== undefined)
+                                                set("msa_eligible",             Boolean(fields.msa_eligible));
+              if (fields.halal_certified !== null && fields.halal_certified !== undefined)
+                                                set("halal_certified",          Boolean(fields.halal_certified));
+              if (fields.nlis_confirmed !== null && fields.nlis_confirmed !== undefined)
+                                                set("nlis_confirmed",           Boolean(fields.nlis_confirmed));
+              if (fields.nvd_received !== null && fields.nvd_received !== undefined)
+                                                set("nvd_received",             Boolean(fields.nvd_received));
+              if (fields.location_name)         set("location_name",            String(fields.location_name));
+              if (fields.notes)                 set("notes",                    String(fields.notes));
+            }}
+          />
+          <DocumentScanner
+            documentType="invoice"
+            onExtracted={(fields) => {
+              if (fields.purchase_date)         set("purchase_date",            String(fields.purchase_date));
+              if (fields.vendor_name)           set("source_name",              String(fields.vendor_name));
+              if (fields.agent_name)            set("agent_name",               String(fields.agent_name));
+              if (fields.head_count)            set("head_count",               String(fields.head_count));
+              if (fields.species)               setSpecies(fields.species as "cattle" | "sheep");
+              if (fields.purchase_price_per_head) set("purchase_price_per_head", String(fields.purchase_price_per_head));
+              if (fields.purchase_cents_per_kg) set("purchase_cents_per_kg",    String(fields.purchase_cents_per_kg));
+              if (fields.purchase_weight_avg_kg) set("purchase_weight_avg_kg",  String(fields.purchase_weight_avg_kg));
+              if (fields.agent_commission_pct)  set("agent_commission_pct",     String(fields.agent_commission_pct));
+              if (fields.location_name)         set("location_name",            String(fields.location_name));
+            }}
+          />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
