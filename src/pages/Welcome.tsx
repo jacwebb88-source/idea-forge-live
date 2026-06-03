@@ -127,8 +127,8 @@ export default function Welcome() {
           </div>
 
           <div className="bg-white/10 border border-white/20 rounded-2xl px-5 py-5 space-y-3">
-            <p className="text-white font-bold text-sm">Muster On Farm</p>
-            <p className="text-white/60 text-xs leading-relaxed">For producers, graziers and feedlots</p>
+            <p className="text-white font-bold text-sm">Muster Livestock</p>
+            <p className="text-white/60 text-xs leading-relaxed">Feedlots · Backgrounders · Pastoral companies · Farmers</p>
             <ul className="space-y-1.5">
               {[
                 "Market intelligence",
