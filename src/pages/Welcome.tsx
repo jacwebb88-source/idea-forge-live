@@ -101,7 +101,7 @@ export default function Welcome() {
             Welcome to Muster
           </h1>
           <p className="text-white/75 text-lg leading-relaxed">
-            You've been invited to explore an early look at the Muster platform. Livestock intake coordination, compliance and operational visibility for red meat processors and producers.
+            You've been invited to explore an early look at the Muster platform. Software for the Australian red meat industry.
           </p>
         </div>
 
