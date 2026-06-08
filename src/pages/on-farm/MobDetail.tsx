@@ -1187,6 +1187,11 @@ function EditFeedPlanDialog({ open, onClose, mobId, current, targetWt, currentWt
 // ─── Decision Engine ──────────────────────────────────────────────────────────
 
 function DecisionEngine({ mob, totalCostPerHead, latestWeightKg, latest, benchmarks, feedPlan, adg, cat, processorGrids }: any) {
+  // ── Hold vs Sell state ───────────────────────────────────────────────────
+  const [holdWeeks, setHoldWeeks] = useState(8);
+  const [holdAdg, setHoldAdg] = useState<number>(adg ?? 1.2);
+  const [holdDailyCost, setHoldDailyCost] = useState<number>(feedPlan?.daily_feed_cost_per_head ?? 3.50);
+
   const [dressingPct, setDressingPct] = useState(58);
   const [freightOut, setFreightOut] = useState(80);
   const [agentCommExit, setAgentCommExit] = useState(4.5);
@@ -1333,8 +1338,151 @@ function DecisionEngine({ mob, totalCostPerHead, latestWeightKg, latest, benchma
 
   const best = paths.find(p => p.eligible);
 
+  // ── Hold vs Sell calculations ───────────────────────────────────────────
+  const holdDays = holdWeeks * 7;
+  const projectedWt = latestWeightKg + holdAdg * holdDays;
+  const additionalCost = holdDailyCost * holdDays;
+  const totalCostAtExit = totalCostPerHead + additionalCost;
+
+  // Sell today — best net across all paths (calculate below after paths are defined)
+  const sellTodayNet = (() => {
+    const cw = latestWeightKg * (dressingPct / 100);
+    const hgpPrem = mob.hgp_free ? 50 : 0;
+    const msaPrem = mob.msa_eligible ? 24 : 0;
+    const othV = latest("oth_vic")?.cents_per_kg ?? 615;
+    const oTH = ((othV + hgpPrem + msaPrem) / 100) * cw - freightOut - 5;
+    const saleyard = (benchmarkCpkg / 100) * latestWeightKg - freightOut - (((benchmarkCpkg / 100) * latestWeightKg) * (agentCommExit / 100)) - 23;
+    return Math.max(oTH, saleyard);
+  })();
+
+  // Hold to exit — same exit path logic but with projected weight
+  const holdNet = (() => {
+    const cw = projectedWt * (dressingPct / 100);
+    const hgpPrem = mob.hgp_free ? 50 : 0;
+    const msaPrem = mob.msa_eligible ? 24 : 0;
+    const othV = latest("oth_vic")?.cents_per_kg ?? 615;
+    const oTH = ((othV + hgpPrem + msaPrem) / 100) * cw - freightOut - 5;
+    const saleyard = (benchmarkCpkg / 100) * projectedWt - freightOut - (((benchmarkCpkg / 100) * projectedWt) * (agentCommExit / 100)) - 23;
+    return Math.max(oTH, saleyard);
+  })();
+
+  const sellTodayMargin = sellTodayNet - totalCostPerHead;
+  const holdMargin = holdNet - totalCostAtExit;
+  const holdAdvantage = holdMargin - sellTodayMargin;
+  const sellIsBetter = sellTodayMargin > holdMargin;
+  const holdIsWorthIt = holdAdvantage > 0;
+
   return (
     <div className="space-y-4">
+
+      {/* ── Hold vs Sell Scenario ─────────────────────────────────────────── */}
+      <div className="rounded-2xl border-2 border-amber-200 bg-amber-50 p-5 space-y-4">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="h-8 w-8 rounded-xl bg-amber-500 flex items-center justify-center">
+            <TrendingUp className="h-4 w-4 text-white" />
+          </div>
+          <div>
+            <p className="font-bold text-sm text-amber-900">Hold vs Sell Scenario</p>
+            <p className="text-xs text-amber-700">Model the decision before you make it</p>
+          </div>
+        </div>
+
+        {/* Inputs */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="space-y-1">
+            <Label className="text-xs text-amber-800 font-semibold">Hold period</Label>
+            <div className="flex rounded-lg overflow-hidden border border-amber-300 bg-white">
+              {[4, 6, 8, 12, 16].map(w => (
+                <button
+                  key={w}
+                  type="button"
+                  onClick={() => setHoldWeeks(w)}
+                  className={`flex-1 text-xs py-2 font-bold transition-colors ${
+                    holdWeeks === w ? "bg-amber-500 text-white" : "text-amber-700 hover:bg-amber-100"
+                  }`}
+                >
+                  {w}w
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs text-amber-800 font-semibold">Expected ADG (kg/day)</Label>
+            <Input
+              type="number" step={0.05} value={holdAdg}
+              onChange={e => setHoldAdg(+e.target.value)}
+              className="h-9 text-sm rounded-lg border-amber-300"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs text-amber-800 font-semibold">Daily feed cost ($/head)</Label>
+            <Input
+              type="number" step={0.25} value={holdDailyCost}
+              onChange={e => setHoldDailyCost(+e.target.value)}
+              className="h-9 text-sm rounded-lg border-amber-300"
+            />
+          </div>
+        </div>
+
+        {/* Result cards */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Sell today */}
+          <div className={`rounded-xl p-4 border-2 ${sellIsBetter ? "border-green-400 bg-green-50" : "border-slate-200 bg-white"}`}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-bold text-slate-600 uppercase tracking-wide">Sell today</p>
+              {sellIsBetter && <span className="text-xs font-bold bg-green-500 text-white px-2 py-0.5 rounded-full">Better now</span>}
+            </div>
+            <p className="text-xs text-muted-foreground mb-1">{latestWeightKg.toFixed(0)}kg · cost ${totalCostPerHead.toFixed(0)}/hd</p>
+            <p className={`text-3xl font-black leading-tight ${sellTodayMargin >= 0 ? "text-green-600" : "text-red-600"}`}>
+              {sellTodayMargin >= 0 ? "+" : ""}{fmt$(sellTodayMargin)}
+            </p>
+            <p className="text-xs text-muted-foreground">margin / head</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Total: {sellTodayMargin >= 0 ? "+" : ""}{fmt$(sellTodayMargin * mob.head_count)} across {mob.head_count} head
+            </p>
+          </div>
+
+          {/* Hold */}
+          <div className={`rounded-xl p-4 border-2 ${holdIsWorthIt && !sellIsBetter ? "border-green-400 bg-green-50" : "border-slate-200 bg-white"}`}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-bold text-slate-600 uppercase tracking-wide">Hold {holdWeeks} weeks</p>
+              {holdIsWorthIt && !sellIsBetter && <span className="text-xs font-bold bg-green-500 text-white px-2 py-0.5 rounded-full">Better to hold</span>}
+            </div>
+            <p className="text-xs text-muted-foreground mb-1">
+              {projectedWt.toFixed(0)}kg proj · cost ${totalCostAtExit.toFixed(0)}/hd (+${additionalCost.toFixed(0)} feed)
+            </p>
+            <p className={`text-3xl font-black leading-tight ${holdMargin >= 0 ? "text-green-600" : "text-red-600"}`}>
+              {holdMargin >= 0 ? "+" : ""}{fmt$(holdMargin)}
+            </p>
+            <p className="text-xs text-muted-foreground">margin / head</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Total: {holdMargin >= 0 ? "+" : ""}{fmt$(holdMargin * mob.head_count)} across {mob.head_count} head
+            </p>
+          </div>
+        </div>
+
+        {/* Verdict */}
+        <div className={`rounded-xl px-4 py-3 flex items-start gap-3 ${
+          holdAdvantage > 50 ? "bg-green-100 border border-green-300" :
+          holdAdvantage < -50 ? "bg-red-100 border border-red-300" :
+          "bg-slate-100 border border-slate-200"
+        }`}>
+          <div className="text-lg">{holdAdvantage > 50 ? "📈" : holdAdvantage < -50 ? "📉" : "⚖️"}</div>
+          <div>
+            <p className={`text-sm font-bold ${holdAdvantage > 50 ? "text-green-800" : holdAdvantage < -50 ? "text-red-800" : "text-slate-700"}`}>
+              {holdAdvantage > 50
+                ? `Hold ${holdWeeks} weeks — ${fmt$(holdAdvantage)}/head advantage`
+                : holdAdvantage < -50
+                  ? `Sell now — holding costs ${fmt$(Math.abs(holdAdvantage))}/head more than it returns`
+                  : `Marginal — ${fmt$(Math.abs(holdAdvantage))}/head difference. Comes down to market outlook and risk.`}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              At {holdAdg}kg ADG · ${holdDailyCost}/hd/day · {projectedWt.toFixed(0)}kg projected exit weight · current {benchmarkCpkg}¢/kg benchmark
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Assumptions */}
       <div className={`rounded-xl border ${cat.border} ${cat.bg} px-4 py-4`}>
         <p className={`text-xs font-semibold uppercase tracking-wide ${cat.text} opacity-60 mb-3`}>Adjust assumptions</p>
