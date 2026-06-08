@@ -3,7 +3,7 @@ import {
   TrendingUp, Building2, PackageCheck, PieChart,
   LineChart, Award, Upload, Globe, Grid3X3,
   Calculator, Banknote, LogOut, Settings, HelpCircle,
-  Home, ArrowLeft, Sunrise, FileText, Rocket,
+  Home, ArrowLeft, Sunrise, FileText, Rocket, Leaf,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -29,6 +29,7 @@ const overviewItems = [
 
 const intelligenceItems = [
   { title: "Market Intelligence",  url: "/on-farm/market",             icon: LineChart },
+  { title: "Seasonal Planner",     url: "/on-farm/seasonal",           icon: Leaf },
   { title: "Forecasting",          url: "/on-farm/forecasting",        icon: TrendingUp },
   { title: "Processor Grids",      url: "/on-farm/grids",              icon: Grid3X3 },
   { title: "Kill Results",         url: "/on-farm/kill-results",       icon: Award },
