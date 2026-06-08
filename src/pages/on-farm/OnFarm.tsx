@@ -26,6 +26,7 @@ interface MobEnriched {
   latestWeightKg: number | null;
   adg: number | null;
   totalCostPerHead: number;
+  hasActiveWHP: boolean;
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -45,9 +46,10 @@ export default function OnFarm() {
 
     async function enrich() {
       const ids = mobs.map(m => m.id);
-      const [wRes, cRes] = await Promise.all([
+      const [wRes, cRes, tRes] = await Promise.all([
         supabase.from("weight_records").select("*").in("mob_id", ids).order("weigh_date", { ascending: true }),
         supabase.from("mob_costs").select("mob_id, amount_total").in("mob_id", ids),
+        (supabase as any).from("mob_treatments").select("mob_id, whp_days, clearance_date_domestic, target_exit_date").in("mob_id", ids),
       ]);
 
       const weightsByMob: Record<string, WeightRecord[]> = {};
@@ -58,6 +60,14 @@ export default function OnFarm() {
       const costsByMob: Record<string, number> = {};
       for (const c of (cRes.data as any[]) ?? []) {
         costsByMob[c.mob_id] = (costsByMob[c.mob_id] ?? 0) + c.amount_total;
+      }
+      // Active WHP: any treatment where clearance_date_domestic is in the future
+      const whpByMob: Record<string, boolean> = {};
+      for (const t of (tRes.data as any[]) ?? []) {
+        if (t.whp_days > 0 && t.clearance_date_domestic) {
+          const daysLeft = (new Date(t.clearance_date_domestic).getTime() - Date.now()) / 86400000;
+          if (daysLeft > 0) whpByMob[t.mob_id] = true;
+        }
       }
 
       setEnriched(mobs.map(mob => {
@@ -80,6 +90,7 @@ export default function OnFarm() {
           latestWeightKg: latest?.avg_weight_kg ?? null,
           adg,
           totalCostPerHead: mob.head_count > 0 ? totalCost / mob.head_count : 0,
+          hasActiveWHP: whpByMob[mob.id] ?? false,
         };
       }));
     }
@@ -388,6 +399,7 @@ export default function OnFarm() {
                 adg={e.adg}
                 totalCostPerHead={e.totalCostPerHead}
                 marketPriceCpkg={mobMarketPrice(e.mob.category)}
+                hasActiveWHP={e.hasActiveWHP}
                 onClick={() => navigate(`/on-farm/mobs/${e.mob.id}`)}
               />
             ))}

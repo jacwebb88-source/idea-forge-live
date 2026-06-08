@@ -8,7 +8,8 @@ interface MobCardProps {
   latestWeightKg?: number | null;
   adg?: number | null;
   totalCostPerHead?: number;
-  marketPriceCpkg?: number | null;   // relevant benchmark price in c/kg lwt
+  marketPriceCpkg?: number | null;
+  hasActiveWHP?: boolean;  // true if any treatment not cleared by target exit date
   onClick: () => void;
 }
 
@@ -34,7 +35,7 @@ function fmt$(n: number) {
   return n >= 0 ? `+$${n.toFixed(0)}` : `-$${Math.abs(n).toFixed(0)}`;
 }
 
-export function MobCard({ mob, latestWeightKg, adg, totalCostPerHead, marketPriceCpkg, onClick }: MobCardProps) {
+export function MobCard({ mob, latestWeightKg, adg, totalCostPerHead, marketPriceCpkg, hasActiveWHP, onClick }: MobCardProps) {
   const cat = categoryToken(mob.category);
   const exit = exitToken(mob.target_exit_path);
   const prog = programToken(mob.program_type);
@@ -93,15 +94,23 @@ export function MobCard({ mob, latestWeightKg, adg, totalCostPerHead, marketPric
             <p className="text-white/70 text-xs font-medium uppercase tracking-wider">{cat.label}</p>
             <h3 className="text-white font-bold text-lg leading-tight mt-0.5 truncate">{mob.mob_name}</h3>
           </div>
-          {isReady ? (
-            <span className="shrink-0 bg-white/20 text-white text-xs font-bold px-2.5 py-1 rounded-full border border-white/30">
-              READY
-            </span>
-          ) : isDueSoon ? (
-            <span className="shrink-0 bg-amber-400/80 text-white text-xs font-bold px-2.5 py-1 rounded-full">
-              DUE SOON
-            </span>
-          ) : null}
+          <div className="flex gap-1.5 shrink-0 flex-wrap justify-end">
+            {hasActiveWHP && (
+              <span className="bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">
+                WHP ⚠️
+              </span>
+            )}
+            {isReady && (
+              <span className="bg-white/20 text-white text-xs font-bold px-2.5 py-1 rounded-full border border-white/30">
+                READY
+              </span>
+            )}
+            {isDueSoon && !isReady && (
+              <span className="bg-amber-400/80 text-white text-xs font-bold px-2.5 py-1 rounded-full">
+                DUE SOON
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Big stats row */}

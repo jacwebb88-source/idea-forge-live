@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { LivestockLayout } from "@/components/LivestockLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useMobs, useMarketBenchmarks } from "@/components/on-farm/useMobs";
@@ -98,6 +98,28 @@ export default function LivestockBriefing() {
   const readyToSell = active.filter(e => e.daysToExit != null && e.daysToExit <= 7);
   const overdue = active.filter(e => e.daysToExit != null && e.daysToExit < 0);
   const noWeights = active.filter(e => e.weights.length === 0);
+
+  // WHP alerts — fetch active treatments
+  const [whpAlerts, setWhpAlerts] = useState<{mobName: string; product: string; clearDate: string; daysLeft: number}[]>([]);
+  useEffect(() => {
+    if (!active.length) return;
+    const ids = active.map(e => e.mob.id);
+    (supabase as any).from("mob_treatments")
+      .select("mob_id, product_name, clearance_date_domestic, whp_days")
+      .in("mob_id", ids)
+      .gt("whp_days", 0)
+      .then(({ data }: any) => {
+        const alerts: typeof whpAlerts = [];
+        for (const t of (data ?? [])) {
+          const daysLeft = Math.ceil((new Date(t.clearance_date_domestic).getTime() - Date.now()) / 86400000);
+          if (daysLeft > 0) {
+            const mob = active.find(e => e.mob.id === t.mob_id);
+            if (mob) alerts.push({ mobName: mob.mob.mob_name, product: t.product_name, clearDate: t.clearance_date_domestic, daysLeft });
+          }
+        }
+        setWhpAlerts(alerts);
+      });
+  }, [active.length]);
 
   async function generateBriefing() {
     setBriefingLoading(true);
@@ -203,9 +225,18 @@ export default function LivestockBriefing() {
         )}
 
         {/* Alert flags */}
-        {(overdue.length > 0 || underwater.length > 0 || readyToSell.length > 0 || noWeights.length > 0) && (
+        {(overdue.length > 0 || underwater.length > 0 || readyToSell.length > 0 || noWeights.length > 0 || whpAlerts.length > 0) && (
           <div className="space-y-2">
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Action needed</p>
+            {whpAlerts.map((a, i) => (
+              <div key={i} className="flex items-start gap-3 rounded-xl bg-red-50 border border-red-200 px-4 py-3">
+                <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-bold text-red-800">{a.mobName} — antibiotic withholding period active</p>
+                  <p className="text-xs text-red-600">{a.product} · clears {new Date(a.clearDate).toLocaleDateString("en-AU", { day: "numeric", month: "short" })} · {a.daysLeft} days remaining · not eligible for sale until cleared</p>
+                </div>
+              </div>
+            ))}
             {overdue.map(e => (
               <div key={e.mob.id} className="flex items-start gap-3 rounded-xl bg-red-50 border border-red-200 px-4 py-3">
                 <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
