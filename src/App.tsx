@@ -47,6 +47,7 @@ import KillResults from "./pages/on-farm/KillResults";
 import LivestockBriefing from "./pages/on-farm/LivestockBriefing";
 import GettingStarted from "./pages/on-farm/GettingStarted";
 import SeasonalPlanner from "./pages/on-farm/SeasonalPlanner";
+import BookKillSlot from "./pages/on-farm/BookKillSlot";
 import LivestockStatement from "./pages/on-farm/LivestockStatement";
 import LotTracking from "./pages/LotTracking";
 import Provenance from "./pages/Provenance";
@@ -135,6 +136,7 @@ const App = () => (
             <Route path="/on-farm/briefing" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><LivestockBriefing /></ProtectedRoute>} />
             <Route path="/on-farm/setup" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><GettingStarted /></ProtectedRoute>} />
             <Route path="/on-farm/seasonal" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><SeasonalPlanner /></ProtectedRoute>} />
+            <Route path="/on-farm/book-kill-slot" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><BookKillSlot /></ProtectedRoute>} />
             <Route path="/on-farm/statement" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><LivestockStatement /></ProtectedRoute>} />
 
             {/* Help Centre — all authenticated roles */}

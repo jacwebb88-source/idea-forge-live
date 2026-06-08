@@ -3,7 +3,7 @@ import {
   TrendingUp, Building2, PackageCheck, PieChart,
   LineChart, Award, Upload, Globe, Grid3X3,
   Calculator, Banknote, LogOut, Settings, HelpCircle,
-  Home, ArrowLeft, Sunrise, FileText, Rocket, Leaf,
+  Home, ArrowLeft, Sunrise, FileText, Rocket, Leaf, Send,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -36,6 +36,7 @@ const intelligenceItems = [
 ];
 
 const toolsItems = [
+  { title: "Book Kill Slot",       url: "/on-farm/book-kill-slot",     icon: Send },
   { title: "Bid Calculator",       url: "/on-farm/bid-calculator",     icon: Calculator },
   { title: "Livestock Finance",    url: "/on-farm/finance",            icon: Banknote },
   { title: "Financial Analysis",   url: "/on-farm/financial-analysis", icon: PieChart },

@@ -1204,6 +1204,55 @@ function DecisionEngine({ mob, totalCostPerHead, latestWeightKg, latest, benchma
   const [holdWeeks, setHoldWeeks] = useState(8);
   const [holdAdg, setHoldAdg] = useState<number>(adg ?? 1.2);
   const [holdDailyCost, setHoldDailyCost] = useState<number>(feedPlan?.daily_feed_cost_per_head ?? 3.50);
+  const [holdTransportOut, setHoldTransportOut] = useState(80);
+
+  // ── Seasonal context for hold vs sell ────────────────────────────────────
+  const [seasonalRegion, setSeasonalRegion] = useState<string | null>(null);
+  const [seasonalCurve, setSeasonalCurve] = useState<number[] | null>(null);
+
+  useEffect(() => {
+    supabase.from("enterprise_settings" as any).select("state").single().then(({ data }: any) => {
+      if (!data?.state) return;
+      // Map state to seasonal region key
+      const stateMap: Record<string, string> = {
+        VIC: "aus_western_district", NSW: "aus_south_west_slopes",
+        QLD: "aus_darling_downs", SA: "aus_se_sa",
+        WA: "aus_sw_wa", TAS: "aus_tasmania", NT: "aus_top_end",
+      };
+      const regionKey = stateMap[data.state] ?? "aus_western_district";
+      setSeasonalRegion(data.state);
+      // Seasonal curves (Jan–Dec) matching SeasonalPlanner
+      const curves: Record<string, number[]> = {
+        aus_western_district: [35, 30, 45, 65, 78, 82, 78, 88, 100, 100, 82, 55],
+        aus_south_west_slopes: [35, 30, 45, 60, 70, 75, 70, 80, 90, 90, 75, 50],
+        aus_darling_downs: [80, 80, 70, 60, 50, 40, 40, 50, 60, 70, 75, 80],
+        aus_se_sa: [35, 30, 45, 65, 80, 88, 85, 92, 100, 95, 72, 48],
+        aus_sw_wa: [30, 25, 40, 60, 78, 88, 85, 90, 100, 95, 72, 42],
+        aus_tasmania: [60, 55, 65, 75, 78, 80, 78, 82, 92, 95, 88, 70],
+        aus_top_end: [100, 100, 95, 75, 45, 25, 20, 25, 45, 65, 80, 95],
+      };
+      setSeasonalCurve(curves[regionKey] ?? curves.aus_western_district);
+    });
+  }, []);
+
+  // Calculate blended hold cost from seasonal curve
+  const seasonalHoldCost = (() => {
+    if (!seasonalCurve) return null;
+    const suppCostPerDay = feedPlan?.daily_feed_cost_per_head ?? 3.50;
+    const grassCostPerDay = 0.60; // property overheads only
+    const holdDays = holdWeeks * 7;
+    const startMonth = new Date().getMonth();
+    let totalCost = 0;
+    for (let d = 0; d < holdDays; d++) {
+      const monthIdx = (startMonth + Math.floor(d / 30)) % 12;
+      const grassPct = seasonalCurve[monthIdx] / 100;
+      const dayCost = grassPct >= 0.85 ? grassCostPerDay : grassPct >= 0.60
+        ? grassCostPerDay + (suppCostPerDay - grassCostPerDay) * (1 - (grassPct - 0.60) / 0.25)
+        : suppCostPerDay;
+      totalCost += dayCost;
+    }
+    return totalCost / holdDays; // blended daily cost
+  })();
 
   const [dressingPct, setDressingPct] = useState(58);
   const [freightOut, setFreightOut] = useState(80);
@@ -1400,6 +1449,36 @@ function DecisionEngine({ mob, totalCostPerHead, latestWeightKg, latest, benchma
           </div>
         </div>
 
+        {/* Seasonal context */}
+        {seasonalCurve && seasonalRegion && (
+          <div className="rounded-xl bg-white border border-amber-200 px-4 py-3 text-xs">
+            <p className="font-semibold text-amber-900 mb-1.5">🌿 Seasonal feed — {seasonalRegion}</p>
+            <div className="flex gap-1 flex-wrap mb-2">
+              {Array.from({ length: holdWeeks }, (_, i) => {
+                const monthIdx = (new Date().getMonth() + Math.floor(i / 4)) % 12;
+                const pct = seasonalCurve[monthIdx];
+                const isGrass = pct >= 85;
+                return (
+                  <div key={i} className={`rounded px-1.5 py-0.5 font-bold ${isGrass ? "bg-green-100 text-green-700" : pct >= 60 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-600"}`}>
+                    W{i + 1} {isGrass ? "🌿" : pct >= 60 ? "⚡" : "🌾"}
+                  </div>
+                );
+              })}
+            </div>
+            {seasonalHoldCost !== null && (
+              <div className="flex items-center gap-3">
+                <p className="text-amber-800 flex-1">
+                  Blended cost: <strong>${seasonalHoldCost.toFixed(2)}/hd/day</strong>
+                  {seasonalHoldCost < (feedPlan?.daily_feed_cost_per_head ?? 3.50) ? " — grass saves on feed" : " — mostly supplement period"}
+                </p>
+                <button className="text-xs font-bold text-amber-600 underline shrink-0" onClick={() => setHoldDailyCost(parseFloat(seasonalHoldCost.toFixed(2)))}>
+                  Use this →
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Inputs */}
         <div className="grid grid-cols-3 gap-3">
           <div className="space-y-1">
@@ -1496,6 +1575,23 @@ function DecisionEngine({ mob, totalCostPerHead, latestWeightKg, latest, benchma
         </div>
       </div>
 
+      {/* Book kill slot CTA */}
+      <div className="rounded-xl border-2 border-amber-300 bg-amber-50 px-5 py-4 flex items-center justify-between gap-4">
+        <div>
+          <p className="font-bold text-sm text-amber-900">Ready to book?</p>
+          <p className="text-xs text-amber-700 mt-0.5">Send a kill slot request directly to your processor — no phone call needed.</p>
+        </div>
+        <button
+          onClick={() => {
+            const navigate = (window as any).__navigate;
+            window.location.href = `/on-farm/book-kill-slot`;
+          }}
+          className="shrink-0 bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-colors"
+        >
+          Book kill slot →
+        </button>
+      </div>
+
       {/* Assumptions */}
       <div className={`rounded-xl border ${cat.border} ${cat.bg} px-4 py-4`}>
         <p className={`text-xs font-semibold uppercase tracking-wide ${cat.text} opacity-60 mb-3`}>Adjust assumptions</p>
@@ -1573,6 +1669,72 @@ function DecisionEngine({ mob, totalCostPerHead, latestWeightKg, latest, benchma
       <p className="text-xs text-muted-foreground text-center">
         EYCI {eyci > 0 ? `${eyci}¢/kg CW` : "—"} · MLA/NLRS benchmarks · All figures per head · Margins vs. total cost logged to date
       </p>
+
+      {/* ── Processor Comparison ──────────────────────────────────────── */}
+      {processorGrids?.length > 1 && (
+        <div className="rounded-xl border bg-white p-4">
+          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1 flex items-center gap-1.5">
+            <Building2 className="h-3.5 w-3.5" /> Processor comparison — best option per head
+          </p>
+          <p className="text-xs text-muted-foreground mb-3">
+            {latestWeightKg.toFixed(0)}kg at {dressingPct}% dressing · freight ${freightOut}/hd · {mob.hgp_free ? "HGP Free" : "HGP"} · {mob.msa_eligible ? "MSA" : "non-MSA"}
+          </p>
+          <div className="space-y-2">
+            {[...processorGrids]
+              .map((g: any) => {
+                const effectivePrice = g.price_cpkg_cw
+                  + (mob.hgp_free ? (g.hgp_free_premium_cpkg ?? 0) : 0)
+                  + (mob.msa_eligible ? (g.msa_premium_cpkg ?? 0) : 0);
+                const carcaseKg = latestWeightKg * (dressingPct / 100);
+                const gross = (effectivePrice / 100) * carcaseKg;
+                const net = gross - freightOut - 5; // MLA levy
+                const margin = net - totalCostPerHead;
+                return { g, effectivePrice, gross, net, margin, carcaseKg };
+              })
+              .sort((a, b) => b.net - a.net)
+              .map(({ g, effectivePrice, net, margin, carcaseKg }, idx) => {
+                const isBest = idx === 0;
+                const diffFromBest = idx === 0 ? 0 : (([...processorGrids]
+                  .map((g2: any) => {
+                    const ep = g2.price_cpkg_cw + (mob.hgp_free ? (g2.hgp_free_premium_cpkg ?? 0) : 0) + (mob.msa_eligible ? (g2.msa_premium_cpkg ?? 0) : 0);
+                    return (ep / 100) * carcaseKg - freightOut - 5;
+                  })
+                  .sort((a, b) => b - a)[0]) - net);
+                return (
+                  <div key={g.id} className={`rounded-xl border-2 px-4 py-3 flex items-center justify-between gap-3 ${isBest ? `${cat.border} ${cat.bg}` : "border-muted bg-white"}`}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {isBest && <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${cat.badge}`}>Best return</span>}
+                        <p className="font-bold text-sm truncate">{g.processor_name}</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {g.price_cpkg_cw}¢/kg CW
+                        {mob.hgp_free && g.hgp_free_premium_cpkg > 0 ? ` +${g.hgp_free_premium_cpkg}¢ HGP` : ""}
+                        {mob.msa_eligible && g.msa_premium_cpkg > 0 ? ` +${g.msa_premium_cpkg}¢ MSA` : ""}
+                        {` = ${effectivePrice}¢/kg effective · ${carcaseKg.toFixed(0)}kg CW`}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-lg font-black">{fmt$fine(net)}/hd</p>
+                      <p className={`text-xs font-bold ${margin >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        {margin >= 0 ? "+" : ""}{fmt$(margin)}/hd vs cost
+                      </p>
+                      {!isBest && diffFromBest > 0 && (
+                        <p className="text-xs text-muted-foreground">−${diffFromBest.toFixed(0)}/hd vs best</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+          <p className="text-xs text-muted-foreground text-center mt-2">
+            Total value at {mob.head_count} head — best: {fmt$(([...processorGrids].map((g: any) => {
+              const ep = g.price_cpkg_cw + (mob.hgp_free ? (g.hgp_free_premium_cpkg ?? 0) : 0) + (mob.msa_eligible ? (g.msa_premium_cpkg ?? 0) : 0);
+              return (ep / 100) * (latestWeightKg * dressingPct / 100) - freightOut - 5;
+            }).sort((a, b) => b - a)[0]) * mob.head_count)}
+          </p>
+        </div>
+      )}
 
       {/* ── Industry Benchmarks ───────────────────────────────────────── */}
       <div className="rounded-xl border bg-muted/10 p-4">
