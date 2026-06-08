@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { DocumentScanner } from "@/components/on-farm/DocumentScanner";
+import { TreatmentList, AddTreatmentDialog } from "@/components/on-farm/TreatmentLog";
 
 function fmt$(n: number) { return `$${n.toLocaleString("en-AU", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`; }
 function fmtKg(n: number) { return `${n.toFixed(1)} kg`; }
@@ -52,6 +53,7 @@ export default function MobDetail() {
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [showFeedDialog, setShowFeedDialog] = useState(false);
   const [showKillDialog, setShowKillDialog] = useState(false);
+  const [showTreatmentDialog, setShowTreatmentDialog] = useState(false);
 
   if (loading) return (
     <LivestockLayout>
@@ -210,6 +212,7 @@ export default function MobDetail() {
             <TabsTrigger value="feed" className="rounded-lg text-xs">Feed</TabsTrigger>
             <TabsTrigger value="decision" className="rounded-lg text-xs">Decision</TabsTrigger>
             <TabsTrigger value="kill" className="rounded-lg text-xs">Kill</TabsTrigger>
+            <TabsTrigger value="treatments" className="rounded-lg text-xs">Treatments</TabsTrigger>
             <TabsTrigger value="carbon" className="rounded-lg text-xs">Carbon</TabsTrigger>
           </TabsList>
 
@@ -415,6 +418,15 @@ export default function MobDetail() {
             />
           </TabsContent>
 
+          {/* ─── TREATMENTS ──────────────────────────────────────────────── */}
+          <TabsContent value="treatments" className="space-y-4 mt-4">
+            <TreatmentList
+              mobId={mob.id}
+              targetExitDate={mob.target_exit_date ?? null}
+              onAddClick={() => setShowTreatmentDialog(true)}
+            />
+          </TabsContent>
+
           {/* ─── CARBON & METHANE ────────────────────────────────────────── */}
           <TabsContent value="carbon" className="space-y-4 mt-4">
             <CarbonTab mob={mob} dof={dof} feedPlan={feedPlan} cat={cat} />
@@ -423,6 +435,7 @@ export default function MobDetail() {
       </div>
 
       {/* Dialogs */}
+      <AddTreatmentDialog open={showTreatmentDialog} onClose={() => setShowTreatmentDialog(false)} mobId={mob.id} headCount={mob.head_count} targetExitDate={mob.target_exit_date ?? null} onSaved={() => setShowTreatmentDialog(false)} />
       <AddCostDialog open={showCostDialog} onClose={() => setShowCostDialog(false)} mobId={mob.id} headCount={mob.head_count} onSaved={() => { setShowCostDialog(false); refetch(); }} toast={toast} cat={cat} />
       <LogWeightDialog open={showWeightDialog} onClose={() => setShowWeightDialog(false)} mobId={mob.id} weights={weights} onSaved={() => { setShowWeightDialog(false); refetch(); }} toast={toast} cat={cat} />
       <StatusDialog open={showStatusDialog} onClose={() => setShowStatusDialog(false)} mobId={mob.id} currentStatus={mob.status} onSaved={() => { setShowStatusDialog(false); refetch(); }} toast={toast} />
