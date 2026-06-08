@@ -3,7 +3,7 @@ import {
   TrendingUp, Building2, PackageCheck, PieChart,
   LineChart, Award, Upload, Globe, Grid3X3,
   Calculator, Banknote, LogOut, Settings, HelpCircle,
-  Home, ArrowLeft, Sunrise, FileText,
+  Home, ArrowLeft, Sunrise, FileText, Rocket,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -20,10 +20,11 @@ import {
 } from "@/components/ui/sidebar";
 
 const overviewItems = [
+  { title: "Getting Started",      url: "/on-farm/setup",              icon: Rocket },
   { title: "Livestock Home",       url: "/on-farm",                    icon: Home },
   { title: "Morning Briefing",     url: "/on-farm/briefing",           icon: Sunrise },
-  { title: "Enterprise Overview",  url: "/on-farm/enterprise",         icon: Building2 },
   { title: "Trading Statement",    url: "/on-farm/statement",          icon: FileText },
+  { title: "Enterprise Overview",  url: "/on-farm/enterprise",         icon: Building2 },
 ];
 
 const intelligenceItems = [

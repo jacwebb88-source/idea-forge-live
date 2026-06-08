@@ -45,6 +45,7 @@ import EnterpriseExport from "./pages/on-farm/EnterpriseExport";
 import KillGrading from "./pages/KillGrading";
 import KillResults from "./pages/on-farm/KillResults";
 import LivestockBriefing from "./pages/on-farm/LivestockBriefing";
+import GettingStarted from "./pages/on-farm/GettingStarted";
 import LivestockStatement from "./pages/on-farm/LivestockStatement";
 import LotTracking from "./pages/LotTracking";
 import Provenance from "./pages/Provenance";
@@ -131,6 +132,7 @@ const App = () => (
             {/* On-farm kill results */}
             <Route path="/on-farm/kill-results" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><KillResults /></ProtectedRoute>} />
             <Route path="/on-farm/briefing" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><LivestockBriefing /></ProtectedRoute>} />
+            <Route path="/on-farm/setup" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><GettingStarted /></ProtectedRoute>} />
             <Route path="/on-farm/statement" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><LivestockStatement /></ProtectedRoute>} />
 
             {/* Help Centre — all authenticated roles */}
