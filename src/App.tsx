@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AccessAgreementModal } from "@/components/AccessAgreementModal";
 
 import Welcome from "./pages/Welcome";
 import Index from "./pages/Index";
@@ -58,6 +59,7 @@ import VendorScorecard from "./pages/VendorScorecard";
 import Forecasting from "./pages/Forecasting";
 import OnFarmForecasting from "./pages/on-farm/Forecasting";
 import ProcessorAgent from "./pages/ProcessorAgent";
+import KillLeads from "./pages/KillLeads";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -69,6 +71,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <AccessAgreementModal />
           <Routes>
             {/* Public — no auth required */}
             <Route path="/provenance/:lotCode" element={<Provenance />} />
@@ -97,6 +100,7 @@ const App = () => (
             <Route path="/forward-plan" element={<ProtectedRoute allowedRoles={["ops","management"]}><ForwardPlan /></ProtectedRoute>} />
 
             {/* Supplier booking request — accessible to buyers and suppliers too */}
+            <Route path="/kill-leads" element={<ProtectedRoute allowedRoles={["ops","management"]}><KillLeads /></ProtectedRoute>} />
             <Route path="/buyer-request" element={<ProtectedRoute allowedRoles={["ops","management","buyer","supplier"]}><BuyerSupplierRequest /></ProtectedRoute>} />
 
             {/* Buyer portal — buyers, ops can also view */}
