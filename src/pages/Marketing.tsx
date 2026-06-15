@@ -126,7 +126,7 @@ export default function Marketing() {
           className="absolute inset-0 bg-cover bg-center"
           style={{
             backgroundImage:
-              "url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=1800&q=80')",
+              "url('https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=1800&q=80')",
           }}
         />
         <div className="absolute inset-0 bg-stone-950/75" />
