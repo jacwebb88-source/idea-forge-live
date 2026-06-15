@@ -32,20 +32,20 @@ ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO suppliers (id, name, contact_name, email, phone, abn, type) VALUES
   ('e1000000-0000-0000-0000-000000000001', 'Darling Downs Feedlot',         'Brad Carmichael',    'brad@ddfl.com.au',                 '0427 811 001', '11 222 333 444', 'feedlot'),
-  ('e1000000-0000-0000-0000-000000000002', 'Northern Pastoral Group',        'Wayne Hollis',       'wayne@northernpastoral.com.au',    '0408 222 002', '22 333 444 555', 'producer'),
+  ('e1000000-0000-0000-0000-000000000002', 'Northern Pastoral Group',        'Wayne Hollis',       'wayne@northernpastoral.com.au',    '0408 222 002', '22 333 444 555', 'farmer'),
   ('e1000000-0000-0000-0000-000000000003', 'Queensland Livestock Agents',    'Michelle Tran',      'michelle@qlagents.com.au',         '0412 333 003', '33 444 555 666', 'agent'),
-  ('e1000000-0000-0000-0000-000000000004', 'Condamine Plains Beef',          'Steve Donoghue',     'steve@condamineplains.com.au',     '0439 444 004', '44 555 666 777', 'producer'),
-  ('e1000000-0000-0000-0000-000000000005', 'Maranoa Pastoral Co',            'Robyn McGregor',     'robyn@maranoopastoral.com.au',     '0411 555 005', '55 666 777 888', 'producer'),
+  ('e1000000-0000-0000-0000-000000000004', 'Condamine Plains Beef',          'Steve Donoghue',     'steve@condamineplains.com.au',     '0439 444 004', '44 555 666 777', 'farmer'),
+  ('e1000000-0000-0000-0000-000000000005', 'Maranoa Pastoral Co',            'Robyn McGregor',     'robyn@maranoopastoral.com.au',     '0411 555 005', '55 666 777 888', 'farmer'),
   ('e1000000-0000-0000-0000-000000000006', 'Surat Basin Feedlot',            'Darren Knapp',       'darren@suratbasin.com.au',         '0428 666 006', '66 777 888 999', 'feedlot'),
-  ('e1000000-0000-0000-0000-000000000007', 'Western Downs Lamb Co',          'Fiona Burgess',      'fiona@wdlamb.com.au',              '0417 777 007', '77 888 999 000', 'producer'),
+  ('e1000000-0000-0000-0000-000000000007', 'Western Downs Lamb Co',          'Fiona Burgess',      'fiona@wdlamb.com.au',              '0417 777 007', '77 888 999 000', 'farmer'),
   ('e1000000-0000-0000-0000-000000000008', 'Toowoomba Livestock Exchange',   'Ray Whitfield',      'ray@tlex.com.au',                  '0402 888 008', '88 999 000 111', 'agent'),
-  ('e1000000-0000-0000-0000-000000000009', 'Balonne River Pastoral',         'Lee Forsythe',       'lee@balonneriver.com.au',          '0435 999 009', '99 000 111 222', 'producer'),
+  ('e1000000-0000-0000-0000-000000000009', 'Balonne River Pastoral',         'Lee Forsythe',       'lee@balonneriver.com.au',          '0435 999 009', '99 000 111 222', 'farmer'),
   ('e1000000-0000-0000-0000-000000000010', 'Roma Cattle Trading',            'Nick Nguyen',        'nick@romacattle.com.au',           '0419 000 010', '10 111 222 333', 'agent'),
   ('e1000000-0000-0000-0000-000000000011', 'Emerald Feedlot Operations',     'Craig Stanton',      'craig@emeraldfl.com.au',           '0428 111 011', '11 222 444 555', 'feedlot'),
-  ('e1000000-0000-0000-0000-000000000012', 'Brigalow Beef Co',               'Trish Hammond',      'trish@brigalowbeef.com.au',        '0411 222 012', '22 333 555 666', 'producer'),
-  ('e1000000-0000-0000-0000-000000000013', 'Central Queensland Agistment',   'Sandra Park',        'sandra@cqagist.com.au',            '0412 333 013', '33 444 666 777', 'producer'),
+  ('e1000000-0000-0000-0000-000000000012', 'Brigalow Beef Co',               'Trish Hammond',      'trish@brigalowbeef.com.au',        '0411 222 012', '22 333 555 666', 'farmer'),
+  ('e1000000-0000-0000-0000-000000000013', 'Central Queensland Agistment',   'Sandra Park',        'sandra@cqagist.com.au',            '0412 333 013', '33 444 666 777', 'farmer'),
   ('e1000000-0000-0000-0000-000000000014', 'Darling Downs Agents',           'Greg OBrien',        'greg@dda.com.au',                  '0439 444 014', '44 555 777 888', 'agent'),
-  ('e1000000-0000-0000-0000-000000000015', 'Chinchilla Pastoral Group',      'Bruce McLean',       'bruce@chinchillapastoral.com.au',  '0427 555 015', '55 666 888 999', 'producer')
+  ('e1000000-0000-0000-0000-000000000015', 'Chinchilla Pastoral Group',      'Bruce McLean',       'bruce@chinchillapastoral.com.au',  '0427 555 015', '55 666 888 999', 'farmer')
 ON CONFLICT (id) DO NOTHING;
 
 
@@ -286,3 +286,16 @@ ON CONFLICT (id) DO NOTHING;
 --   compliance_checks: 6
 --   intake_events:     6
 -- ─────────────────────────────────────────────────────────────
+
+-- ─────────────────────────────────────────────────────────────
+-- VERIFICATION — run after seed to confirm all rows loaded
+-- If any count is wrong, something failed silently
+-- ─────────────────────────────────────────────────────────────
+SELECT
+  (SELECT COUNT(*) FROM plants      WHERE id = 'e0000000-0000-0000-0000-000000000001')            AS plants_expected_1,
+  (SELECT COUNT(*) FROM suppliers   WHERE id::text LIKE 'e1000000%')                              AS suppliers_expected_15,
+  (SELECT COUNT(*) FROM bookings    WHERE plant_id = 'e0000000-0000-0000-0000-000000000001')       AS bookings_expected_38,
+  (SELECT COUNT(*) FROM day_plans   WHERE plant_id = 'e0000000-0000-0000-0000-000000000001')       AS day_plans_expected_18,
+  (SELECT COUNT(*) FROM kpi_records WHERE plant_id = 'e0000000-0000-0000-0000-000000000001')       AS kpi_records_expected_21,
+  (SELECT COUNT(*) FROM compliance_checks WHERE id::text LIKE 'e5000000%')                         AS compliance_expected_6,
+  (SELECT COUNT(*) FROM intake_events     WHERE id::text LIKE 'e6000000%')                         AS intake_expected_6;
