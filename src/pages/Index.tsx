@@ -223,7 +223,7 @@ const Index = () => {
 
       const enriched: UnconfirmedBooking[] = (bks as any[]).map((b) => ({
         ...b,
-        supplierName: supplierMap[b.supplier_id] || "Unknown vendor",
+        supplierName: supplierMap[b.supplier_id] || "",
         daysUntilKill: b.requested_kill_date
           ? differenceInDays(parseISO(b.requested_kill_date), today)
           : 99,
@@ -339,7 +339,7 @@ const Index = () => {
           : 99;
         const base = {
           id: b.id,
-          supplierName: supplierMap[b.supplier_id] || "Unknown vendor",
+          supplierName: supplierMap[b.supplier_id] || "",
           head_count: b.head_count,
           species: b.species,
           requested_kill_date: b.requested_kill_date,

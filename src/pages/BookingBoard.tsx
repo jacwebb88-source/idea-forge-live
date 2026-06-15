@@ -226,7 +226,7 @@ export default function BookingBoard() {
 
       setBookings(raw.map(b => ({
         ...b,
-        supplierName: b.supplier_id ? (supplierMap[b.supplier_id] || "Unknown supplier") : undefined,
+        supplierName: b.supplier_id ? (supplierMap[b.supplier_id] || "") : undefined,
       })));
     } catch (err) {
       console.error('Error:', err);

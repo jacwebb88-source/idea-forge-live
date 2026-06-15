@@ -185,7 +185,7 @@ export default function KillGrading() {
       setBookings(
         bks.map((b: any) => ({
           ...b,
-          supplier_name: supplierMap[b.supplier_id] || "Unknown vendor",
+          supplier_name: supplierMap[b.supplier_id] || "",
         }))
       );
       setBookingsLoading(false);
@@ -473,7 +473,7 @@ export default function KillGrading() {
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
                             <p className="text-sm font-semibold truncate">
-                              {booking.supplier_name || "Unknown vendor"}
+                              {booking.supplier_name || ""}
                             </p>
                             <p className="text-xs text-muted-foreground font-mono">
                               {booking.booking_ref || booking.id.slice(-8).toUpperCase()}

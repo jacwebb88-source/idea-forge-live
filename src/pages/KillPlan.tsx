@@ -706,7 +706,7 @@ export default function KillPlan() {
                       >
                         {/* Supplier name */}
                         <div className="text-sm font-medium truncate leading-tight">
-                          {suppliers[b.supplier_id || ""] || "Unknown supplier"}
+                          {suppliers[b.supplier_id || ""] || ""}
                         </div>
                         {/* Head count + species row */}
                         <div className="flex items-center justify-between mt-1 text-xs text-muted-foreground">
@@ -801,7 +801,7 @@ export default function KillPlan() {
                 <DialogTitle>{editMode ? "Edit booking" : "Booking details"}</DialogTitle>
                 <DialogDescription>
                   Ref: {selectedBooking?.id.slice(-8).toUpperCase()}
-                  {" · "}{suppliers[selectedBooking?.supplier_id || ""] || "Unknown supplier"}
+                  {" · "}{suppliers[selectedBooking?.supplier_id || ""] || ""}
                 </DialogDescription>
               </div>
               {!editMode ? (
@@ -829,7 +829,7 @@ export default function KillPlan() {
               <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                 <div>
                   <p className="text-xs text-muted-foreground">Vendor</p>
-                  <p className="font-medium">{suppliers[selectedBooking.supplier_id || ""] || "Unknown"}</p>
+                  <p className="font-medium">{suppliers[selectedBooking.supplier_id || ""] || ""}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Species</p>

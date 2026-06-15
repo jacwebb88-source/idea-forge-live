@@ -97,7 +97,7 @@ export default function TransportSlotting() {
 
     setBookings(rawBks.map(b => ({
       ...b,
-      supplierName: b.supplier_id ? (supplierMap[b.supplier_id] || "Unknown") : undefined,
+      supplierName: b.supplier_id ? (supplierMap[b.supplier_id] || "") : undefined,
     })));
     setSlotConflicts((conflicts || []) as SlotConflict[]);
     setLoading(false);

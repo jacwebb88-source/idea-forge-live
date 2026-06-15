@@ -98,7 +98,7 @@ export function ScheduleOverview() {
 
       setBookings(raw.map(b => ({
         ...b,
-        supplierName: b.supplier_id ? (supplierMap[b.supplier_id] || "Unknown") : undefined,
+        supplierName: b.supplier_id ? (supplierMap[b.supplier_id] || "") : undefined,
       })));
       setLoading(false);
     };

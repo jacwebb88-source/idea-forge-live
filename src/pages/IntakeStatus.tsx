@@ -123,7 +123,7 @@ export default function IntakeStatus() {
 
       setTodayBookings((bks as any[]).map(b => ({
         ...b,
-        supplier_name: supMap[b.supplier_id] || "Unknown vendor",
+        supplier_name: supMap[b.supplier_id] || "",
       })));
       setLoadingToday(false);
     };

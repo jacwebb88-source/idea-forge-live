@@ -178,7 +178,7 @@ export default function KillReports() {
 
     return Object.entries(map).map(([sid, bks]) => ({
       supplier_id: sid,
-      supplierName: suppliers[sid]?.name || "Unknown Supplier",
+      supplierName: suppliers[sid]?.name || "",
       bookings: bks,
       totalHead: bks.reduce((sum, b) => sum + (b.head_count || 0), 0),
       species: Array.from(new Set(bks.map((b) => b.species).filter(Boolean))) as string[],
@@ -220,7 +220,7 @@ export default function KillReports() {
 
     const rows = sorted.map((b, idx) => [
       b.kill_order_seq ?? idx + 1,
-      suppliers[b.supplier_id || ""]?.name || "Unknown",
+      suppliers[b.supplier_id || ""]?.name || "",
       b.species || "",
       b.species_class || "",
       b.head_count ?? "",
