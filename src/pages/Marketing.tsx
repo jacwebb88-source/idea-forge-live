@@ -18,6 +18,26 @@ export default function Marketing() {
   };
 
   return (
+    <>
+    {/* COLOUR TEST — remove after picking */}
+    <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 9999, display: "flex", flexDirection: "column", gap: 12, padding: 16, backgroundColor: "#1F4E78", borderRadius: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ width: 80, height: 36, backgroundColor: "#C8F135", borderRadius: 8, boxShadow: "0 0 16px rgba(200,241,53,0.7)" }} />
+        <span style={{ color: "white", fontSize: 12, fontWeight: 600 }}>A — Electric lime #C8F135</span>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ width: 80, height: 36, backgroundColor: "#FFAA00", borderRadius: 8, boxShadow: "0 0 16px rgba(255,170,0,0.7)" }} />
+        <span style={{ color: "white", fontSize: 12, fontWeight: 600 }}>B — Hot amber #FFAA00</span>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ width: 80, height: 36, border: "3px solid #C8F135", borderRadius: 8, boxShadow: "0 0 16px rgba(200,241,53,0.7)" }} />
+        <span style={{ color: "#C8F135", fontSize: 12, fontWeight: 600 }}>A as border</span>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ width: 80, height: 36, border: "3px solid #FFAA00", borderRadius: 8, boxShadow: "0 0 16px rgba(255,170,0,0.7)" }} />
+        <span style={{ color: "#FFAA00", fontSize: 12, fontWeight: 600 }}>B as border</span>
+      </div>
+    </div>
     <div className="min-h-screen bg-white" style={{ fontFamily: "'Poppins', 'Inter', sans-serif" }}>
 
       {/* ── NAV ── */}
@@ -242,5 +262,6 @@ export default function Marketing() {
       </footer>
 
     </div>
+    </>
   );
 }
