@@ -4,5 +4,17 @@
   ],
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "framework": "vite"
+  "framework": "vite",
+  "routes": [
+    {
+      "src": "^/$",
+      "dest": "/marketing",
+      "has": [{ "type": "host", "value": "webbmuster.com.au" }]
+    },
+    {
+      "src": "^/$",
+      "dest": "/marketing",
+      "has": [{ "type": "host", "value": "www.webbmuster.com.au" }]
+    }
+  ]
 }
