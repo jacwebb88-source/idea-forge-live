@@ -31,7 +31,7 @@ export default function Marketing() {
           className="absolute inset-0 bg-cover bg-center"
           style={{
             backgroundImage:
-              "url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=1800&q=80')",
+              "url('https://images.unsplash.com/photo-1570042225831-d98fa7577f1e?w=1800&q=80')",
           }}
         />
         {/* Gradient overlay — dark at bottom, lighter at top */}
@@ -126,7 +126,7 @@ export default function Marketing() {
           className="absolute inset-0 bg-cover bg-center"
           style={{
             backgroundImage:
-              "url('https://images.unsplash.com/photo-1464226184884-fa280b87c399?w=1800&q=80')",
+              "url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=1800&q=80')",
           }}
         />
         <div className="absolute inset-0 bg-stone-950/75" />
