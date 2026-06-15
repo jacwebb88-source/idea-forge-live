@@ -241,10 +241,21 @@ const Index = () => {
     const fetchComplianceData = async () => {
       setLoadingCompliance(true);
 
-      // If in demo mode, only pull compliance for this plant's bookings
-      let query = (supabase as any).from('compliance_checks').select('nvd_status, nlis_status, pic_status, bookings!inner(plant_id)');
-      if (demoPlantId) query = query.eq('bookings.plant_id', demoPlantId);
-      const { data, error } = await query;
+      let bookingIds: string[] | null = null;
+
+      // In demo mode, get booking IDs for this plant first, then filter compliance
+      if (demoPlantId) {
+        const { data: plantBookings } = await supabase
+          .from('bookings')
+          .select('id')
+          .eq('plant_id', demoPlantId)
+          .neq('status', 'cancelled');
+        bookingIds = (plantBookings || []).map((b: any) => b.id);
+      }
+
+      let complianceQuery = (supabase as any).from('compliance_checks').select('nvd_status, nlis_status, pic_status');
+      if (bookingIds !== null) complianceQuery = complianceQuery.in('booking_id', bookingIds.length > 0 ? bookingIds : ['none']);
+      const { data, error } = await complianceQuery;
 
       if (error) {
         console.error('Error fetching compliance data:', error);
