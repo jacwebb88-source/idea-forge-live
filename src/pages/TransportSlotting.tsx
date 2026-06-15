@@ -295,7 +295,7 @@ export default function TransportSlotting() {
                   <thead>
                     <tr className="border-b border-border">
                       <th className="text-left py-2 px-3 font-medium text-muted-foreground">Kill Date</th>
-                      <th className="text-left py-2 px-3 font-medium text-muted-foreground">Supplier</th>
+                      <th className="text-left py-2 px-3 font-medium text-muted-foreground">Vendor</th>
                       <th className="text-left py-2 px-3 font-medium text-muted-foreground">Species</th>
                       <th className="text-right py-2 px-3 font-medium text-muted-foreground">Head</th>
                       <th className="text-left py-2 px-3 font-medium text-muted-foreground">Slot</th>

@@ -828,7 +828,7 @@ export default function KillPlan() {
 
               <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                 <div>
-                  <p className="text-xs text-muted-foreground">Supplier</p>
+                  <p className="text-xs text-muted-foreground">Vendor</p>
                   <p className="font-medium">{suppliers[selectedBooking.supplier_id || ""] || "Unknown"}</p>
                 </div>
                 <div>
@@ -1109,7 +1109,7 @@ export default function KillPlan() {
                 <Textarea
                   id="edit-note"
                   className="text-xs min-h-[60px] resize-none"
-                  placeholder="e.g. Supplier called to reduce numbers, transport delayed…"
+                  placeholder="e.g. Vendor called to reduce numbers, transport delayed…"
                   value={editFields.change_note}
                   onChange={e => setEditFields(p => ({ ...p, change_note: e.target.value }))}
                 />

@@ -441,7 +441,7 @@ export default function ExportCompliance() {
                 <TableHeader>
                   <TableRow className="bg-slate-50">
                     <TableHead>Booking Ref</TableHead>
-                    <TableHead>Supplier</TableHead>
+                    <TableHead>Vendor</TableHead>
                     <TableHead>Species</TableHead>
                     <TableHead className="text-center">NVD</TableHead>
                     <TableHead className="text-center">NLIS</TableHead>

@@ -142,7 +142,7 @@ export default function Suppliers() {
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Suppliers</h1>
+            <h1 className="text-3xl font-bold text-foreground">Vendors</h1>
             <p className="text-muted-foreground mt-1">Manage supplier relationships, contacts and accreditation status</p>
           </div>
           <Button>

@@ -348,7 +348,7 @@ export default function BookingBoard() {
   const handleExportCSV = () => {
     if (filteredBookings.length === 0) return;
     const headers = [
-      "Booking ID", "Supplier", "Species", "Head Count",
+      "Booking ID", "Vendor", "Species", "Head Count",
       "Kill Date", "Arrival Slot", "Status", "HGP Status",
       "Transport", "Kill Order", "Fill Rate %"
     ];
@@ -564,7 +564,7 @@ export default function BookingBoard() {
                 <thead>
                   <tr className="table-header">
                     <th className="text-left py-3 px-3 text-sm font-medium">Booking ID</th>
-                    <th className="text-left py-3 px-3 text-sm font-medium">Supplier</th>
+                    <th className="text-left py-3 px-3 text-sm font-medium">Vendor</th>
                     <th className="text-left py-3 px-3 text-sm font-medium">Species</th>
                     <th className="text-right py-3 px-3 text-sm font-medium">Head</th>
                     <th className="text-left py-3 px-3 text-sm font-medium">Kill Date</th>
@@ -716,7 +716,7 @@ export default function BookingBoard() {
                 {/* Booking overview */}
                 <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-0.5">Supplier</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-0.5">Vendor</p>
                     <p className="font-medium">{selectedBooking.supplierName || "—"}</p>
                   </div>
                   <div>

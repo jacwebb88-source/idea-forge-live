@@ -433,7 +433,7 @@ export default function ComplianceChecks() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Booking ID</TableHead>
-                        <TableHead>Supplier</TableHead>
+                        <TableHead>Vendor</TableHead>
                         <TableHead>Species</TableHead>
                         <TableHead className="text-right">Head</TableHead>
                         <TableHead>Kill Date</TableHead>
@@ -506,7 +506,7 @@ export default function ComplianceChecks() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Booking ID</TableHead>
-                        <TableHead>Supplier</TableHead>
+                        <TableHead>Vendor</TableHead>
                         <TableHead>Species</TableHead>
                         <TableHead className="text-right">Head</TableHead>
                         <TableHead>Kill Date</TableHead>
@@ -619,7 +619,7 @@ export default function ComplianceChecks() {
               {selectedBooking && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <p className="text-xs text-muted-foreground">Supplier</p>
+                    <p className="text-xs text-muted-foreground">Vendor</p>
                     <p className="font-medium">{selectedBooking.supplierName || "—"}</p>
                   </div>
                   <div>

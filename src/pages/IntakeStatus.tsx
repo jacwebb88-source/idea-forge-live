@@ -123,7 +123,7 @@ export default function IntakeStatus() {
 
       setTodayBookings((bks as any[]).map(b => ({
         ...b,
-        supplier_name: supMap[b.supplier_id] || "Unknown supplier",
+        supplier_name: supMap[b.supplier_id] || "Unknown vendor",
       })));
       setLoadingToday(false);
     };
@@ -549,7 +549,7 @@ export default function IntakeStatus() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-medium text-sm text-foreground">
-                              {e.supplier_name || "Unknown supplier"}
+                              {e.supplier_name || "Unknown vendor"}
                             </span>
                             {e.species && (
                               <span className="text-xs text-muted-foreground capitalize">{e.species}</span>

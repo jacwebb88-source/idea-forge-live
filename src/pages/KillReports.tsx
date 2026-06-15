@@ -213,7 +213,7 @@ export default function KillReports() {
     });
 
     const headers = [
-      "Kill Order", "Supplier", "Species", "Class", "Head",
+      "Kill Order", "Vendor", "Species", "Class", "Head",
       "Arrival Slot", "HGP Status", "MSA", "Transport Status",
       "Lot ID", "Agent Ref", "Status", "Booking Ref"
     ];

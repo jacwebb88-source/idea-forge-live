@@ -79,11 +79,11 @@ const reportingItems = [
 ];
 
 const relationshipsItems = [
-  { title: "Suppliers", url: "/suppliers", icon: Users },
+  { title: "Vendors", url: "/suppliers", icon: Users },
   { title: "Plants", url: "/plants", icon: Building2 },
   { title: "Kill Slot Leads", url: "/kill-leads", icon: Inbox },
   { title: "Buyer Portal", url: "/buyer-portal", icon: ShoppingBag },
-  { title: "Supplier Portal", url: "/supplier-portal", icon: Leaf },
+  { title: "Vendor Portal", url: "/supplier-portal", icon: Leaf },
   { title: "Booking Request", url: "/buyer-request", icon: UserCheck },
 ];
 
@@ -120,7 +120,7 @@ const adminItems = [
 const ROLE_LABELS: Record<string, string> = {
   ops:        "Kill Floor Ops",
   buyer:      "Field Buyer",
-  supplier:   "Supplier",
+  supplier:   "Vendor",
   transport:  "Transport",
   management: "Management",
 };
