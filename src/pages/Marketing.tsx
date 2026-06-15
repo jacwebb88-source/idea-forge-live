@@ -37,7 +37,7 @@ export default function Marketing() {
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: "url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=1800&q=80')",
+            backgroundImage: "url('https://images.unsplash.com/photo-1562802967-1c80450a2bd8?w=1800&q=80')",
           }}
         />
         {/* Deep navy gradient overlay */}
