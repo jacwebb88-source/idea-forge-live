@@ -157,20 +157,25 @@ export default function Marketing() {
         </div>
       </section>
 
-      {/* ── STATS BAR ── */}
-      <section className="py-20 px-8" style={{ backgroundColor: "#1F4E78" }}>
-        <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          {[
-            { value: "3,500+", label: "head per day" },
-            { value: "96.8%", label: "slot adherence" },
-            { value: "93.6%", label: "fill rate" },
-            { value: "Real time", label: "supply visibility" },
-          ].map((stat) => (
-            <div key={stat.label}>
-              <p className="text-3xl md:text-4xl font-bold mb-2" style={{ color: "#F5D000" }}>{stat.value}</p>
-              <p className="text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>{stat.label}</p>
-            </div>
-          ))}
+      {/* ── HOW WE WORK ── */}
+      <section className="py-24 px-8" style={{ backgroundColor: "#1F4E78" }}>
+        <div className="max-w-4xl mx-auto">
+          <p className="text-xs font-bold tracking-widest uppercase mb-12 text-center" style={{ color: "#F5D000" }}>
+            How we work
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+            {[
+              { number: "01", title: "Connect", body: "Your supply chain in one place. Processors, feedlotters, producers and grazers all working from the same system." },
+              { number: "02", title: "Coordinate", body: "Live scheduling, compliance and traceability. Every booking, every head, every document tracked in real time." },
+              { number: "03", title: "Decide", body: "Better data. Sharper decisions. Know what is arriving, what it is worth, and what to do next before anyone else does." },
+            ].map((step) => (
+              <div key={step.number} className="text-center md:text-left">
+                <p className="text-5xl font-bold mb-4" style={{ color: "rgba(245,208,0,0.25)" }}>{step.number}</p>
+                <h3 className="text-xl font-bold text-white mb-3">{step.title}</h3>
+                <p className="text-base leading-relaxed" style={{ color: "rgba(255,255,255,0.6)" }}>{step.body}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
