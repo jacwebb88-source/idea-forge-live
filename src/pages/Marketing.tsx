@@ -137,10 +137,10 @@ export default function Marketing() {
         <div className="absolute inset-0" style={{ backgroundColor: "rgba(30,58,95,0.8)" }} />
         <div className="relative z-10 max-w-4xl mx-auto text-center">
           <p className="text-white text-4xl md:text-6xl font-bold leading-tight">
-            From the paddock to the kill floor.
+            Every animal. Every movement.
           </p>
           <p className="text-4xl md:text-6xl font-bold mt-2" style={{ color: "#F5D000" }}>
-            Every head. Every grade.
+            Every data point.
           </p>
         </div>
       </section>
