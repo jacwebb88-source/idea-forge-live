@@ -2,7 +2,7 @@ import { useState } from "react";
 
 // Brand colours from logo
 // Navy:   #1F4E78
-// Amber:  #F5D000
+// Amber:  #FFE500
 // Green:  #2E5E4E
 // Cream:  #7A8F79
 
@@ -25,7 +25,7 @@ export default function Marketing() {
         <span className="text-white text-2xl font-bold tracking-tight">muster</span>
         <a
           href="#access"
-          style={{ borderColor: "#F5D000", color: "#F5D000", boxShadow: "0 0 12px rgba(245,208,0,0.4)" }}
+          style={{ borderColor: "#FFE500", color: "#FFE500", boxShadow: "0 0 12px rgba(245,208,0,0.4)" }}
           className="text-sm font-semibold border-2 rounded-full px-5 py-2 hover:bg-yellow-400/10 transition-all"
         >
           Request a demo
@@ -46,7 +46,7 @@ export default function Marketing() {
           style={{ background: "linear-gradient(to top, #1F4E78 0%, rgba(30,58,95,0.7) 50%, rgba(19,59,46,0.3) 100%)" }}
         />
         <div className="relative z-10 max-w-5xl mx-auto px-8">
-          <p className="text-xs font-bold tracking-widest uppercase mb-6" style={{ color: "#F5D000" }}>
+          <p className="text-xs font-bold tracking-widest uppercase mb-6" style={{ color: "#FFE500" }}>
             Australian Red Meat Industry
           </p>
           <h1 className="text-white text-5xl md:text-6xl font-bold leading-tight mb-6 max-w-3xl">
@@ -58,7 +58,7 @@ export default function Marketing() {
           <a
             href="#access"
             className="inline-block font-bold text-base px-8 py-4 rounded-full transition-all hover:scale-105"
-            style={{ backgroundColor: "#F5D000", color: "#1F4E78", boxShadow: "0 0 20px rgba(245,208,0,0.5), 0 0 40px rgba(245,208,0,0.2)" }}
+            style={{ backgroundColor: "#FFE500", color: "#1F4E78", boxShadow: "0 0 20px rgba(245,208,0,0.5), 0 0 40px rgba(245,208,0,0.2)" }}
           >
             Request a chat or demo
           </a>
@@ -68,7 +68,7 @@ export default function Marketing() {
       {/* ── FOUR CAPABILITY CARDS ── */}
       <section className="py-24 px-8" style={{ backgroundColor: "#7A8F79" }}>
         <div className="max-w-5xl mx-auto">
-          <p className="text-xs font-bold tracking-widest uppercase mb-3 text-center" style={{ color: "#F5D000" }}>
+          <p className="text-xs font-bold tracking-widest uppercase mb-3 text-center" style={{ color: "#FFE500" }}>
             What Muster does
           </p>
           <h2 className="text-center text-3xl font-bold mb-12 text-white">
@@ -78,7 +78,7 @@ export default function Marketing() {
 
             <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-5" style={{ backgroundColor: "rgba(242,135,5,0.1)" }}>
-                <svg className="w-5 h-5" style={{ color: "#F5D000" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="w-5 h-5" style={{ color: "#FFE500" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
@@ -90,7 +90,7 @@ export default function Marketing() {
 
             <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-5" style={{ backgroundColor: "rgba(242,135,5,0.1)" }}>
-                <svg className="w-5 h-5" style={{ color: "#F5D000" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="w-5 h-5" style={{ color: "#FFE500" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </div>
@@ -102,7 +102,7 @@ export default function Marketing() {
 
             <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-5" style={{ backgroundColor: "rgba(242,135,5,0.1)" }}>
-                <svg className="w-5 h-5" style={{ color: "#F5D000" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="w-5 h-5" style={{ color: "#FFE500" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
                 </svg>
               </div>
@@ -113,7 +113,7 @@ export default function Marketing() {
             </div>
 
             <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow" style={{ border: "2px solid #1F4E78" }}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-5" style={{ backgroundColor: "#F5D000", boxShadow: "0 0 10px rgba(245,208,0,0.6)" }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-5" style={{ backgroundColor: "#FFE500", boxShadow: "0 0 10px rgba(245,208,0,0.6)" }}>
                 <svg className="w-5 h-5" style={{ color: "#1F4E78" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
@@ -139,7 +139,7 @@ export default function Marketing() {
           <p className="text-white text-4xl md:text-6xl font-bold leading-tight">
             Every animal. Every movement.
           </p>
-          <p className="text-4xl md:text-6xl font-bold mt-2" style={{ color: "#F5D000" }}>
+          <p className="text-4xl md:text-6xl font-bold mt-2" style={{ color: "#FFE500" }}>
             Every data point.
           </p>
         </div>
@@ -148,7 +148,7 @@ export default function Marketing() {
       {/* ── PRODUCER INTELLIGENCE ── */}
       <section className="py-24 px-8 bg-white">
         <div className="max-w-3xl mx-auto text-center">
-          <p className="text-xs font-bold tracking-widest uppercase mb-6" style={{ color: "#F5D000" }}>
+          <p className="text-xs font-bold tracking-widest uppercase mb-6" style={{ color: "#FFE500" }}>
             Producer Intelligence
           </p>
           <p className="text-2xl md:text-3xl font-light leading-relaxed" style={{ color: "#1F4E78" }}>
@@ -160,7 +160,7 @@ export default function Marketing() {
       {/* ── HOW WE WORK ── */}
       <section className="py-24 px-8" style={{ backgroundColor: "#1F4E78" }}>
         <div className="max-w-4xl mx-auto">
-          <p className="text-xs font-bold tracking-widest uppercase mb-12 text-center" style={{ color: "#F5D000" }}>
+          <p className="text-xs font-bold tracking-widest uppercase mb-12 text-center" style={{ color: "#FFE500" }}>
             How we work
           </p>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
@@ -223,7 +223,7 @@ export default function Marketing() {
               <button
                 type="submit"
                 className="w-full font-bold text-base px-8 py-4 rounded-full transition-all hover:scale-105 mt-2"
-                style={{ backgroundColor: "#1F4E78", color: "white" }}
+                style={{ backgroundColor: "#FFE500", color: "#1F4E78", boxShadow: "0 0 20px rgba(255,229,0,0.6)" }}
               >
                 Request a chat or demo
               </button>
@@ -235,7 +235,7 @@ export default function Marketing() {
       {/* ── FOOTER ── */}
       <footer className="py-12 px-8" style={{ backgroundColor: "#2E5E4E" }}>
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <span className="text-2xl font-bold text-white">muster</span>
+          <span className="text-2xl font-bold text-white">WebbMuster</span>
           <span className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>webbmuster.com.au</span>
           <span className="text-sm" style={{ color: "rgba(255,255,255,0.3)" }}>© 2026 Webb Muster Pty Ltd</span>
         </div>
