@@ -1,4 +1,4 @@
-import { useParams, Navigate, Outlet } from "react-router-dom";
+import { useParams, Navigate } from "react-router-dom";
 import { DemoProvider, DemoMode, DEMO_PLANT_NAMES } from "@/contexts/DemoContext";
 import Index from "./Index";
 
