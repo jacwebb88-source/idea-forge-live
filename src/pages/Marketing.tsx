@@ -37,7 +37,7 @@ export default function Marketing() {
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: "url('https://images.unsplash.com/photo-1570042225831-d98fa7577f1e?w=1800&q=80')",
+            backgroundImage: "url('https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=1800&q=80')",
           }}
         />
         {/* Deep navy gradient overlay */}
@@ -132,7 +132,7 @@ export default function Marketing() {
       <section className="relative py-36 px-8 overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=1800&q=80')" }}
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=1800&q=80')" }}
         />
         <div className="absolute inset-0" style={{ backgroundColor: "rgba(30,58,95,0.8)" }} />
         <div className="relative z-10 max-w-4xl mx-auto text-center">
