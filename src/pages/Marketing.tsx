@@ -168,7 +168,7 @@ export default function Marketing() {
               { number: "01", title: "Connect", body: "Your supply chain in one place. Processors, feedlotters, producers and grazers all working from the same system." },
               { number: "02", title: "Coordinate", body: "Live scheduling, compliance and traceability. Every booking, every head, every document tracked in real time." },
               { number: "03", title: "Decide", body: "Better data. Sharper decisions. Know what is arriving, what it is worth, and what to do next before anyone else does." },
-              { number: "04", title: "Learn", body: "The more it runs, the more it knows." },
+              { number: "04", title: "Learn", body: "Every season adds another layer. Muster gets smarter quietly, in the background so your operation does too." },
             ].map((step) => (
               <div key={step.number} className="text-center md:text-left">
                 <p className="text-5xl font-bold mb-4" style={{ color: "rgba(245,208,0,0.25)" }}>{step.number}</p>
