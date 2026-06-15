@@ -83,7 +83,11 @@ const App = () => (
             <Route path="/signup" element={<Signup />} />
 
             {/* Ops / management routes — full access */}
-            <Route path="/" element={<Welcome />} />
+            <Route path="/" element={
+              window.location.hostname === "webbmuster.com.au" || window.location.hostname === "www.webbmuster.com.au"
+                ? <Marketing />
+                : <Welcome />
+            } />
             <Route path="/home" element={<ProtectedRoute allowedRoles={["ops","management"]}><Index /></ProtectedRoute>} />
             <Route path="/kill-plan" element={<ProtectedRoute allowedRoles={["ops","management"]}><KillPlan /></ProtectedRoute>} />
             <Route path="/bookings" element={<ProtectedRoute allowedRoles={["ops","management","buyer"]}><BookingBoard /></ProtectedRoute>} />
