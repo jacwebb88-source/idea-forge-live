@@ -192,12 +192,14 @@ const Index = () => {
       const todayStr  = format(today,  "yyyy-MM-dd");
       const cutoffStr = format(cutoff, "yyyy-MM-dd");
 
-      const { data: bks } = await supabase
+      const remindersQuery = supabase
         .from("bookings")
         .select("id, supplier_id, head_count, species, requested_kill_date, status")
         .gte("requested_kill_date", todayStr)
         .lte("requested_kill_date", cutoffStr)
         .in("status", ["placeholder", "pending", "requested", "low"]);
+      if (demoPlantId) remindersQuery.eq("plant_id", demoPlantId);
+      const { data: bks } = await remindersQuery;
 
       if (!bks || bks.length === 0) {
         setUnconfirmedBookings([]);
@@ -233,7 +235,7 @@ const Index = () => {
       setLoadingReminders(false);
     };
     fetchReminders();
-  }, []);
+  }, [demoPlantId]);
 
   useEffect(() => {
     const fetchComplianceData = async () => {
