@@ -48,6 +48,8 @@ import KillResults from "./pages/on-farm/KillResults";
 import LivestockBriefing from "./pages/on-farm/LivestockBriefing";
 import GettingStarted from "./pages/on-farm/GettingStarted";
 import SeasonalPlanner from "./pages/on-farm/SeasonalPlanner";
+import SeasonalPlan from "./pages/on-farm/SeasonalPlan";
+import ProcessorComparison from "./pages/on-farm/ProcessorComparison";
 import BookKillSlot from "./pages/on-farm/BookKillSlot";
 import LivestockStatement from "./pages/on-farm/LivestockStatement";
 import LotTracking from "./pages/LotTracking";
@@ -60,6 +62,7 @@ import Forecasting from "./pages/Forecasting";
 import OnFarmForecasting from "./pages/on-farm/Forecasting";
 import ProcessorAgent from "./pages/ProcessorAgent";
 import KillLeads from "./pages/KillLeads";
+import Demo from "./pages/Demo";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -140,11 +143,16 @@ const App = () => (
             <Route path="/on-farm/briefing" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><LivestockBriefing /></ProtectedRoute>} />
             <Route path="/on-farm/setup" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><GettingStarted /></ProtectedRoute>} />
             <Route path="/on-farm/seasonal" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><SeasonalPlanner /></ProtectedRoute>} />
+            <Route path="/on-farm/seasonal-plan" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><SeasonalPlan /></ProtectedRoute>} />
+            <Route path="/on-farm/processor-compare" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><ProcessorComparison /></ProtectedRoute>} />
             <Route path="/on-farm/book-kill-slot" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><BookKillSlot /></ProtectedRoute>} />
             <Route path="/on-farm/statement" element={<ProtectedRoute allowedRoles={["supplier","ops","management"]}><LivestockStatement /></ProtectedRoute>} />
 
             {/* Help Centre — all authenticated roles */}
             <Route path="/help" element={<ProtectedRoute><HelpCentre /></ProtectedRoute>} />
+
+            {/* Demo routes — no login required */}
+            <Route path="/demo/:mode" element={<Demo />} />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

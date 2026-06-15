@@ -15,6 +15,7 @@ import { Search, Plus, Filter, Download, Edit2, Save, X, Loader2, History, Bell,
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useDemo } from "@/contexts/DemoContext";
 import { format, parseISO, addDays } from "date-fns";
 
 // 30-minute arrival slots 06:00–22:00
@@ -128,8 +129,9 @@ export default function BookingBoard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isNewBookingOpen, setIsNewBookingOpen] = useState(false);
+  const { plantId: demoPlantId } = useDemo();
   const [selectedProcessor, setSelectedProcessor] = useState("all");
-  const [selectedPlant, setSelectedPlant] = useState("all");
+  const [selectedPlant, setSelectedPlant] = useState(demoPlantId ?? "all");
   const [plants, setPlants] = useState<any[]>([]);
   const [processors, setProcessors] = useState<string[]>([]);
 
