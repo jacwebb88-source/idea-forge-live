@@ -183,7 +183,7 @@ export default function PitchOverview() {
         <div className="rounded-xl border border-gray-200 bg-gray-50 px-6 py-4 text-center">
           <p className="text-gray-500 text-xs leading-relaxed max-w-3xl mx-auto">
             <span className="font-semibold text-gray-700">Confidential & Proprietary.</span>{" "}
-            By accessing this prototype you agree that this material is confidential, belongs exclusively to Muster,
+            By accessing this material you agree that it is confidential, belongs exclusively to Muster,
             and may not be copied, reproduced, distributed, or disclosed to any third party without prior written consent.
             Unauthorised use may result in legal action. This session is watermarked.
           </p>
@@ -249,7 +249,7 @@ export default function PitchOverview() {
                 color: "text-emerald-600",
                 bg: "bg-emerald-50",
                 title: "Real-time Mob Margin",
-                desc: "Live cost per kg of gain, projected margin at turnoff, and optimal sell date for every mob. No spreadsheets. No guessing.",
+                desc: "Live cost per kg of gain, projected margin at turnoff, and optimal sell date for every mob. Accurate, automatic, in real time.",
               },
               {
                 icon: BarChart2,

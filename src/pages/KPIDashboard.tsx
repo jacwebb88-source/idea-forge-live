@@ -530,7 +530,7 @@ export default function KPIDashboard() {
           <div className="flex gap-2">
             <Button variant="outline">
               <FileText className="h-4 w-4 mr-2" />
-              Pilot Report
+              Performance Report
             </Button>
             <Button variant="outline">
               <Download className="h-4 w-4 mr-2" />

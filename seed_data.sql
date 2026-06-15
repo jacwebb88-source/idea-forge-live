@@ -71,7 +71,7 @@ INSERT INTO bookings (
   hgp_status, transport_status,
   msa_enrolled, pericardium_ok,
   est_avg_live_wt, est_avg_hscw, days_on_feed,
-  fill_rate, trucking_advice,
+  fill_rate, notes,
   created_at
 ) VALUES
 

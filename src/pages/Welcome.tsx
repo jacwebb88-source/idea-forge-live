@@ -81,7 +81,7 @@ export default function Welcome() {
             Welcome to Muster
           </h1>
           <p className="text-white/75 text-lg leading-relaxed">
-            You've been invited to explore an early look at the Muster platform. Intelligence, operations and decision making for the Australian red meat industry.
+            Intelligence, operations and decision making for the Australian red meat industry.
           </p>
         </div>
 
@@ -149,7 +149,7 @@ export default function Welcome() {
         {/* Confidentiality — friendly */}
         <div className="space-y-3">
           <p className="text-white/50 text-xs leading-relaxed px-2">
-            This is an early prototype shared with you in confidence. By entering you agree to keep what you see between us — no screenshots, forwarding, or sharing without a quick chat with Jacqui first.
+            This material is confidential and shared for evaluation purposes only. By entering you agree not to copy, forward or distribute without permission.
           </p>
           <p className="text-white/30 text-xs">
             Built by Jacqui Webb · Muster · {new Date().getFullYear()}

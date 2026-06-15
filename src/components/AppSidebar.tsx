@@ -151,7 +151,7 @@ export function AppSidebar() {
           { label: "Operations",    items: operationsItems },
           { label: "Reporting",     items: reportingItems },
           { label: "Relationships", items: relationshipsItems },
-          { label: "🌿 On Farm",   items: onFarmItems },
+          { label: "On Farm",      items: onFarmItems },
           { label: "Enterprise",  items: enterpriseItems },
           { label: "Tools",       items: farmToolsItems },
           { label: "Admin",       items: adminItems },

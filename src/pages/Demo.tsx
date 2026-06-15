@@ -27,9 +27,9 @@ export default function Demo() {
         style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 9999 }}
         className="bg-amber-500 text-white text-xs font-semibold py-2 px-4 flex items-center justify-between"
       >
-        <span>🔍 Demo environment — {plantName}</span>
-        <a href="/" className="text-white/80 hover:text-white underline text-xs">
-          Exit demo
+        <span>Demo — {plantName}</span>
+        <a href="https://webbmuster.com.au" className="text-white/80 hover:text-white underline text-xs">
+          webbmuster.com.au
         </a>
       </div>
       {/* Push content below banner */}
