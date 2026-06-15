@@ -132,7 +132,7 @@ export default function Marketing() {
       <section className="relative py-36 px-8 overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=1800&q=80')" }}
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1554755209-85e44182e019?w=1800&q=80')" }}
         />
         <div className="absolute inset-0" style={{ backgroundColor: "rgba(30,58,95,0.8)" }} />
         <div className="relative z-10 max-w-4xl mx-auto text-center">
