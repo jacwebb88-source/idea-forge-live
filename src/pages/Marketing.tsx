@@ -26,7 +26,7 @@ export default function Marketing() {
         <span className="text-white text-2xl font-bold tracking-tight">muster</span>
         <a
           href="#access"
-          style={{ borderColor: "#C8F135", color: "#C8F135", boxShadow: "0 0 14px rgba(200,241,53,0.6)" }}
+          style={{ borderColor: "#FFC425", color: "#FFC425" }}
           className="text-sm font-semibold border-2 rounded-full px-5 py-2 hover:bg-yellow-400/10 transition-all"
         >
           Request a demo
@@ -113,8 +113,8 @@ export default function Marketing() {
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow" style={{ border: "2px solid #C8F135", boxShadow: "0 0 16px rgba(200,241,53,0.25)" }}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-5" style={{ backgroundColor: "#FFC425", boxShadow: "0 0 10px rgba(245,208,0,0.6)" }}>
+            <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-5" style={{ backgroundColor: "#FFC425" }}>
                 <svg className="w-5 h-5" style={{ color: "#1F4E78" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
