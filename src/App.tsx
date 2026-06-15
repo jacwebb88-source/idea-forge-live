@@ -63,6 +63,7 @@ import OnFarmForecasting from "./pages/on-farm/Forecasting";
 import ProcessorAgent from "./pages/ProcessorAgent";
 import KillLeads from "./pages/KillLeads";
 import Demo from "./pages/Demo";
+import Marketing from "./pages/Marketing";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -150,6 +151,9 @@ const App = () => (
 
             {/* Help Centre — all authenticated roles */}
             <Route path="/help" element={<ProtectedRoute><HelpCentre /></ProtectedRoute>} />
+
+            {/* Marketing site — no login required */}
+            <Route path="/marketing" element={<Marketing />} />
 
             {/* Demo routes — no login required */}
             <Route path="/demo/:mode" element={<Demo />} />
