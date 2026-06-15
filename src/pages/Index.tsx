@@ -90,12 +90,12 @@ const Index = () => {
       const weekEnd = format(addDays(new Date(), 7), "yyyy-MM-dd");
 
       // Parallel fetches
-      const bookingsQuery = supabase
+      let bookingsQuery = supabase
         .from("bookings")
         .select("id, head_count, status, transport_status, hgp_status, requested_kill_date, supplier_id")
         .gte("requested_kill_date", today)
         .neq("status", "cancelled");
-      if (demoPlantId) bookingsQuery.eq("plant_id", demoPlantId);
+      if (demoPlantId) bookingsQuery = bookingsQuery.eq("plant_id", demoPlantId);
 
       const [{ data: upcoming }, { data: kpiLatest }] = await Promise.all([
         bookingsQuery,
@@ -138,12 +138,12 @@ const Index = () => {
   useEffect(() => {
     const fetchReadiness = async () => {
       const today = format(new Date(), "yyyy-MM-dd");
-      const readinessQuery = supabase
+      let readinessQuery = supabase
         .from("bookings")
         .select("id, status, transport_status, hgp_status, kill_order_seq")
         .eq("requested_kill_date", today)
         .neq("status", "cancelled");
-      if (demoPlantId) readinessQuery.eq("plant_id", demoPlantId);
+      if (demoPlantId) readinessQuery = readinessQuery.eq("plant_id", demoPlantId);
       const { data: todayBks } = await readinessQuery;
 
       if (!todayBks || todayBks.length === 0) { setTodayReadiness(null); return; }
@@ -192,13 +192,13 @@ const Index = () => {
       const todayStr  = format(today,  "yyyy-MM-dd");
       const cutoffStr = format(cutoff, "yyyy-MM-dd");
 
-      const remindersQuery = supabase
+      let remindersQuery = supabase
         .from("bookings")
         .select("id, supplier_id, head_count, species, requested_kill_date, status")
         .gte("requested_kill_date", todayStr)
         .lte("requested_kill_date", cutoffStr)
         .in("status", ["placeholder", "pending", "requested", "low"]);
-      if (demoPlantId) remindersQuery.eq("plant_id", demoPlantId);
+      if (demoPlantId) remindersQuery = remindersQuery.eq("plant_id", demoPlantId);
       const { data: bks } = await remindersQuery;
 
       if (!bks || bks.length === 0) {
@@ -303,13 +303,13 @@ const Index = () => {
       const todayStr  = format(today, "yyyy-MM-dd");
       const cutoffStr = format(addDays(today, 7), "yyyy-MM-dd");
 
-      const gapsQuery = supabase
+      let gapsQuery = supabase
         .from("bookings")
         .select("id, supplier_id, head_count, species, requested_kill_date, transport_status")
         .gte("requested_kill_date", todayStr)
         .lte("requested_kill_date", cutoffStr)
         .neq("status", "cancelled");
-      if (demoPlantId) gapsQuery.eq("plant_id", demoPlantId);
+      if (demoPlantId) gapsQuery = gapsQuery.eq("plant_id", demoPlantId);
       const { data: bks } = await gapsQuery;
 
       const bookingList = (bks as any[]) || [];
