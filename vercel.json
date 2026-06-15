@@ -1,20 +1,18 @@
 {
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ],
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
-  "routes": [
+  "rewrites": [
     {
-      "src": "^/$",
-      "dest": "/marketing",
-      "has": [{ "type": "host", "value": "webbmuster.com.au" }]
+      "source": "/",
+      "has": [{ "type": "host", "value": "webbmuster.com.au" }],
+      "destination": "/marketing"
     },
     {
-      "src": "^/$",
-      "dest": "/marketing",
-      "has": [{ "type": "host", "value": "www.webbmuster.com.au" }]
-    }
+      "source": "/",
+      "has": [{ "type": "host", "value": "www.webbmuster.com.au" }],
+      "destination": "/marketing"
+    },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
