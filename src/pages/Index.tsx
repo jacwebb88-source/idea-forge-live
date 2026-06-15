@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { format, addDays, differenceInDays, parseISO } from "date-fns";
 import { NavLink } from "react-router-dom";
+import { useDemo } from "@/contexts/DemoContext";
 import {
   Users,
   Calendar,
@@ -68,6 +69,7 @@ type TodayReadiness = {
 };
 
 const Index = () => {
+  const { plantId: demoPlantId } = useDemo();
   const [complianceOk, setComplianceOk] = useState<number | null>(null);
   const [missingCompliance, setMissingCompliance] = useState<number>(0);
   const [pendingCompliance, setPendingCompliance] = useState<number>(0);
@@ -88,12 +90,15 @@ const Index = () => {
       const weekEnd = format(addDays(new Date(), 7), "yyyy-MM-dd");
 
       // Parallel fetches
+      const bookingsQuery = supabase
+        .from("bookings")
+        .select("id, head_count, status, transport_status, hgp_status, requested_kill_date, supplier_id")
+        .gte("requested_kill_date", today)
+        .neq("status", "cancelled");
+      if (demoPlantId) bookingsQuery.eq("plant_id", demoPlantId);
+
       const [{ data: upcoming }, { data: kpiLatest }] = await Promise.all([
-        supabase
-          .from("bookings")
-          .select("id, head_count, status, transport_status, hgp_status, requested_kill_date")
-          .gte("requested_kill_date", today)
-          .neq("status", "cancelled"),
+        bookingsQuery,
         supabase
           .from("kpi_records")
           .select("fill_rate_pct, slot_adherence_pct")
@@ -127,17 +132,19 @@ const Index = () => {
       setLoadingMetrics(false);
     };
     fetchMetrics();
-  }, []);
+  }, [demoPlantId]);
 
   // ── Kill-day readiness check ──
   useEffect(() => {
     const fetchReadiness = async () => {
       const today = format(new Date(), "yyyy-MM-dd");
-      const { data: todayBks } = await supabase
+      const readinessQuery = supabase
         .from("bookings")
         .select("id, status, transport_status, hgp_status, kill_order_seq")
         .eq("requested_kill_date", today)
         .neq("status", "cancelled");
+      if (demoPlantId) readinessQuery.eq("plant_id", demoPlantId);
+      const { data: todayBks } = await readinessQuery;
 
       if (!todayBks || todayBks.length === 0) { setTodayReadiness(null); return; }
 
@@ -174,7 +181,7 @@ const Index = () => {
       });
     };
     fetchReadiness();
-  }, []);
+  }, [demoPlantId]);
 
   // Fetch unconfirmed bookings due in the next 14 days
   useEffect(() => {
