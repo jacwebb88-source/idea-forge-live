@@ -1,9 +1,16 @@
 import { useState } from "react";
 
+// Brand colours from logo
+// Navy:   #1E3A5F
+// Amber:  #F28705
+// Green:  #133B2E
+// Cream:  #F1EFE9
+
 export default function Marketing() {
   const [submitted, setSubmitted] = useState(false);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [org, setOrg] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -11,45 +18,47 @@ export default function Marketing() {
   };
 
   return (
-    <div className="min-h-screen bg-white font-sans">
+    <div className="min-h-screen bg-white" style={{ fontFamily: "'Poppins', 'Inter', sans-serif" }}>
 
       {/* ── NAV ── */}
       <nav className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-8 py-6">
-        <span className="text-white text-xl font-bold tracking-tight">Muster</span>
+        <span className="text-white text-2xl font-bold tracking-tight">muster</span>
         <a
           href="#access"
-          className="text-white/90 hover:text-white text-sm font-medium border border-white/30 rounded-full px-5 py-2 hover:border-white transition-all"
+          style={{ borderColor: "rgba(255,255,255,0.4)", color: "white" }}
+          className="text-sm font-semibold border rounded-full px-5 py-2 hover:bg-white/10 transition-all"
         >
           Request a demo
         </a>
       </nav>
 
       {/* ── HERO ── */}
-      <section className="relative min-h-screen flex items-end pb-24 overflow-hidden">
-        {/* Background image */}
+      <section className="relative min-h-screen flex items-end pb-28 overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage:
-              "url('https://images.unsplash.com/photo-1570042225831-d98fa7577f1e?w=1800&q=80')",
+            backgroundImage: "url('https://images.unsplash.com/photo-1570042225831-d98fa7577f1e?w=1800&q=80')",
           }}
         />
-        {/* Gradient overlay — dark at bottom, lighter at top */}
-        <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-900/70 to-stone-800/30" />
-
+        {/* Deep navy gradient overlay */}
+        <div
+          className="absolute inset-0"
+          style={{ background: "linear-gradient(to top, #1E3A5F 0%, rgba(30,58,95,0.7) 50%, rgba(19,59,46,0.3) 100%)" }}
+        />
         <div className="relative z-10 max-w-5xl mx-auto px-8">
-          <p className="text-amber-400 text-sm font-semibold tracking-widest uppercase mb-6">
+          <p className="text-xs font-bold tracking-widest uppercase mb-6" style={{ color: "#F28705" }}>
             Australian Red Meat Industry
           </p>
-          <h1 className="text-white text-5xl md:text-7xl font-bold leading-tight tracking-tight mb-6 max-w-4xl">
+          <h1 className="text-white text-5xl md:text-6xl font-bold leading-tight mb-6 max-w-3xl">
             Intelligence, operations and decision making for the Australian red meat industry.
           </h1>
-          <p className="text-stone-300 text-xl md:text-2xl font-light mb-10 max-w-xl">
+          <p className="text-white/70 text-xl mb-10">
             Built for processors. Powered by data.
           </p>
           <a
             href="#access"
-            className="inline-block bg-amber-500 hover:bg-amber-400 text-stone-950 font-semibold text-base px-8 py-4 rounded-full transition-all hover:scale-105"
+            className="inline-block font-bold text-base px-8 py-4 rounded-full transition-all hover:scale-105"
+            style={{ backgroundColor: "#F28705", color: "#1E3A5F" }}
           >
             Request a chat or demo
           </a>
@@ -57,61 +66,60 @@ export default function Marketing() {
       </section>
 
       {/* ── FOUR CAPABILITY CARDS ── */}
-      <section className="bg-stone-50 py-24 px-8">
+      <section className="py-24 px-8" style={{ backgroundColor: "#F1EFE9" }}>
         <div className="max-w-5xl mx-auto">
-          <p className="text-stone-400 text-sm font-semibold tracking-widest uppercase mb-12 text-center">
+          <p className="text-xs font-bold tracking-widest uppercase mb-3 text-center" style={{ color: "#F28705" }}>
             What Muster does
           </p>
+          <h2 className="text-center text-3xl font-bold mb-12" style={{ color: "#1E3A5F" }}>
+            Built for the kill floor. Connected to the paddock.
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-            {/* Card 1 */}
-            <div className="bg-white rounded-2xl p-8 border border-stone-100 hover:shadow-lg transition-shadow">
-              <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center mb-5">
-                <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-5" style={{ backgroundColor: "rgba(242,135,5,0.1)" }}>
+                <svg className="w-5 h-5" style={{ color: "#F28705" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h3 className="text-stone-900 text-xl font-bold mb-3">Kill Scheduling and Coordination</h3>
-              <p className="text-stone-500 text-base leading-relaxed">
+              <h3 className="text-xl font-bold mb-3" style={{ color: "#1E3A5F" }}>Kill Scheduling and Coordination</h3>
+              <p className="text-base leading-relaxed" style={{ color: "#666" }}>
                 A live kill board for processors. Manage bookings, slot times, species, head count and transport in one place. Your ops team always knows what is arriving and when.
               </p>
             </div>
 
-            {/* Card 2 */}
-            <div className="bg-white rounded-2xl p-8 border border-stone-100 hover:shadow-lg transition-shadow">
-              <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center mb-5">
-                <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-5" style={{ backgroundColor: "rgba(242,135,5,0.1)" }}>
+                <svg className="w-5 h-5" style={{ color: "#F28705" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </div>
-              <h3 className="text-stone-900 text-xl font-bold mb-3">Compliance and Traceability</h3>
-              <p className="text-stone-500 text-base leading-relaxed">
+              <h3 className="text-xl font-bold mb-3" style={{ color: "#1E3A5F" }}>Compliance and Traceability</h3>
+              <p className="text-base leading-relaxed" style={{ color: "#666" }}>
                 NVD status, PIC verification, NLIS checks and eNVD references tracked against every booking. Compliance documentation moves ahead of the mob — not behind it.
               </p>
             </div>
 
-            {/* Card 3 */}
-            <div className="bg-white rounded-2xl p-8 border border-stone-100 hover:shadow-lg transition-shadow">
-              <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center mb-5">
-                <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-5" style={{ backgroundColor: "rgba(242,135,5,0.1)" }}>
+                <svg className="w-5 h-5" style={{ color: "#F28705" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
                 </svg>
               </div>
-              <h3 className="text-stone-900 text-xl font-bold mb-3">Supply Forecasting</h3>
-              <p className="text-stone-500 text-base leading-relaxed">
-                Know what is coming before it is booked. Muster surfaces supply signals from across the producer network — so your forward schedule reflects reality, not guesswork.
+              <h3 className="text-xl font-bold mb-3" style={{ color: "#1E3A5F" }}>Supply Forecasting</h3>
+              <p className="text-base leading-relaxed" style={{ color: "#666" }}>
+                Know what is coming before it is booked. Muster surfaces supply signals from across the producer network so your forward schedule reflects reality, not guesswork.
               </p>
             </div>
 
-            {/* Card 4 */}
-            <div className="bg-stone-900 rounded-2xl p-8 hover:shadow-lg transition-shadow">
-              <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center mb-5">
-                <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow" style={{ backgroundColor: "#133B2E" }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-5" style={{ backgroundColor: "rgba(242,135,5,0.2)" }}>
+                <svg className="w-5 h-5" style={{ color: "#F28705" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
-              <h3 className="text-white text-xl font-bold mb-3">AI Agents and Automation</h3>
-              <p className="text-stone-400 text-base leading-relaxed">
+              <h3 className="text-xl font-bold mb-3 text-white">AI Agents and Automation</h3>
+              <p className="text-base leading-relaxed" style={{ color: "rgba(255,255,255,0.65)" }}>
                 Muster runs intelligent agents across your operations. Morning briefings, compliance alerts, supply gap detection and booking recommendations — delivered before your team asks for them.
               </p>
             </div>
@@ -121,38 +129,36 @@ export default function Marketing() {
       </section>
 
       {/* ── BOLD STATEMENT ── */}
-      <section className="relative py-32 px-8 overflow-hidden">
+      <section className="relative py-36 px-8 overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{
-            backgroundImage:
-              "url('https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=1800&q=80')",
-          }}
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?w=1800&q=80')" }}
         />
-        <div className="absolute inset-0 bg-stone-950/75" />
+        <div className="absolute inset-0" style={{ backgroundColor: "rgba(30,58,95,0.8)" }} />
         <div className="relative z-10 max-w-4xl mx-auto text-center">
           <p className="text-white text-4xl md:text-6xl font-bold leading-tight">
             From the paddock to the kill floor.
-            <br />
-            <span className="text-amber-400">Every head. Every grade.</span>
+          </p>
+          <p className="text-4xl md:text-6xl font-bold mt-2" style={{ color: "#F28705" }}>
+            Every head. Every grade.
           </p>
         </div>
       </section>
 
       {/* ── PRODUCER INTELLIGENCE ── */}
-      <section className="bg-white py-24 px-8">
+      <section className="py-24 px-8 bg-white">
         <div className="max-w-3xl mx-auto text-center">
-          <p className="text-stone-400 text-sm font-semibold tracking-widest uppercase mb-6">
+          <p className="text-xs font-bold tracking-widest uppercase mb-6" style={{ color: "#F28705" }}>
             Producer Intelligence
           </p>
-          <p className="text-stone-700 text-2xl md:text-3xl font-light leading-relaxed">
+          <p className="text-2xl md:text-3xl font-light leading-relaxed" style={{ color: "#1E3A5F" }}>
             Muster brings producers, feedlotters and grazers into the system. Everyone working together, from the paddock to the floor.
           </p>
         </div>
       </section>
 
-      {/* ── DATA NUMBERS ── */}
-      <section className="bg-stone-900 py-20 px-8">
+      {/* ── STATS BAR ── */}
+      <section className="py-20 px-8" style={{ backgroundColor: "#1E3A5F" }}>
         <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           {[
             { value: "3,500+", label: "head per day" },
@@ -161,24 +167,24 @@ export default function Marketing() {
             { value: "Real time", label: "supply visibility" },
           ].map((stat) => (
             <div key={stat.label}>
-              <p className="text-amber-400 text-3xl md:text-4xl font-bold mb-2">{stat.value}</p>
-              <p className="text-stone-400 text-sm">{stat.label}</p>
+              <p className="text-3xl md:text-4xl font-bold mb-2" style={{ color: "#F28705" }}>{stat.value}</p>
+              <p className="text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>{stat.label}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* ── REQUEST ACCESS ── */}
-      <section id="access" className="bg-stone-50 py-24 px-8">
+      <section id="access" className="py-24 px-8" style={{ backgroundColor: "#F1EFE9" }}>
         <div className="max-w-xl mx-auto text-center">
-          <h2 className="text-stone-900 text-4xl md:text-5xl font-bold mb-4">Work with us.</h2>
-          <p className="text-stone-500 text-lg mb-10">
+          <h2 className="text-4xl md:text-5xl font-bold mb-4" style={{ color: "#1E3A5F" }}>Work with us.</h2>
+          <p className="text-lg mb-10" style={{ color: "#555" }}>
             We are onboarding enterprise partners now. Tell us about your operation and we will be in touch within 24 hours.
           </p>
 
           {submitted ? (
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8">
-              <p className="text-stone-800 text-lg font-semibold">Thanks — we will be in touch shortly.</p>
+            <div className="rounded-2xl p-8" style={{ backgroundColor: "rgba(242,135,5,0.1)", border: "1px solid rgba(242,135,5,0.3)" }}>
+              <p className="text-lg font-semibold" style={{ color: "#1E3A5F" }}>Thanks — we will be in touch shortly.</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -188,7 +194,8 @@ export default function Marketing() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="w-full px-5 py-4 rounded-xl border border-stone-200 text-stone-900 text-base focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                className="w-full px-5 py-4 rounded-xl border text-base focus:outline-none bg-white"
+                style={{ borderColor: "#ddd", color: "#1E3A5F" }}
               />
               <input
                 type="email"
@@ -196,16 +203,21 @@ export default function Marketing() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-5 py-4 rounded-xl border border-stone-200 text-stone-900 text-base focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                className="w-full px-5 py-4 rounded-xl border text-base focus:outline-none bg-white"
+                style={{ borderColor: "#ddd", color: "#1E3A5F" }}
               />
               <input
                 type="text"
                 placeholder="Organisation"
-                className="w-full px-5 py-4 rounded-xl border border-stone-200 text-stone-900 text-base focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                value={org}
+                onChange={(e) => setOrg(e.target.value)}
+                className="w-full px-5 py-4 rounded-xl border text-base focus:outline-none bg-white"
+                style={{ borderColor: "#ddd", color: "#1E3A5F" }}
               />
               <button
                 type="submit"
-                className="w-full bg-stone-900 hover:bg-stone-800 text-white font-semibold text-base px-8 py-4 rounded-full transition-all hover:scale-105 mt-2"
+                className="w-full font-bold text-base px-8 py-4 rounded-full transition-all hover:scale-105 mt-2"
+                style={{ backgroundColor: "#1E3A5F", color: "white" }}
               >
                 Request a chat or demo
               </button>
@@ -215,11 +227,11 @@ export default function Marketing() {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer className="bg-stone-950 py-12 px-8">
+      <footer className="py-12 px-8" style={{ backgroundColor: "#133B2E" }}>
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <span className="text-white text-lg font-bold tracking-tight">Muster</span>
-          <span className="text-stone-500 text-sm">webbmuster.com.au</span>
-          <span className="text-stone-600 text-sm">© 2026 Webb Muster Pty Ltd</span>
+          <span className="text-2xl font-bold text-white">muster</span>
+          <span className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>webbmuster.com.au</span>
+          <span className="text-sm" style={{ color: "rgba(255,255,255,0.3)" }}>© 2026 Webb Muster Pty Ltd</span>
         </div>
       </footer>
 
