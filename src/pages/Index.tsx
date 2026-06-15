@@ -240,10 +240,11 @@ const Index = () => {
   useEffect(() => {
     const fetchComplianceData = async () => {
       setLoadingCompliance(true);
-      
-      const { data, error } = await (supabase as any)
-        .from('compliance_checks')
-        .select('nvd_status, nlis_status, pic_status');
+
+      // If in demo mode, only pull compliance for this plant's bookings
+      let query = (supabase as any).from('compliance_checks').select('nvd_status, nlis_status, pic_status, bookings!inner(plant_id)');
+      if (demoPlantId) query = query.eq('bookings.plant_id', demoPlantId);
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching compliance data:', error);
@@ -281,7 +282,7 @@ const Index = () => {
     };
 
     fetchComplianceData();
-  }, []);
+  }, [demoPlantId]);
 
   // ── Operational gaps: transport + compliance missing in next 7 days ──
   useEffect(() => {
@@ -291,12 +292,14 @@ const Index = () => {
       const todayStr  = format(today, "yyyy-MM-dd");
       const cutoffStr = format(addDays(today, 7), "yyyy-MM-dd");
 
-      const { data: bks } = await supabase
+      const gapsQuery = supabase
         .from("bookings")
         .select("id, supplier_id, head_count, species, requested_kill_date, transport_status")
         .gte("requested_kill_date", todayStr)
         .lte("requested_kill_date", cutoffStr)
         .neq("status", "cancelled");
+      if (demoPlantId) gapsQuery.eq("plant_id", demoPlantId);
+      const { data: bks } = await gapsQuery;
 
       const bookingList = (bks as any[]) || [];
       if (bookingList.length === 0) { setOperationalGaps([]); setLoadingGaps(false); return; }
@@ -350,7 +353,7 @@ const Index = () => {
       setLoadingGaps(false);
     };
     fetchGaps();
-  }, []);
+  }, [demoPlantId]);
 
   return (
     <DashboardLayout>
