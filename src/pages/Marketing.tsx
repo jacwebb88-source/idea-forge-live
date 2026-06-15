@@ -4,7 +4,7 @@ import { useState } from "react";
 // Navy:   #1F4E78
 // Amber:  #F5D000
 // Green:  #2E5E4E
-// Cream:  #E8E2D6
+// Cream:  #7A8F79
 
 export default function Marketing() {
   const [submitted, setSubmitted] = useState(false);
@@ -58,7 +58,7 @@ export default function Marketing() {
           <a
             href="#access"
             className="inline-block font-bold text-base px-8 py-4 rounded-full transition-all hover:scale-105"
-            style={{ backgroundColor: "#F5D000", color: "#1F4E78" }}
+            style={{ backgroundColor: "#F5D000", color: "#1F4E78", boxShadow: "0 0 20px rgba(245,208,0,0.5), 0 0 40px rgba(245,208,0,0.2)" }}
           >
             Request a chat or demo
           </a>
@@ -66,12 +66,12 @@ export default function Marketing() {
       </section>
 
       {/* ── FOUR CAPABILITY CARDS ── */}
-      <section className="py-24 px-8" style={{ backgroundColor: "#E8E2D6" }}>
+      <section className="py-24 px-8" style={{ backgroundColor: "#7A8F79" }}>
         <div className="max-w-5xl mx-auto">
           <p className="text-xs font-bold tracking-widest uppercase mb-3 text-center" style={{ color: "#F5D000" }}>
             What Muster does
           </p>
-          <h2 className="text-center text-3xl font-bold mb-12" style={{ color: "#1F4E78" }}>
+          <h2 className="text-center text-3xl font-bold mb-12 text-white">
             Built for the kill floor. Connected to the paddock.
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -113,7 +113,7 @@ export default function Marketing() {
             </div>
 
             <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow" style={{ border: "2px solid #1F4E78" }}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-5" style={{ backgroundColor: "rgba(31,78,120,0.1)" }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-5" style={{ backgroundColor: "#F5D000", boxShadow: "0 0 10px rgba(245,208,0,0.6)" }}>
                 <svg className="w-5 h-5" style={{ color: "#1F4E78" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
@@ -181,10 +181,10 @@ export default function Marketing() {
       </section>
 
       {/* ── REQUEST ACCESS ── */}
-      <section id="access" className="py-24 px-8" style={{ backgroundColor: "#E8E2D6" }}>
+      <section id="access" className="py-24 px-8" style={{ backgroundColor: "#7A8F79" }}>
         <div className="max-w-xl mx-auto text-center">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4" style={{ color: "#1F4E78" }}>Work with us.</h2>
-          <p className="text-lg mb-10" style={{ color: "#555" }}>
+          <h2 className="text-4xl md:text-5xl font-bold mb-4 text-white">Work with us.</h2>
+          <p className="text-lg mb-10" style={{ color: "rgba(255,255,255,0.75)" }}>
             We are onboarding enterprise partners now. Tell us about your operation and we will be in touch within 24 hours.
           </p>
 
