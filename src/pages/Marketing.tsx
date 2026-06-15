@@ -29,7 +29,7 @@ export default function Marketing() {
     const body = encodeURIComponent(
       `Name: ${name}\nEmail: ${email}\nOrganisation: ${org}\n\nSent from webbmuster.com.au`
     );
-    window.open(`mailto:jacqui@webbmuster.com.au?subject=${subject}&body=${body}`);
+    window.open(`mailto:jacqui.webb.muster@gmail.com?subject=${subject}&body=${body}`);
     setSubmitted(true);
   };
 
@@ -208,7 +208,7 @@ export default function Marketing() {
               <p className="text-lg font-semibold text-white">Thanks — we will be in touch shortly.</p>
               <p className="text-sm mt-2" style={{ color: "rgba(255,255,255,0.7)" }}>
                 If your email client did not open, reach us directly at{" "}
-                <a href="mailto:jacqui@webbmuster.com.au" className="underline text-white">jacqui@webbmuster.com.au</a>
+                <a href="mailto:jacqui.webb.muster@gmail.com" className="underline text-white">jacqui.webb.muster@gmail.com</a>
               </p>
             </div>
           ) : (
@@ -256,8 +256,8 @@ export default function Marketing() {
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <span className="text-2xl font-bold text-white">WebbMuster</span>
           <div className="flex flex-col md:flex-row items-center gap-4 text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
-            <a href="mailto:jacqui@webbmuster.com.au" className="hover:text-white transition-colors" style={{ color: "rgba(255,255,255,0.5)" }}>
-              jacqui@webbmuster.com.au
+            <a href="mailto:jacqui.webb.muster@gmail.com" className="hover:text-white transition-colors" style={{ color: "rgba(255,255,255,0.5)" }}>
+              jacqui.webb.muster@gmail.com
             </a>
             <span className="hidden md:block">·</span>
             <span>webbmuster.com.au</span>
