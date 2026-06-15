@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-// Brand colours from logo
-// Navy:   #1F4E78
-// Amber:  #FFD700
-// Green:  #2E5E4E
-// Cream:  #7A8F79
+// Brand colours
+// Navy:        #1F4E78
+// Amber Gold:  #FFD700
+// Dark Green:  #2E5E4E
+// Eucalyptus:  #7A8F79
 
 export default function Marketing() {
   const [submitted, setSubmitted] = useState(false);
@@ -12,13 +12,28 @@ export default function Marketing() {
   const [name, setName] = useState("");
   const [org, setOrg] = useState("");
 
+  // Set page title and load Poppins font
+  useEffect(() => {
+    document.title = "WebbMuster — Livestock Intelligence for Red Meat Processors";
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap";
+    document.head.appendChild(link);
+    return () => { document.head.removeChild(link); };
+  }, []);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Open a pre-filled email to Jacqui
+    const subject = encodeURIComponent(`WebbMuster enquiry from ${name} — ${org}`);
+    const body = encodeURIComponent(
+      `Name: ${name}\nEmail: ${email}\nOrganisation: ${org}\n\nSent from webbmuster.com.au`
+    );
+    window.open(`mailto:jacqui@webbmuster.com.au?subject=${subject}&body=${body}`);
     setSubmitted(true);
   };
 
   return (
-    <>
     <div className="min-h-screen bg-white" style={{ fontFamily: "'Poppins', 'Inter', sans-serif" }}>
 
       {/* ── NAV ── */}
@@ -41,7 +56,6 @@ export default function Marketing() {
             backgroundImage: "url('https://images.unsplash.com/photo-1562802967-1c80450a2bd8?w=1800&q=80')",
           }}
         />
-        {/* Deep navy gradient overlay */}
         <div
           className="absolute inset-0"
           style={{ background: "linear-gradient(to top, #1F4E78 0%, rgba(30,58,95,0.7) 50%, rgba(19,59,46,0.3) 100%)" }}
@@ -59,7 +73,7 @@ export default function Marketing() {
           <a
             href="#access"
             className="inline-block font-bold text-base px-8 py-4 rounded-full transition-all hover:scale-105"
-            style={{ backgroundColor: "#FFD700", color: "#1F4E78", boxShadow: "0 0 20px rgba(245,208,0,0.5), 0 0 40px rgba(245,208,0,0.2)" }}
+            style={{ backgroundColor: "#FFD700", color: "#1F4E78" }}
           >
             Request a chat or demo
           </a>
@@ -153,7 +167,7 @@ export default function Marketing() {
             Producer Intelligence
           </p>
           <p className="text-2xl md:text-3xl font-light leading-relaxed" style={{ color: "#1F4E78" }}>
-            Muster brings producers, feedlotters and grazers into the system. Everyone working together, from the paddock to the floor.
+            Muster brings producers, feedlotters and graziers into the system. Everyone working together, from the paddock to the floor.
           </p>
         </div>
       </section>
@@ -166,13 +180,13 @@ export default function Marketing() {
           </p>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
             {[
-              { number: "01", title: "Connect", body: "Your supply chain in one place. Processors, feedlotters, producers and grazers all working from the same system." },
+              { number: "01", title: "Connect", body: "Your supply chain in one place. Processors, feedlotters, producers and graziers all working from the same system." },
               { number: "02", title: "Coordinate", body: "Live scheduling, compliance and traceability. Every booking, every head, every document tracked in real time." },
               { number: "03", title: "Decide", body: "Better data. Sharper decisions. Know what is arriving, what it is worth, and what to do next before anyone else does." },
               { number: "04", title: "Learn", body: "Every season adds another layer. Muster gets smarter quietly, in the background so your operation does too." },
             ].map((step) => (
               <div key={step.number} className="text-center md:text-left">
-                <p className="text-5xl font-bold mb-4" style={{ color: "rgba(245,208,0,0.25)" }}>{step.number}</p>
+                <p className="text-5xl font-bold mb-4" style={{ color: "rgba(255,215,0,0.2)" }}>{step.number}</p>
                 <h3 className="text-xl font-bold text-white mb-3">{step.title}</h3>
                 <p className="text-base leading-relaxed" style={{ color: "rgba(255,255,255,0.6)" }}>{step.body}</p>
               </div>
@@ -190,8 +204,12 @@ export default function Marketing() {
           </p>
 
           {submitted ? (
-            <div className="rounded-2xl p-8" style={{ backgroundColor: "rgba(242,135,5,0.1)", border: "1px solid rgba(242,135,5,0.3)" }}>
-              <p className="text-lg font-semibold" style={{ color: "#1F4E78" }}>Thanks — we will be in touch shortly.</p>
+            <div className="rounded-2xl p-8 bg-white/20">
+              <p className="text-lg font-semibold text-white">Thanks — we will be in touch shortly.</p>
+              <p className="text-sm mt-2" style={{ color: "rgba(255,255,255,0.7)" }}>
+                If your email client did not open, reach us directly at{" "}
+                <a href="mailto:jacqui@webbmuster.com.au" className="underline text-white">jacqui@webbmuster.com.au</a>
+              </p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -224,7 +242,7 @@ export default function Marketing() {
               <button
                 type="submit"
                 className="w-full font-bold text-base px-8 py-4 rounded-full transition-all hover:scale-105 mt-2"
-                style={{ backgroundColor: "#FFD700", color: "#1F4E78", boxShadow: "0 0 20px rgba(255,229,0,0.6)" }}
+                style={{ backgroundColor: "#FFD700", color: "#1F4E78" }}
               >
                 Request a chat or demo
               </button>
@@ -237,12 +255,17 @@ export default function Marketing() {
       <footer className="py-12 px-8" style={{ backgroundColor: "#2E5E4E" }}>
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <span className="text-2xl font-bold text-white">WebbMuster</span>
-          <span className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>webbmuster.com.au</span>
+          <div className="flex flex-col md:flex-row items-center gap-4 text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
+            <a href="mailto:jacqui@webbmuster.com.au" className="hover:text-white transition-colors" style={{ color: "rgba(255,255,255,0.5)" }}>
+              jacqui@webbmuster.com.au
+            </a>
+            <span className="hidden md:block">·</span>
+            <span>webbmuster.com.au</span>
+          </div>
           <span className="text-sm" style={{ color: "rgba(255,255,255,0.3)" }}>© 2026 Webb Muster Pty Ltd</span>
         </div>
       </footer>
 
     </div>
-    </>
   );
 }

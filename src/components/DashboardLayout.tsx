@@ -76,9 +76,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Prototype confidentiality notice */}
               <span className="text-xs text-muted-foreground hidden md:block mr-2">
-                Confidential prototype · By accessing you agree not to copy or distribute
+                Confidential · Not for distribution
               </span>
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="h-5 w-5" />

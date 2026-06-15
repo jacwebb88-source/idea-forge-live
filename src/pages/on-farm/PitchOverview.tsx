@@ -378,7 +378,7 @@ export default function PitchOverview() {
           </div>
 
           <p className="text-white/60 text-sm mb-6">
-            Muster is seed-stage. Prototype live. Pilot discussions underway with Australian cattle operators.
+            Muster is live and operational, working with Australian red meat processors and cattle operators.
           </p>
 
           <Button

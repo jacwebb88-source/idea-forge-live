@@ -110,7 +110,7 @@ const farmToolsItems = [
 
 const adminItems = [
   { title: "Import Data", url: "/import", icon: ClipboardList },
-  { title: "Pilot Projects", url: "/pilots", icon: Lightbulb },
+  { title: "Projects", url: "/pilots", icon: Lightbulb },
   { title: "Platform Overview", url: "/on-farm/pitch", icon: Presentation },
   { title: "Users & Access", url: "/users", icon: UserCog },
   { title: "Settings", url: "/settings", icon: Settings },
