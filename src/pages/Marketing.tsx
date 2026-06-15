@@ -19,25 +19,6 @@ export default function Marketing() {
 
   return (
     <>
-    {/* COLOUR TEST — remove after picking */}
-    <div style={{ position: "fixed", bottom: 24, right: 24, zIndex: 9999, display: "flex", flexDirection: "column", gap: 12, padding: 16, backgroundColor: "#1F4E78", borderRadius: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 80, height: 36, backgroundColor: "#C8F135", borderRadius: 8, boxShadow: "0 0 16px rgba(200,241,53,0.7)" }} />
-        <span style={{ color: "white", fontSize: 12, fontWeight: 600 }}>A — Electric lime #C8F135</span>
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 80, height: 36, backgroundColor: "#FFAA00", borderRadius: 8, boxShadow: "0 0 16px rgba(255,170,0,0.7)" }} />
-        <span style={{ color: "white", fontSize: 12, fontWeight: 600 }}>B — Hot amber #FFAA00</span>
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 80, height: 36, border: "3px solid #C8F135", borderRadius: 8, boxShadow: "0 0 16px rgba(200,241,53,0.7)" }} />
-        <span style={{ color: "#C8F135", fontSize: 12, fontWeight: 600 }}>A as border</span>
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 80, height: 36, border: "3px solid #FFAA00", borderRadius: 8, boxShadow: "0 0 16px rgba(255,170,0,0.7)" }} />
-        <span style={{ color: "#FFAA00", fontSize: 12, fontWeight: 600 }}>B as border</span>
-      </div>
-    </div>
     <div className="min-h-screen bg-white" style={{ fontFamily: "'Poppins', 'Inter', sans-serif" }}>
 
       {/* ── NAV ── */}
@@ -45,7 +26,7 @@ export default function Marketing() {
         <span className="text-white text-2xl font-bold tracking-tight">muster</span>
         <a
           href="#access"
-          style={{ borderColor: "#FFC425", color: "#FFC425", boxShadow: "0 0 12px rgba(245,208,0,0.4)" }}
+          style={{ borderColor: "#C8F135", color: "#C8F135", boxShadow: "0 0 12px rgba(200,241,53,0.5)" }}
           className="text-sm font-semibold border-2 rounded-full px-5 py-2 hover:bg-yellow-400/10 transition-all"
         >
           Request a demo
@@ -66,7 +47,7 @@ export default function Marketing() {
           style={{ background: "linear-gradient(to top, #1F4E78 0%, rgba(30,58,95,0.7) 50%, rgba(19,59,46,0.3) 100%)" }}
         />
         <div className="relative z-10 max-w-5xl mx-auto px-8">
-          <p className="text-xs font-bold tracking-widest uppercase mb-6" style={{ color: "#FFC425" }}>
+          <p className="text-xs font-bold tracking-widest uppercase mb-6" style={{ color: "#C8F135" }}>
             Australian Red Meat Industry
           </p>
           <h1 className="text-white text-5xl md:text-6xl font-bold leading-tight mb-6 max-w-3xl">
@@ -88,7 +69,7 @@ export default function Marketing() {
       {/* ── FOUR CAPABILITY CARDS ── */}
       <section className="py-24 px-8" style={{ backgroundColor: "#7A8F79" }}>
         <div className="max-w-5xl mx-auto">
-          <p className="text-xs font-bold tracking-widest uppercase mb-3 text-center" style={{ color: "#FFC425" }}>
+          <p className="text-xs font-bold tracking-widest uppercase mb-3 text-center" style={{ color: "#C8F135" }}>
             What Muster does
           </p>
           <h2 className="text-center text-3xl font-bold mb-12 text-white">
@@ -132,7 +113,7 @@ export default function Marketing() {
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow" style={{ border: "2px solid #1F4E78" }}>
+            <div className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow" style={{ border: "2px solid #C8F135", boxShadow: "0 0 16px rgba(200,241,53,0.2)" }}>
               <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-5" style={{ backgroundColor: "#FFC425", boxShadow: "0 0 10px rgba(245,208,0,0.6)" }}>
                 <svg className="w-5 h-5" style={{ color: "#1F4E78" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -159,7 +140,7 @@ export default function Marketing() {
           <p className="text-white text-4xl md:text-6xl font-bold leading-tight">
             Every animal. Every movement.
           </p>
-          <p className="text-4xl md:text-6xl font-bold mt-2" style={{ color: "#FFC425" }}>
+          <p className="text-4xl md:text-6xl font-bold mt-2" style={{ color: "#C8F135" }}>
             Every data point.
           </p>
         </div>
@@ -168,7 +149,7 @@ export default function Marketing() {
       {/* ── PRODUCER INTELLIGENCE ── */}
       <section className="py-24 px-8 bg-white">
         <div className="max-w-3xl mx-auto text-center">
-          <p className="text-xs font-bold tracking-widest uppercase mb-6" style={{ color: "#FFC425" }}>
+          <p className="text-xs font-bold tracking-widest uppercase mb-6" style={{ color: "#C8F135" }}>
             Producer Intelligence
           </p>
           <p className="text-2xl md:text-3xl font-light leading-relaxed" style={{ color: "#1F4E78" }}>
@@ -180,7 +161,7 @@ export default function Marketing() {
       {/* ── HOW WE WORK ── */}
       <section className="py-24 px-8" style={{ backgroundColor: "#1F4E78" }}>
         <div className="max-w-4xl mx-auto">
-          <p className="text-xs font-bold tracking-widest uppercase mb-12 text-center" style={{ color: "#FFC425" }}>
+          <p className="text-xs font-bold tracking-widest uppercase mb-12 text-center" style={{ color: "#C8F135" }}>
             How we work
           </p>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
