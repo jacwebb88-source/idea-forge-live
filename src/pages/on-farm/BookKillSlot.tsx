@@ -79,32 +79,28 @@ export default function BookKillSlot() {
   }
 
   async function handleSubmit() {
-    if (!form.processor_name || !form.head_count || !form.requested_kill_date) {
-      toast({ title: "Missing fields", description: "Processor, head count and kill date are required.", variant: "destructive" });
+    if (!form.head_count || !form.requested_kill_date) {
+      toast({ title: "Missing fields", description: "Head count and kill date are required.", variant: "destructive" });
       return;
     }
     setSaving(true);
 
-    const plantId = form.plant_id || (plants[0]?.id ?? null);
-
-    const { error } = await supabase.from("bookings").insert({
-      plant_id: plantId,
+    const { error } = await (supabase as any).from("kill_interests").insert({
       supplier_name: form.supplier_name || "Livestock Supplier",
+      supplier_contact: form.supplier_contact || null,
+      pic_number: form.pic_number || null,
+      mob_id: form.mob_id || null,
       species: form.species,
       head_count: parseInt(form.head_count),
-      requested_kill_date: form.requested_kill_date,
-      status: "requested",
       hgp_status: form.hgp_status,
-      notes: [
-        form.notes,
-        form.avg_weight_kg ? `Est. avg weight: ${form.avg_weight_kg}kg` : "",
-        form.msa_eligible ? "MSA eligible" : "",
-        form.halal ? "Halal certified" : "",
-        form.pic_number ? `PIC: ${form.pic_number}` : "",
-        form.supplier_contact ? `Contact: ${form.supplier_contact}` : "",
-        `Processor requested: ${form.processor_name}`,
-      ].filter(Boolean).join(" · ") || null,
-    } as any);
+      msa_eligible: form.msa_eligible,
+      halal: form.halal,
+      avg_weight_kg: form.avg_weight_kg ? parseFloat(form.avg_weight_kg) : null,
+      preferred_processor: form.processor_name || null,
+      requested_kill_date: form.requested_kill_date,
+      notes: form.notes || null,
+      status: "new",
+    });
 
     setSaving(false);
 
@@ -113,11 +109,10 @@ export default function BookKillSlot() {
       return;
     }
 
-    // Send notification email
     try {
       await supabase.functions.invoke("pitch-access-log", {
         body: {
-          viewer: `KILL SLOT REQUEST — ${form.supplier_name} → ${form.processor_name}`,
+          viewer: `KILL INTEREST — ${form.supplier_name} → ${form.processor_name || "any processor"}`,
           accessed_at: new Date().toISOString(),
         },
       });
@@ -134,14 +129,14 @@ export default function BookKillSlot() {
             <CheckCircle className="h-8 w-8 text-green-600" />
           </div>
           <div>
-            <h1 className="text-2xl font-extrabold">Request submitted</h1>
+            <h1 className="text-2xl font-extrabold">Interest lodged</h1>
             <p className="text-muted-foreground mt-2">
-              Your kill slot request for <strong>{form.head_count} head</strong> with <strong>{form.processor_name}</strong> on <strong>{format(new Date(form.requested_kill_date), "d MMM yyyy")}</strong> has been sent.
+              Your interest for <strong>{form.head_count} head</strong> on <strong>{format(new Date(form.requested_kill_date), "d MMM yyyy")}</strong> has been received by Muster.
             </p>
           </div>
           <div className="rounded-xl border bg-amber-50 border-amber-200 px-5 py-4 text-sm text-amber-800">
             <p className="font-semibold mb-1">What happens next</p>
-            <p>The processor will review your request and confirm the booking. You'll receive confirmation — typically within 24 hours. Once confirmed it will appear in your Booking Board.</p>
+            <p>Muster will connect your enquiry with a suitable processor. The processor reviews and decides whether to offer you a confirmed slot — you'll hear back typically within 24–48 hours. No booking is made until they confirm.</p>
           </div>
           <div className="flex gap-3 justify-center">
             <Button onClick={() => navigate("/on-farm")} variant="outline" className="gap-2">
@@ -166,12 +161,12 @@ export default function BookKillSlot() {
           </button>
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-0.5">Booking</p>
-            <h1 className="text-2xl font-extrabold">Request a kill slot</h1>
+            <h1 className="text-2xl font-extrabold">Express interest in a kill slot</h1>
           </div>
         </div>
 
         <p className="text-muted-foreground text-sm">
-          Submit a kill slot request directly to a processor. Your details and stock description are sent automatically — no phone call needed.
+          Tell Muster you're ready to go to market. We'll pass your details to a suitable processor — they decide whether to accept and confirm the slot.
         </p>
 
         {/* Pre-fill from mob */}

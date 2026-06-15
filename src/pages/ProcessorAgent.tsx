@@ -339,28 +339,163 @@ export default function ProcessorAgent() {
   const [isQuerying, setIsQuerying] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Load data
+  // Load and compute live data from bookings, compliance, booking_changes
   useEffect(() => {
     async function load() {
-      // Morning briefing
-      const { data: briefData } = await (supabase as any)
-        .from("morning_briefings")
-        .select("*")
-        .order("briefing_date", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      setBriefing(briefData ?? DEMO_BRIEFING);
+      const today = new Date();
+      const todayStr = format(today, "yyyy-MM-dd");
+      const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+      const tomorrowStr = format(tomorrow, "yyyy-MM-dd");
+      const next7 = new Date(today); next7.setDate(today.getDate() + 7);
+      const next7Str = format(next7, "yyyy-MM-dd");
+      const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+      const since24h = new Date(today.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
-      // Alerts
-      const { data: alertData } = await (supabase as any)
-        .from("agent_alerts")
-        .select("*")
-        .order("created_at", { ascending: false });
-      setAlerts(
-        alertData && alertData.length > 0
-          ? (alertData as AgentAlert[])
-          : DEMO_ALERTS
-      );
+      // Fetch upcoming bookings (next 7 days)
+      const { data: upcomingBookings } = await supabase
+        .from("bookings")
+        .select("id, supplier_name, head_count, requested_kill_date, status, hgp_status, transport_status, msa_enrolled, compliance_status")
+        .gte("requested_kill_date", todayStr)
+        .lte("requested_kill_date", next7Str)
+        .neq("status", "cancelled");
+
+      // Fetch compliance checks for upcoming bookings
+      const { data: complianceData } = await supabase
+        .from("compliance_checks")
+        .select("booking_id, nvd_status, nlis_status, pic_status, hgp_status")
+        .in("booking_id", (upcomingBookings ?? []).map((b: any) => b.id));
+
+      // Fetch recent booking changes (last 24h)
+      const { data: recentChanges } = await supabase
+        .from("booking_changes")
+        .select("booking_id, field_name, new_value, changed_at, changed_by")
+        .gte("changed_at", since24h)
+        .order("changed_at", { ascending: false });
+
+      // ── Compute briefing from tomorrow's bookings ──────────────────────────
+      const tomorrowBookings = (upcomingBookings ?? []).filter((b: any) => b.requested_kill_date === tomorrowStr);
+      const totalHead = tomorrowBookings.reduce((s: number, b: any) => s + (b.head_count ?? 0), 0);
+      const totalBookings = tomorrowBookings.length;
+
+      const complianceMap = new Map((complianceData ?? []).map((c: any) => [c.booking_id, c]));
+      const compliantBookings = tomorrowBookings.filter((b: any) => {
+        const c = complianceMap.get(b.id);
+        return c && c.nvd_status === "ok" && c.nlis_status === "ok";
+      }).length;
+      const nonCompliantBookings = totalBookings - compliantBookings;
+
+      const hgpConflicts = tomorrowBookings.filter((b: any) => b.hgp_status === "implanted").length;
+      const transportConfirmed = tomorrowBookings.filter((b: any) => b.transport_status === "confirmed").length;
+      const transportUnconfirmed = totalBookings - transportConfirmed;
+      const scheduleChanges24h = new Set((recentChanges ?? []).map((c: any) => c.booking_id)).size;
+
+      const nvdMissing = tomorrowBookings.filter((b: any) => {
+        const c = complianceMap.get(b.id);
+        return !c || c.nvd_status !== "ok";
+      });
+
+      let summaryParts = [];
+      if (totalBookings > 0) {
+        summaryParts.push(`Tomorrow's kill is ${totalHead} head across ${totalBookings} booking${totalBookings !== 1 ? "s" : ""}.`);
+        if (nonCompliantBookings > 0) summaryParts.push(`${nonCompliantBookings} booking${nonCompliantBookings !== 1 ? "s" : ""} have compliance issues requiring attention.`);
+        if (hgpConflicts > 0) summaryParts.push(`${hgpConflicts} HGP-implanted lot${hgpConflicts !== 1 ? "s" : ""} require chain sequencing.`);
+        if (transportUnconfirmed > 0) summaryParts.push(`${transportUnconfirmed} supplier${transportUnconfirmed !== 1 ? "s" : ""} have not confirmed transport.`);
+        if (scheduleChanges24h > 0) summaryParts.push(`${scheduleChanges24h} booking${scheduleChanges24h !== 1 ? "s" : ""} changed in the last 24 hours.`);
+      } else {
+        summaryParts.push("No bookings scheduled for tomorrow.");
+      }
+
+      const computedBriefing: MorningBriefing = {
+        briefing_date: todayStr,
+        kill_date: tomorrowStr,
+        total_head: totalHead,
+        total_bookings: totalBookings,
+        compliant_bookings: compliantBookings,
+        non_compliant_bookings: nonCompliantBookings,
+        hgp_conflicts: hgpConflicts,
+        transport_confirmed: transportConfirmed,
+        transport_unconfirmed: transportUnconfirmed,
+        cert_warnings: 0,
+        schedule_changes_24h: scheduleChanges24h,
+        summary_text: summaryParts.join(" "),
+      };
+
+      setBriefing(totalBookings > 0 ? computedBriefing : DEMO_BRIEFING);
+
+      // ── Compute live alerts ─────────────────────────────────────────────────
+      const liveAlerts: AgentAlert[] = [];
+      let alertId = 1;
+
+      // NVD missing alerts
+      for (const booking of nvdMissing) {
+        liveAlerts.push({
+          id: `nvd-${booking.id}`,
+          alert_type: "NVD Missing",
+          severity: "critical",
+          title: `NVD not lodged — ${booking.supplier_name} (${booking.head_count} head)`,
+          message: `No NVD has been received for ${booking.supplier_name}'s booking of ${booking.head_count} head killing ${format(new Date(booking.requested_kill_date), "d MMM yyyy")}. MSA eligibility cannot be confirmed without it.`,
+          booking_id: booking.id,
+          supplier_name: booking.supplier_name,
+          kill_date: booking.requested_kill_date,
+          resolved: false,
+          created_at: new Date(Date.now() - alertId++ * 60 * 60 * 1000).toISOString(),
+        });
+      }
+
+      // HGP conflict alerts (implanted lots on upcoming kills)
+      const hgpLots = (upcomingBookings ?? []).filter((b: any) => b.hgp_status === "implanted");
+      for (const booking of hgpLots) {
+        liveAlerts.push({
+          id: `hgp-${booking.id}`,
+          alert_type: "HGP Conflict",
+          severity: "critical",
+          title: `HGP-implanted lot — ${booking.supplier_name} (${booking.head_count} head)`,
+          message: `${booking.supplier_name} has HGP-implanted cattle on ${format(new Date(booking.requested_kill_date), "d MMM yyyy")}. Must kill after HGP-free animals on the same chain. Confirm kill order sequence.`,
+          booking_id: booking.id,
+          supplier_name: booking.supplier_name,
+          kill_date: booking.requested_kill_date,
+          resolved: false,
+          created_at: new Date(Date.now() - alertId++ * 60 * 60 * 1000).toISOString(),
+        });
+      }
+
+      // Transport unconfirmed for tomorrow
+      const transportAlerts = tomorrowBookings.filter((b: any) => b.transport_status !== "confirmed");
+      if (transportAlerts.length > 0) {
+        const names = transportAlerts.map((b: any) => `${b.supplier_name} (${b.head_count} head)`).join(", ");
+        liveAlerts.push({
+          id: "transport-unconfirmed",
+          alert_type: "Transport Unconfirmed",
+          severity: "warning",
+          title: `${transportAlerts.length} booking${transportAlerts.length !== 1 ? "s" : ""} with unconfirmed transport for tomorrow`,
+          message: `${names} have not confirmed transport for tomorrow's kill. Delivery window opens tonight.`,
+          booking_id: null,
+          supplier_name: null,
+          kill_date: tomorrowStr,
+          resolved: false,
+          created_at: new Date(Date.now() - alertId++ * 60 * 60 * 1000).toISOString(),
+        });
+      }
+
+      // Schedule changes in last 24h
+      for (const change of (recentChanges ?? []).slice(0, 3)) {
+        const booking = (upcomingBookings ?? []).find((b: any) => b.id === change.booking_id);
+        if (!booking) continue;
+        liveAlerts.push({
+          id: `change-${change.booking_id}-${change.field_name}`,
+          alert_type: "Schedule Change",
+          severity: "notice",
+          title: `${booking.supplier_name} amended ${change.field_name}`,
+          message: `${booking.supplier_name} changed ${change.field_name} to "${change.new_value}" in the last 24 hours. Review kill plan for impact.`,
+          booking_id: change.booking_id,
+          supplier_name: booking.supplier_name,
+          kill_date: booking.requested_kill_date,
+          resolved: false,
+          created_at: change.changed_at,
+        });
+      }
+
+      setAlerts(liveAlerts.length > 0 ? liveAlerts : DEMO_ALERTS);
     }
     load();
   }, []);
@@ -385,10 +520,6 @@ export default function ProcessorAgent() {
     setAlerts((prev) =>
       prev.map((a) => (a.id === id ? { ...a, resolved: true } : a))
     );
-    (supabase as any)
-      .from("agent_alerts")
-      .update({ resolved: true })
-      .eq("id", id);
   }
 
   function handleQuery() {

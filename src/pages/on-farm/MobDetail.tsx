@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useMob, useMarketBenchmarks, useFeedPlan, useProcessorGrids, useKillRecords, type FeedPlan } from "@/components/on-farm/useMobs";
+import { useMob, useMarketBenchmarks, useFeedPlan, useKillRecords, type FeedPlan } from "@/components/on-farm/useMobs";
 import { categoryToken, exitToken, programToken } from "@/components/on-farm/farmTokens";
 import {
   COST_TYPE_LABELS, COST_TYPE_GROUPS,
@@ -45,7 +45,6 @@ export default function MobDetail() {
   const { latest, benchmarks } = useMarketBenchmarks();
   const { current: feedPlan, plans: feedPlans, loading: feedLoading, refetch: refetchFeed } = useFeedPlan(id!);
 
-  const { grids: processorGrids } = useProcessorGrids();
   const { records: killRecords, loading: killLoading, refetch: refetchKill } = useKillRecords(id!);
 
   const [showCostDialog, setShowCostDialog] = useState(false);
@@ -200,7 +199,6 @@ export default function MobDetail() {
           arrivalWt={arrivalWt}
           adg={adg}
           feedPlan={feedPlan}
-          processorGrids={processorGrids}
           cat={cat}
         />
 
@@ -405,7 +403,6 @@ export default function MobDetail() {
               mob={mob} totalCostPerHead={totalCostPerHead}
               latestWeightKg={currentWt} latest={latest} benchmarks={benchmarks}
               feedPlan={feedPlan} adg={adg} cat={cat}
-              processorGrids={processorGrids}
             />
           </TabsContent>
 
@@ -670,15 +667,12 @@ function CarbonTab({ mob, dof, feedPlan, cat }: any) {
 
 // ─── Mob Margin Clock ─────────────────────────────────────────────────────────
 
-function MarginClock({ mob, totalCostPerHead, currentWt, arrivalWt, adg, feedPlan, processorGrids, cat }: any) {
+function MarginClock({ mob, totalCostPerHead, currentWt, arrivalWt, adg, feedPlan, cat }: any) {
   const DEFAULT_DRESSING = 54;
   const FREIGHT = 80;
   const MLA_LEVY = 5;
 
-  const bestGrid = processorGrids?.length > 0
-    ? [...processorGrids].sort((a: any, b: any) => b.price_cpkg_cw - a.price_cpkg_cw)[0]
-    : null;
-  const gridPrice = bestGrid?.price_cpkg_cw ?? 615;
+  const gridPrice = 615; // MLA/NLRS benchmark — processor's actual grid may vary
 
   const weightGained = currentWt && arrivalWt ? currentWt - arrivalWt : 0;
   const costPerKgGain = weightGained > 2 && totalCostPerHead > 0 ? totalCostPerHead / weightGained : null;
@@ -709,7 +703,7 @@ function MarginClock({ mob, totalCostPerHead, currentWt, arrivalWt, adg, feedPla
           <div>
             <p className="font-bold text-sm text-emerald-900">Mob Margin Clock</p>
             <p className="text-xs text-emerald-600">
-              {bestGrid ? `Best grid: ${bestGrid.processor_name} @ ${gridPrice}¢/kg CW` : `${gridPrice}¢/kg CW benchmark · ${DEFAULT_DRESSING}% dress`}
+              {gridPrice}¢/kg CW benchmark · {DEFAULT_DRESSING}% dress · MLA/NLRS
             </p>
           </div>
         </div>
@@ -1199,7 +1193,7 @@ function EditFeedPlanDialog({ open, onClose, mobId, current, targetWt, currentWt
 
 // ─── Decision Engine ──────────────────────────────────────────────────────────
 
-function DecisionEngine({ mob, totalCostPerHead, latestWeightKg, latest, benchmarks, feedPlan, adg, cat, processorGrids }: any) {
+function DecisionEngine({ mob, totalCostPerHead, latestWeightKg, latest, benchmarks, feedPlan, adg, cat }: any) {
   // ── Hold vs Sell state ───────────────────────────────────────────────────
   const [holdWeeks, setHoldWeeks] = useState(8);
   const [holdAdg, setHoldAdg] = useState<number>(adg ?? 1.2);
@@ -1339,36 +1333,16 @@ function DecisionEngine({ mob, totalCostPerHead, latestWeightKg, latest, benchma
   const killOwnGross = (othVicFallback / 100) * carcaseKg * (1 + processorMarginPct / 100);
   const killOwnNet = killOwnGross - MLA - 20;
 
-  // Build processor paths from grid data (top 3 by effective price including premiums)
+  // OTH path uses MLA/NLRS public benchmarks only — processor's actual grid is their commercial data
   const topProcessors: Array<{ key: string; label: string; sub: string; net: number; eligible: boolean; icon: React.ReactNode; isBestProcessor?: boolean }> =
-    (processorGrids?.length > 0
-      ? [...processorGrids]
-          .map((g: any) => {
-            const effectivePrice = g.price_cpkg_cw + (mob.hgp_free ? (g.hgp_free_premium_cpkg ?? 0) : 0) + (mob.msa_eligible ? (g.msa_premium_cpkg ?? 0) : 0);
-            const gross = (effectivePrice / 100) * carcaseKg;
-            const net = gross - freightOut - MLA;
-            return { g, effectivePrice, gross, net };
-          })
-          .sort((a, b) => b.effectivePrice - a.effectivePrice)
-          .slice(0, 3)
-          .map((item, idx) => ({
-            key: `processor_${item.g.id}`,
-            label: `OTH — ${item.g.processor_name}`,
-            sub: `${dressingPct}% dress → ${carcaseKg.toFixed(0)}kg CW · ${item.g.price_cpkg_cw}¢/kg${mob.hgp_free && item.g.hgp_free_premium_cpkg > 0 ? ` +${item.g.hgp_free_premium_cpkg}¢ HGP` : ""}${mob.msa_eligible && item.g.msa_premium_cpkg > 0 ? ` +${item.g.msa_premium_cpkg}¢ MSA` : ""} · ${item.g.description ?? ""}`,
-            net: item.net,
-            eligible: true,
-            icon: <Layers className="h-4 w-4" />,
-            isBestProcessor: idx === 0,
-          }))
-      : [{
-          key: "oth",
-          label: "OTH — Direct to Processor",
-          sub: `${dressingPct}% dress → ${carcaseKg.toFixed(0)}kg CW · ${othVicFallback}¢/kg${hgpPrem ? ` +${hgpPrem}¢ HGP` : ""}${msaPrem ? ` +${msaPrem}¢ MSA` : ""}`,
-          net: ((othVicFallback + hgpPrem + msaPrem) / 100) * carcaseKg - freightOut - MLA,
-          eligible: true,
-          icon: <Layers className="h-4 w-4" />,
-        }]
-    );
+    [{
+      key: "oth",
+      label: "OTH — Direct to Processor",
+      sub: `${dressingPct}% dress → ${carcaseKg.toFixed(0)}kg CW · ${othVicFallback}¢/kg${hgpPrem ? ` +${hgpPrem}¢ HGP` : ""}${msaPrem ? ` +${msaPrem}¢ MSA` : ""} · MLA/NLRS benchmark`,
+      net: ((othVicFallback + hgpPrem + msaPrem) / 100) * carcaseKg - freightOut - MLA,
+      eligible: true,
+      icon: <Layers className="h-4 w-4" />,
+    }];
 
   const paths = [
     {
@@ -1575,20 +1549,17 @@ function DecisionEngine({ mob, totalCostPerHead, latestWeightKg, latest, benchma
         </div>
       </div>
 
-      {/* Book kill slot CTA */}
+      {/* Express interest CTA */}
       <div className="rounded-xl border-2 border-amber-300 bg-amber-50 px-5 py-4 flex items-center justify-between gap-4">
         <div>
-          <p className="font-bold text-sm text-amber-900">Ready to book?</p>
-          <p className="text-xs text-amber-700 mt-0.5">Send a kill slot request directly to your processor — no phone call needed.</p>
+          <p className="font-bold text-sm text-amber-900">Ready to go to market?</p>
+          <p className="text-xs text-amber-700 mt-0.5">Express interest in a kill slot — Muster will connect you with a processor. No commitment required.</p>
         </div>
         <button
-          onClick={() => {
-            const navigate = (window as any).__navigate;
-            window.location.href = `/on-farm/book-kill-slot`;
-          }}
+          onClick={() => { window.location.href = `/on-farm/book-kill-slot`; }}
           className="shrink-0 bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-colors"
         >
-          Book kill slot →
+          Express interest →
         </button>
       </div>
 
@@ -1671,70 +1642,72 @@ function DecisionEngine({ mob, totalCostPerHead, latestWeightKg, latest, benchma
       </p>
 
       {/* ── Processor Comparison ──────────────────────────────────────── */}
-      {processorGrids?.length > 1 && (
-        <div className="rounded-xl border bg-white p-4">
-          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1 flex items-center gap-1.5">
-            <Building2 className="h-3.5 w-3.5" /> Processor comparison — best option per head
-          </p>
-          <p className="text-xs text-muted-foreground mb-3">
-            {latestWeightKg.toFixed(0)}kg at {dressingPct}% dressing · freight ${freightOut}/hd · {mob.hgp_free ? "HGP Free" : "HGP"} · {mob.msa_eligible ? "MSA" : "non-MSA"}
-          </p>
-          <div className="space-y-2">
-            {[...processorGrids]
-              .map((g: any) => {
-                const effectivePrice = g.price_cpkg_cw
-                  + (mob.hgp_free ? (g.hgp_free_premium_cpkg ?? 0) : 0)
-                  + (mob.msa_eligible ? (g.msa_premium_cpkg ?? 0) : 0);
-                const carcaseKg = latestWeightKg * (dressingPct / 100);
-                const gross = (effectivePrice / 100) * carcaseKg;
-                const net = gross - freightOut - 5; // MLA levy
-                const margin = net - totalCostPerHead;
-                return { g, effectivePrice, gross, net, margin, carcaseKg };
-              })
-              .sort((a, b) => b.net - a.net)
-              .map(({ g, effectivePrice, net, margin, carcaseKg }, idx) => {
+      {/* ── Regional OTH Comparison (MLA/NLRS benchmarks only) ─────────── */}
+      {(() => {
+        const carcaseKg = latestWeightKg * (dressingPct / 100);
+        const hgpAdj = mob.hgp_free ? 50 : 0;
+        const msaAdj = mob.msa_eligible ? 24 : 0;
+        const regions = [
+          { label: "OTH Victoria",    price: latest("oth_vic")?.cents_per_kg ?? 0 },
+          { label: "OTH Queensland",  price: latest("oth_qld")?.cents_per_kg ?? 0 },
+          { label: "OTH NSW",         price: latest("oth_nsw")?.cents_per_kg ?? 0 },
+          { label: "OTH South Aust.", price: latest("oth_sa")?.cents_per_kg ?? 0 },
+        ].filter(r => r.price > 0)
+         .map(r => {
+           const effective = r.price + hgpAdj + msaAdj;
+           const net = (effective / 100) * carcaseKg - freightOut - 5;
+           const margin = net - totalCostPerHead;
+           return { ...r, effective, net, margin };
+         })
+         .sort((a, b) => b.net - a.net);
+
+        if (!regions.length) return null;
+        const best = regions[0];
+
+        return (
+          <div className="rounded-xl border bg-white p-4">
+            <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground mb-1 flex items-center gap-1.5">
+              <Building2 className="h-3.5 w-3.5" /> Regional market comparison
+            </p>
+            <p className="text-xs text-muted-foreground mb-3">
+              {latestWeightKg.toFixed(0)}kg · {dressingPct}% dressing · freight ${freightOut}/hd
+              {mob.hgp_free ? " · +50¢ HGP Free" : ""}
+              {mob.msa_eligible ? " · +24¢ MSA" : ""}
+            </p>
+            <div className="space-y-2">
+              {regions.map((r, idx) => {
                 const isBest = idx === 0;
-                const diffFromBest = idx === 0 ? 0 : (([...processorGrids]
-                  .map((g2: any) => {
-                    const ep = g2.price_cpkg_cw + (mob.hgp_free ? (g2.hgp_free_premium_cpkg ?? 0) : 0) + (mob.msa_eligible ? (g2.msa_premium_cpkg ?? 0) : 0);
-                    return (ep / 100) * carcaseKg - freightOut - 5;
-                  })
-                  .sort((a, b) => b - a)[0]) - net);
+                const diff = best.net - r.net;
                 return (
-                  <div key={g.id} className={`rounded-xl border-2 px-4 py-3 flex items-center justify-between gap-3 ${isBest ? `${cat.border} ${cat.bg}` : "border-muted bg-white"}`}>
+                  <div key={r.label} className={`rounded-xl border-2 px-4 py-3 flex items-center justify-between gap-3 ${isBest ? `${cat.border} ${cat.bg}` : "border-muted bg-white"}`}>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        {isBest && <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${cat.badge}`}>Best return</span>}
-                        <p className="font-bold text-sm truncate">{g.processor_name}</p>
+                        {isBest && <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${cat.badge}`}>Highest benchmark</span>}
+                        <p className="font-bold text-sm">{r.label}</p>
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {g.price_cpkg_cw}¢/kg CW
-                        {mob.hgp_free && g.hgp_free_premium_cpkg > 0 ? ` +${g.hgp_free_premium_cpkg}¢ HGP` : ""}
-                        {mob.msa_eligible && g.msa_premium_cpkg > 0 ? ` +${g.msa_premium_cpkg}¢ MSA` : ""}
-                        {` = ${effectivePrice}¢/kg effective · ${carcaseKg.toFixed(0)}kg CW`}
+                        {r.price}¢/kg CW{hgpAdj > 0 ? ` +${hgpAdj}¢` : ""}{msaAdj > 0 ? ` +${msaAdj}¢` : ""} = {r.effective}¢ effective · {carcaseKg.toFixed(0)}kg CW
                       </p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-lg font-black">{fmt$fine(net)}/hd</p>
-                      <p className={`text-xs font-bold ${margin >= 0 ? "text-green-600" : "text-red-600"}`}>
-                        {margin >= 0 ? "+" : ""}{fmt$(margin)}/hd vs cost
+                      <p className="text-lg font-black">{fmt$fine(r.net)}/hd</p>
+                      <p className={`text-xs font-bold ${r.margin >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        {r.margin >= 0 ? "+" : ""}{fmt$(r.margin)}/hd vs cost
                       </p>
-                      {!isBest && diffFromBest > 0 && (
-                        <p className="text-xs text-muted-foreground">−${diffFromBest.toFixed(0)}/hd vs best</p>
+                      {!isBest && diff > 0 && (
+                        <p className="text-xs text-muted-foreground">−${diff.toFixed(0)}/hd vs best</p>
                       )}
                     </div>
                   </div>
                 );
               })}
+            </div>
+            <p className="text-xs text-muted-foreground/60 text-center mt-2">
+              MLA/NLRS public benchmarks · {new Date().toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })} · Your processor's actual grid may vary — contact them directly for confirmed pricing.
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground text-center mt-2">
-            Total value at {mob.head_count} head — best: {fmt$(([...processorGrids].map((g: any) => {
-              const ep = g.price_cpkg_cw + (mob.hgp_free ? (g.hgp_free_premium_cpkg ?? 0) : 0) + (mob.msa_eligible ? (g.msa_premium_cpkg ?? 0) : 0);
-              return (ep / 100) * (latestWeightKg * dressingPct / 100) - freightOut - 5;
-            }).sort((a, b) => b - a)[0]) * mob.head_count)}
-          </p>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── Industry Benchmarks ───────────────────────────────────────── */}
       <div className="rounded-xl border bg-muted/10 p-4">

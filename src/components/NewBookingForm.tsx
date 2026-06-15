@@ -135,8 +135,8 @@ export function NewBookingForm({ open, onOpenChange, onBookingCreated }: NewBook
         est_avg_live_wt:       form.est_avg_live_wt ? parseFloat(form.est_avg_live_wt) : null,
         days_on_feed:          form.days_on_feed ? parseInt(form.days_on_feed) : null,
         trucking_advice:       form.notes || null,
-        // Store PIC numbers + eNVD in agent_ref if no dedicated column yet
-        // TODO: add pic_numbers, envd_ref columns in next migration
+        pic_numbers:           form.pic_numbers || null,
+        envd_ref:              form.envd_ref || null,
       };
 
       const { error } = await (supabase.from("bookings") as any).insert(payload);

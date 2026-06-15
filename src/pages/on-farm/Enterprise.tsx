@@ -248,7 +248,7 @@ export default function Enterprise() {
 
   // Alerts
   const alerts: { level: "warning" | "info"; text: string }[] = [];
-  if (readyPens.length > 0) alerts.push({ level: "warning", text: `${readyPens.length} pen${readyPens.length > 1 ? "s" : ""} ready to ship — book a kill slot now` });
+  if (readyPens.length > 0) alerts.push({ level: "warning", text: `${readyPens.length} pen${readyPens.length > 1 ? "s" : ""} ready to ship — express interest in a kill slot` });
   const staleWeightMobs = activeMobs.filter(m => {
     const lastWeight = m.updated_at ? differenceInDays(new Date(), new Date(m.updated_at)) : 999;
     return lastWeight > 21;

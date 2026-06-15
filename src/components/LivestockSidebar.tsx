@@ -4,6 +4,7 @@ import {
   LineChart, Award, Upload, Globe, Grid3X3,
   Calculator, Banknote, LogOut, Settings, HelpCircle,
   Home, ArrowLeft, Sunrise, FileText, Rocket, Leaf, Send,
+  Trophy, CalendarDays,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -29,6 +30,8 @@ const overviewItems = [
 
 const intelligenceItems = [
   { title: "Market Intelligence",  url: "/on-farm/market",             icon: LineChart },
+  { title: "Processor Comparison", url: "/on-farm/processor-compare",  icon: Trophy },
+  { title: "Seasonal Plan",        url: "/on-farm/seasonal-plan",      icon: CalendarDays },
   { title: "Seasonal Planner",     url: "/on-farm/seasonal",           icon: Leaf },
   { title: "Forecasting",          url: "/on-farm/forecasting",        icon: TrendingUp },
   { title: "Processor Grids",      url: "/on-farm/grids",              icon: Grid3X3 },
@@ -36,7 +39,7 @@ const intelligenceItems = [
 ];
 
 const toolsItems = [
-  { title: "Book Kill Slot",       url: "/on-farm/book-kill-slot",     icon: Send },
+  { title: "Express Kill Interest", url: "/on-farm/book-kill-slot",     icon: Send },
   { title: "Bid Calculator",       url: "/on-farm/bid-calculator",     icon: Calculator },
   { title: "Livestock Finance",    url: "/on-farm/finance",            icon: Banknote },
   { title: "Financial Analysis",   url: "/on-farm/financial-analysis", icon: PieChart },

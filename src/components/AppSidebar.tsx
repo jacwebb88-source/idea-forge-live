@@ -34,6 +34,7 @@ import {
   Bot,
   Upload,
   HelpCircle,
+  Inbox,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -80,6 +81,7 @@ const reportingItems = [
 const relationshipsItems = [
   { title: "Suppliers", url: "/suppliers", icon: Users },
   { title: "Plants", url: "/plants", icon: Building2 },
+  { title: "Kill Slot Leads", url: "/kill-leads", icon: Inbox },
   { title: "Buyer Portal", url: "/buyer-portal", icon: ShoppingBag },
   { title: "Supplier Portal", url: "/supplier-portal", icon: Leaf },
   { title: "Booking Request", url: "/buyer-request", icon: UserCheck },
