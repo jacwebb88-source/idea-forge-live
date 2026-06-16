@@ -37,6 +37,7 @@ import {
   Inbox,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useDemo } from "@/contexts/DemoContext";
 
 import {
   Sidebar,
@@ -128,6 +129,7 @@ const ROLE_LABELS: Record<string, string> = {
 export function AppSidebar() {
   const { state } = useSidebar();
   const { profile, signOut } = useAuth();
+  const { isDemo } = useDemo();
   const location = useLocation();
   const currentPath = location.pathname;
   const collapsed = state === "collapsed";
@@ -151,10 +153,12 @@ export function AppSidebar() {
           { label: "Operations",    items: operationsItems },
           { label: "Reporting",     items: reportingItems },
           { label: "Relationships", items: relationshipsItems },
-          { label: "On Farm",      items: onFarmItems },
-          { label: "Enterprise",  items: enterpriseItems },
-          { label: "Tools",       items: farmToolsItems },
-          { label: "Admin",       items: adminItems },
+          ...(!isDemo ? [
+            { label: "On Farm",   items: onFarmItems },
+            { label: "Enterprise",items: enterpriseItems },
+            { label: "Tools",     items: farmToolsItems },
+            { label: "Admin",     items: adminItems },
+          ] : []),
         ].map(({ label, items }) => (
           <SidebarGroup key={label}>
             <SidebarGroupLabel className="text-xs uppercase tracking-widest font-semibold text-muted-foreground/70 px-3 py-1">
