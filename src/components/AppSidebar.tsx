@@ -149,17 +149,18 @@ export function AppSidebar() {
         </div>
 
         {[
-          { label: "Overview",      items: overviewItems },
-          { label: "Operations",    items: operationsItems },
-          { label: "Reporting",     items: reportingItems },
-          { label: "Relationships", items: relationshipsItems },
+          { label: "Overview",      items: overviewItems,      newTab: false },
+          { label: "Operations",    items: operationsItems,    newTab: false },
+          { label: "Reporting",     items: reportingItems,     newTab: false },
+          { label: "Relationships", items: relationshipsItems, newTab: false },
           ...(!isDemo ? [
-            { label: "On Farm",   items: onFarmItems },
-            { label: "Enterprise",items: enterpriseItems },
-            { label: "Tools",     items: farmToolsItems },
-            { label: "Admin",     items: adminItems },
+            { label: "On Farm",   items: onFarmItems,      newTab: false },
+            { label: "Admin",     items: adminItems,       newTab: false },
+            { label: "Tools",     items: farmToolsItems,   newTab: false },
           ] : []),
-        ].map(({ label, items }) => (
+          // Enterprise always visible; opens in new tab during demo so Kevin doesn't lose his place
+          { label: "Enterprise", items: enterpriseItems, newTab: isDemo },
+        ].map(({ label, items, newTab }) => (
           <SidebarGroup key={label}>
             <SidebarGroupLabel className="text-xs uppercase tracking-widest font-semibold text-muted-foreground/70 px-3 py-1">
               {label}
@@ -169,10 +170,18 @@ export function AppSidebar() {
                 {items.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
-                      <NavLink to={item.url} end className={getNavCls}>
-                        <item.icon className="h-4 w-4 shrink-0" />
-                        {!collapsed && <span className="truncate">{item.title}</span>}
-                      </NavLink>
+                      {newTab ? (
+                        <a href={item.url} target="_blank" rel="noopener noreferrer"
+                          className="hover:bg-sidebar-accent/50 text-sidebar-foreground flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-sm">
+                          <item.icon className="h-4 w-4 shrink-0" />
+                          {!collapsed && <span className="truncate">{item.title}</span>}
+                        </a>
+                      ) : (
+                        <NavLink to={item.url} end className={getNavCls}>
+                          <item.icon className="h-4 w-4 shrink-0" />
+                          {!collapsed && <span className="truncate">{item.title}</span>}
+                        </NavLink>
+                      )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
