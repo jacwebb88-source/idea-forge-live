@@ -25,7 +25,7 @@ import {
 
 interface Booking {
   id: string;
-  booking_ref: string | null;
+  booking_ref?: string | null;
   supplier_name: string | null;
   supplier_id: string | null;
   species: string | null;
@@ -163,7 +163,7 @@ export default function KillGrading() {
       setBookingsLoading(true);
       const { data } = await supabase
         .from("bookings")
-        .select("id, booking_ref, supplier_id, species, head_count, requested_kill_date, status")
+        .select("id, supplier_id, species, head_count, requested_kill_date, status")
         .gte("requested_kill_date", dateFrom)
         .lte("requested_kill_date", dateTo)
         .neq("status", "cancelled")
