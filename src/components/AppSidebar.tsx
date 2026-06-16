@@ -158,8 +158,8 @@ export function AppSidebar() {
             { label: "Admin",     items: adminItems,       newTab: false },
             { label: "Tools",     items: farmToolsItems,   newTab: false },
           ] : []),
-          // Enterprise always visible; opens in new tab during demo so Kevin doesn't lose his place
-          { label: "Enterprise", items: enterpriseItems, newTab: isDemo },
+          // Feedlot section always visible; opens in new tab during demo so Kevin doesn't lose his place
+          { label: isDemo ? "Feedlot" : "Enterprise", items: enterpriseItems, newTab: isDemo },
         ].map(({ label, items, newTab }) => (
           <SidebarGroup key={label}>
             <SidebarGroupLabel className="text-xs uppercase tracking-widest font-semibold text-muted-foreground/70 px-3 py-1">
