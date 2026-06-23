@@ -23,37 +23,53 @@ import { LineChart, Bell, Info, TrendingUp, BarChart2, Map, Cloud } from "lucide
 function fmt$(n: number) { return `$${n.toLocaleString("en-AU", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`; }
 function fmtCpkg(n: number) { return `${n.toFixed(0)}¢/kg`; }
 
-function formatIndicatorName(key: string): string {
-  const map: Record<string, string> = {
-    eyci:              "EYCI — Eastern Young Cattle",
-    wyci:              "WYCI — Western Young Cattle",
-    nyci:              "NYCI — National Young Cattle",
-    ayci:              "AYCI — Young Cattle Index",
-    feeder_steer:      "Feeder Steer",
-    heavy_steer:       "Heavy Steer (0 tooth)",
-    heavy_steer_0t:    "Heavy Steer (0 tooth)",
-    heavy_steer_2t:    "Heavy Steer (2 tooth)",
-    medium_steer:      "Medium Steer",
-    light_steer:       "Light Steer",
-    heavy_cow:         "Heavy Cow",
-    medium_cow:        "Medium Cow",
-    oth_vic:           "OTH Victoria",
-    oth_qld:           "OTH Queensland",
-    oth_nsw:           "OTH New South Wales",
-    oth_sa:            "OTH South Australia",
-    grain_wheat_aud_t: "Wheat (AUD/t)",
-    grain_barley_aud_t:"Barley (AUD/t)",
-    hay_aud_t:         "Hay (AUD/t)",
-    estli:             "ESTLI — Eastern States Trade Lamb",
-    heavy_lamb:        "Heavy Lamb (24-32kg CW)",
-    restocker_lamb:    "Restocker Lamb",
-    merino_lamb:       "Merino Lamb",
-    mutton:            "Mutton / Ewe",
-    watli:             "WATLI — WA Trade Lamb",
-    light_lamb:        "Light Lamb (<18kg CW)",
-    arli:              "ARLI — Restocker Lamb Index",
+type IndicatorMeta = { label: string; short: string; basis: string; description: string };
+
+function getIndicatorMeta(key: string): IndicatorMeta {
+  const map: Record<string, IndicatorMeta> = {
+    eyci:                        { label: "Eastern Young Cattle Indicator", short: "EYCI", basis: "¢/kg cwt", description: "Composite indicator for young cattle sold in eastern state saleyards. Covers 200–400kg cwt steers and heifers. The key benchmark for backgrounders and feedlots buying store cattle." },
+    wyci:                        { label: "Western Young Cattle Indicator", short: "WYCI", basis: "¢/kg lwt", description: "Western Australia equivalent of the EYCI. Measures young cattle prices in WA saleyards." },
+    nyci:                        { label: "National Young Cattle Indicator", short: "NYCI", basis: "¢/kg cwt", description: "National aggregate of young cattle prices across all state saleyards." },
+    ayci:                        { label: "AuctionsPlus Young Cattle Index", short: "AYCI", basis: "¢/kg lwt", description: "Online auction benchmark for young cattle sold via AuctionsPlus. Reflects prices achievable without transport to a physical saleyard." },
+    feeder_steer:                { label: "National Feeder Steer Indicator", short: "Feeder Steer", basis: "¢/kg lwt", description: "Measures prices for steers suitable for feedlot entry. Typically 280–380kg liveweight, 0–2 tooth. Key signal for feedlot demand." },
+    heavy_steer:                 { label: "Heavy Steer Indicator", short: "Heavy Steer", basis: "¢/kg lwt", description: "Prices for heavy finished steers ready for slaughter. Indicator of processor demand and grid competitiveness." },
+    heavy_steer_0t:              { label: "Heavy Steer Indicator (0 tooth)", short: "Heavy Steer 0T", basis: "¢/kg lwt", description: "Young heavy steers, 0 permanent teeth. Premium over older cattle for export and MSA programs." },
+    heavy_steer_2t:              { label: "Heavy Steer Indicator (2 tooth)", short: "Heavy Steer 2T", basis: "¢/kg lwt", description: "Two-tooth heavy steers. Eligible for most EU and Japan export programs." },
+    medium_steer:                { label: "Medium Steer Indicator", short: "Medium Steer", basis: "¢/kg lwt", description: "Mid-weight finished steers. Useful benchmark for grassfed producers targeting domestic market." },
+    light_steer:                 { label: "Light Steer Indicator", short: "Light Steer", basis: "¢/kg lwt", description: "Lighter finished steers, often younger or lower condition score animals." },
+    heavy_cow:                   { label: "Heavy Cow Indicator", short: "Heavy Cow", basis: "¢/kg lwt", description: "Prices for heavy cull cows. Key indicator for herd management and turn-off timing decisions." },
+    medium_cow:                  { label: "Medium Cow Indicator", short: "Medium Cow", basis: "¢/kg lwt", description: "Mid-weight cull cow prices. Reflects manufacturing beef demand." },
+    processor_cow:               { label: "Processor Cow Indicator", short: "Processor Cow", basis: "¢/kg lwt", description: "Prices paid by processors for cull cows. Reflects manufacturing beef demand from domestic and export markets." },
+    dairy_cow:                   { label: "Dairy Cow Indicator", short: "Dairy Cow", basis: "¢/kg lwt", description: "Prices for dairy cull cows entering the beef supply chain. Indicator of crossover between dairy and beef markets." },
+    restocker_yearling_steer:    { label: "Restocker Yearling Steer Indicator", short: "Restocker Steer", basis: "¢/kg lwt", description: "Yearling steers purchased for backgrounding or pasture fattening. Strong demand signal from NSW and QLD restockers." },
+    restocker_yearling_heifer:   { label: "Restocker Yearling Heifer Indicator", short: "Restocker Heifer", basis: "¢/kg lwt", description: "Yearling heifers for backgrounding. Often reflects herd rebuilding intent — strong prices indicate producers are retaining females." },
+    oth_vic:                     { label: "Over the Hooks Victoria", short: "OTH VIC", basis: "¢/kg cwt", description: "Direct-to-processor (over the hooks) prices for cattle in Victoria. Reflects what processors are actually paying at the gate." },
+    oth_qld:                     { label: "Over the Hooks Queensland", short: "OTH QLD", basis: "¢/kg cwt", description: "Direct-to-processor prices in Queensland. QLD is Australia's largest cattle processing state." },
+    oth_nsw:                     { label: "Over the Hooks New South Wales", short: "OTH NSW", basis: "¢/kg cwt", description: "Direct-to-processor prices in NSW." },
+    oth_sa:                      { label: "Over the Hooks South Australia", short: "OTH SA", basis: "¢/kg cwt", description: "Direct-to-processor prices in SA." },
+    grain_wheat_aud_t:           { label: "Wheat Price", short: "Wheat", basis: "AUD/t", description: "Eastern Australia wheat price. Key input cost driver for feedlots — rising grain prices compress feedlot margins." },
+    grain_barley_aud_t:          { label: "Barley Price", short: "Barley", basis: "AUD/t", description: "Feed barley price. Primary grain ration component for most Australian feedlots." },
+    hay_aud_t:                   { label: "Hay Price", short: "Hay", basis: "AUD/t", description: "Pasture hay prices. Indicator of seasonal conditions and roughage costs for feedlots and backgrounders." },
+    estli:                       { label: "Eastern States Trade Lamb Indicator", short: "ESTLI", basis: "¢/kg cwt", description: "The primary benchmark for Australian lamb markets. Measures trade lamb (18–24kg cwt) prices across eastern state saleyards. The most widely quoted sheep market indicator." },
+    trade_lamb:                  { label: "National Trade Lamb Indicator", short: "Trade Lamb", basis: "¢/kg cwt", description: "National aggregate trade lamb prices. Covers 18–24kg cwt lambs suitable for domestic and export processing." },
+    heavy_lamb:                  { label: "Heavy Lamb Indicator", short: "Heavy Lamb", basis: "¢/kg cwt", description: "Prices for heavier lambs (24–32kg cwt). Preferred by export processors for Japan and Korea markets where larger cuts are valued." },
+    restocker_lamb:              { label: "National Restocker Lamb Indicator", short: "Restocker Lamb", basis: "¢/kg cwt", description: "Store lambs purchased for backgrounding. Strong prices indicate demand from producers looking to finish lambs rather than sell immediately." },
+    merino_lamb:                 { label: "Merino Lamb Indicator", short: "Merino Lamb", basis: "¢/kg cwt", description: "Merino breed lambs, typically lighter and leaner than crossbreds. Often discounted to trade lamb prices due to lower dressing percentage." },
+    mutton:                      { label: "National Mutton Indicator", short: "Mutton", basis: "¢/kg cwt", description: "Prices for adult sheep (ewes and wethers). Strong mutton prices typically reflect tight supply from restocking intent, not processor demand." },
+    watli:                       { label: "WA Trade Lamb Indicator", short: "WATLI", basis: "¢/kg cwt", description: "Western Australia trade lamb prices. WA runs a separate market with different processor and export dynamics to eastern states." },
+    light_lamb:                  { label: "Light Lamb Indicator", short: "Light Lamb", basis: "¢/kg cwt", description: "Lambs under 18kg cwt. Often sold by producers who need to move stock early — can signal feed pressure or seasonal stress." },
+    arli:                        { label: "AuctionsPlus Restocker Lamb Index", short: "ARLI", basis: "¢/kg cwt", description: "Online auction benchmark for restocker lambs. Useful comparison against physical saleyard prices." },
   };
-  return map[key] ?? key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  return map[key] ?? { label: key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()), short: key, basis: "¢/kg", description: "" };
+}
+
+// Keep for backwards compat where only the name string is needed
+function formatIndicatorName(key: string): string { return getIndicatorMeta(key).label; }
+
+function daysSince(dateStr: string): number {
+  const d = new Date(dateStr);
+  const now = new Date();
+  return Math.floor((now.getTime() - d.getTime()) / 86400000);
 }
 
 function isWheatIndicator(key: string) {
@@ -281,42 +297,93 @@ export default function MarketIntelligence() {
           </button>
         </div>
 
+        {/* ── Weekly Commentary ── */}
+        {(() => {
+          const commentaryKey = `muster_commentary_${species}`;
+          const stored = typeof window !== "undefined" ? localStorage.getItem(commentaryKey) : null;
+          if (!stored) return null;
+          let pts: string[] = [];
+          try { pts = JSON.parse(stored); } catch { pts = [stored]; }
+          if (!pts.length) return null;
+          return (
+            <section className={`rounded-2xl border px-5 py-4 ${species === "sheep" ? "bg-blue-50 border-blue-200" : "bg-amber-50 border-amber-200"}`}>
+              <div className="flex items-center gap-2 mb-3">
+                <BarChart2 className={`h-4 w-4 ${species === "sheep" ? "text-blue-700" : "text-amber-700"}`} />
+                <h2 className={`text-sm font-bold uppercase tracking-wide ${species === "sheep" ? "text-blue-800" : "text-amber-800"}`}>
+                  This Week's Market Commentary
+                </h2>
+              </div>
+              <ul className="space-y-1.5">
+                {pts.map((pt, i) => (
+                  <li key={i} className={`text-sm flex gap-2 ${species === "sheep" ? "text-blue-900" : "text-amber-900"}`}>
+                    <span className="shrink-0 mt-0.5">·</span>
+                    <span>{pt}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className={`text-xs mt-3 ${species === "sheep" ? "text-blue-600" : "text-amber-600"}`}>
+                Source: MLA Weekly Cattle & Sheep Market Wrap · Muster Intelligence
+              </p>
+            </section>
+          );
+        })()}
+
         {/* ── Live Market Indicators ── */}
         <section>
           <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground mb-3">Live Market Indicators</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {filteredBenchmarks.length > 0 ? (
               filteredBenchmarks.map((b) => {
                 const isWheat = isWheatIndicator(b.indicator);
+                const meta = getIndicatorMeta(b.indicator);
                 const formattedValue = isWheat
                   ? `$${b.cents_per_kg.toFixed(0)}/t`
-                  : fmtCpkg(b.cents_per_kg);
+                  : `${b.cents_per_kg.toFixed(0)}¢`;
                 const isSheep = species === "sheep";
+                const stale = daysSince(b.benchmark_date);
                 return (
-                  <Card key={b.indicator}>
-                    <CardContent className="pt-4">
-                      <div className="flex items-start gap-3">
-                        <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${isSheep ? "bg-blue-50" : "bg-amber-50"}`}>
-                          <TrendingUp className={`h-4 w-4 ${isSheep ? "text-blue-600" : "text-amber-600"}`} />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs text-muted-foreground leading-tight">
-                            {formatIndicatorName(b.indicator)}
-                          </p>
-                          <p className="text-2xl font-bold leading-tight">{formattedValue}</p>
-                          <p className="text-xs text-muted-foreground">{b.benchmark_date}</p>
-                        </div>
+                  <Card key={b.indicator} className="relative">
+                    <CardContent className="pt-4 pb-3">
+                      <div className="flex items-start justify-between gap-1 mb-1">
+                        <p className="text-xs font-semibold text-muted-foreground leading-tight flex-1">{meta.short}</p>
+                        {meta.description && (
+                          <div className="group relative shrink-0">
+                            <Info className="h-3.5 w-3.5 text-muted-foreground/50 cursor-help mt-0.5" />
+                            <div className="hidden group-hover:block absolute right-0 top-5 z-50 w-64 bg-popover border rounded-xl shadow-lg p-3 text-xs text-muted-foreground leading-relaxed">
+                              <p className="font-semibold text-foreground mb-1">{meta.label}</p>
+                              {meta.description}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <p className={`text-2xl font-bold leading-none mb-1 ${isSheep ? "text-blue-700" : "text-amber-700"}`}>
+                        {formattedValue}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{meta.basis}</p>
+                      <div className="flex items-center justify-between mt-2">
+                        <p className="text-xs text-muted-foreground">{b.benchmark_date}</p>
+                        {stale > 8 && (
+                          <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">⚠ {stale}d old</span>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
                 );
               })
             ) : benchmarks && benchmarks.length > 0 ? (
-              <p className="text-sm text-muted-foreground col-span-5">No {species === "sheep" ? "sheep & lamb" : "cattle"} benchmarks available yet.</p>
+              <p className="text-sm text-muted-foreground col-span-4">No {species === "sheep" ? "sheep & lamb" : "cattle"} benchmarks loaded yet.</p>
             ) : (
-              <p className="text-sm text-muted-foreground col-span-5">Loading benchmarks…</p>
+              <p className="text-sm text-muted-foreground col-span-4">Loading benchmarks…</p>
             )}
           </div>
+          {/* Source attribution */}
+          {filteredBenchmarks.length > 0 && (
+            <p className="text-xs text-muted-foreground mt-3">
+              Source: MLA Market Information ·{" "}
+              Data as at {filteredBenchmarks.reduce((latest, b) => b.benchmark_date > latest ? b.benchmark_date : latest, "")} ·{" "}
+              Updated weekly · <a href="https://www.mla.com.au/prices-and-markets/" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">mla.com.au</a>
+            </p>
+          )}
         </section>
 
         {/* ── Saleyard Results ── */}
