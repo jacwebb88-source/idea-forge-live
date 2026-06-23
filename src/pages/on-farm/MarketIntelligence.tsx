@@ -76,8 +76,8 @@ function isWheatIndicator(key: string) {
   return key.includes("wheat") || key.includes("grain");
 }
 
-const CATTLE_KEYS = ["eyci", "ayci", "wyci", "nyci", "feeder_steer", "heavy_steer", "heavy_steer_0t", "heavy_steer_2t", "medium_steer", "light_steer", "heavy_cow", "medium_cow", "oth_vic", "oth_qld", "oth_nsw", "oth_sa"];
-const SHEEP_KEYS = ["estli", "arli", "heavy_lamb", "restocker_lamb", "merino_lamb", "mutton", "watli", "light_lamb"];
+const CATTLE_KEYS = ["eyci", "ayci", "wyci", "nyci", "feeder_steer", "heavy_steer", "heavy_steer_0t", "heavy_steer_2t", "medium_steer", "light_steer", "heavy_cow", "medium_cow", "processor_cow", "dairy_cow", "restocker_yearling_steer", "restocker_yearling_heifer", "oth_vic", "oth_qld", "oth_nsw", "oth_sa"];
+const SHEEP_KEYS = ["estli", "arli", "trade_lamb", "heavy_lamb", "restocker_lamb", "merino_lamb", "mutton", "watli", "light_lamb"];
 
 const CATEGORY_GUIDE = [
   { name: "EYCI Young Cattle", weightRange: "200–400 kg CW", minKg: 200, maxKg: 400, benchKey: "eyci", basis: "¢/kg CW" },
