@@ -232,7 +232,13 @@ export default function MarketIntelligence() {
 
   const activeKeys = species === "cattle" ? CATTLE_KEYS : SHEEP_KEYS;
   const filteredBenchmarks = benchmarks
-    ? benchmarks.filter(b => activeKeys.includes(b.indicator))
+    ? (() => {
+        // Keep only most recent row per indicator, then filter to active species keys
+        const seen = new Set<string>();
+        return benchmarks
+          .filter(b => { if (seen.has(b.indicator)) return false; seen.add(b.indicator); return true; })
+          .filter(b => activeKeys.includes(b.indicator));
+      })()
     : [];
   const activeCategoryGuide = species === "cattle" ? CATEGORY_GUIDE : SHEEP_CATEGORY_GUIDE;
 

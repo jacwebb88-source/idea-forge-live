@@ -116,7 +116,7 @@ export function useMarketBenchmarks() {
       .from("market_benchmarks")
       .select("*")
       .order("benchmark_date", { ascending: false })
-      .limit(20)
+      .limit(100)
       .then(({ data }) => setBenchmarks((data as MarketBenchmark[]) ?? []));
   }, []);
 
